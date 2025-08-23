@@ -1,0 +1,39 @@
+<div class="card" *ngIf="profile.user.role !== 'individual'">
+    <p-tabs value="0" styleClass="tabview-custom">
+        <p-tablist>
+            <p-tab value="0" class="flex items-center !gap-2">
+                <i class="pi pi-whatsapp"></i>
+                <span class="font-bold whitespace-nowrap">Compose</span>
+            </p-tab>
+            <p-tab value="1" class="flex items-center !gap-2">
+                <i class="pi pi-calendar-clock"></i>
+                <span class="font-bold whitespace-nowrap">Schedules</span>
+                <div class="flex align-items-center gap-2">
+                    <p-badge *ngIf="total_schedules > 0" [value]="total_schedules" />
+                    <p-badge *ngIf="total_schedules == 0" [value]="total_schedules" />
+                </div>
+            </p-tab>
+            <p-tab value="2" class="flex items-center !gap-2">
+                <i class="pi pi-history"></i>
+                <span class="font-bold whitespace-nowrap">History</span>
+                <div class="flex align-items-center gap-2">
+                    <p-badge *ngIf="failedMessageCounts > 0" [value]="failedMessageCounts" severity="danger" />
+                    <p-badge *ngIf="failedMessageCounts == 0" [value]="failedMessageCounts" />
+                </div>
+            </p-tab>
+        </p-tablist>
+        <p-tabpanels>
+            <p-tabpanel value="0">
+                <app-compose-message></app-compose-message>
+            </p-tabpanel>
+
+            <p-tabpanel value="1">
+                <app-crud-schedules (totalSchedules)="onTotalSchedulesHandler($event)"></app-crud-schedules>
+            </p-tabpanel>
+
+            <p-tabpanel value="2">
+                <app-message-history (onFailedMessage)="onFailedMessageHandler($event)"></app-message-history>
+            </p-tabpanel>
+        </p-tabpanels>
+    </p-tabs>
+</div>

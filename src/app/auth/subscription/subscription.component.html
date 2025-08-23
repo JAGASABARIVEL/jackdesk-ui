@@ -1,0 +1,86 @@
+<p-toast />
+<p-progressbar *ngIf="logoutProgress===true" mode="indeterminate" [style]="{ height: '6px' }" />
+
+<div *ngIf="subscriptionStatus" class="bg-red-800 text-gray-100 p-3 mb-4 flex justify-content-between lg:justify-content-center align-items-center flex-wrap">
+    <div class="font-bold mr-4">🔥 Warning!</div>
+    <div class="align-items-center hidden lg:flex">
+        <span class="line-height-3">{{subscriptionStatus}}</span>
+    </div>
+    <a pRipple class="flex align-items-center no-underline justify-content-center border-circle text-gray-50 hover:bg-bluegray-700 cursor-pointer transition-colors transition-duration-150" style="width:2rem; height: 2rem">
+        <i class="pi pi-times"></i>
+    </a>
+</div>
+
+<div *ngIf="!subscriptionStatus" class="bg-green-700 text-gray-100 p-3 mb-4 flex justify-content-between lg:justify-content-center align-items-center flex-wrap">
+    <div class="font-bold mr-4">🔥 Info!</div>
+    <div class="align-items-center hidden lg:flex">
+        <span class="line-height-3">Your subscription is active and applications are live</span>
+    </div>
+    <a pRipple class="flex align-items-center no-underline justify-content-center border-circle text-gray-50 hover:bg-bluegray-700 cursor-pointer transition-colors transition-duration-150" style="width:2rem; height: 2rem">
+        <i class="pi pi-times"></i>
+    </a>
+</div>
+
+<div *ngIf="profile.user.role==='owner' && logoutProgress===false && subscriptionStatus" class="flex flex-column align-items-center justify-content-center h-full p-4">
+
+
+    <div class="shadow-2 p-3 flex flex-column surface-card" style="border-radius: 6px">
+        <div class="text-900 font-medium text-xl mb-2 text-center">Enterprise</div>
+        <div class="text-600">Ideal for startups and small businesses</div>
+        <hr class="my-3 mx-0 border-top-1 border-none surface-border" />
+        <div class="flex align-items-center">
+            <span class="font-bold text-2xl text-900">₹13,000</span>
+            <span class="ml-2 font-medium text-600">per year</span>
+        </div>
+        <hr class="my-3 mx-0 border-top-1 border-none surface-border" />
+        <ul class="list-none p-0 m-0 flex-grow-1">
+            <li class="flex align-items-center mb-3">
+                <i class="pi pi-check-circle text-primary mr-2"></i>
+                <span class="text-900">Unlimited messages</span>
+            </li>
+            <li class="flex align-items-center mb-3">
+                <i class="pi pi-check-circle text-primary mr-2"></i>
+                <span class="text-900">Detaild reports</span>
+            </li>
+            <li class="flex align-items-center mb-3">
+                <i class="pi pi-check-circle text-primary mr-2"></i>
+                <span class="text-900">Unlimited users</span>
+            </li>
+        </ul>
+        <hr class="mb-3 mx-0 border-top-1 border-none surface-border mt-auto" />
+        <button pButton pRipple label="Subscribe" (click)="start_subscription()" class="p-3 w-full p-button-outlined"></button>
+    </div>
+</div>
+
+<div *ngIf="profile.user.role==='individual' && logoutProgress===false && subscriptionStatus" class="flex flex-column align-items-center justify-content-center h-full p-4">
+    <div class="shadow-2 p-3 flex flex-column surface-card" style="border-radius: 6px">
+        <div class="text-900 font-medium text-xl mb-2 text-center">Common</div>
+        <div class="text-600">Ideal for cost effective file storage</div>
+        <hr class="my-3 mx-0 border-top-1 border-none surface-border" />
+        <div class="flex align-items-center">
+            <span class="font-bold text-2xl text-900">₹0</span>
+            <span class="ml-2 font-medium text-600">per year</span>
+        </div>
+        <hr class="my-3 mx-0 border-top-1 border-none surface-border" />
+        <ul class="list-none p-0 m-0 flex-grow-1">
+            <li class="flex align-items-center mb-3">
+                <i class="pi pi-check-circle text-primary mr-2"></i>
+                <span class="text-900">Unlimited Storage</span>
+            </li>
+            <li class="flex align-items-center mb-3">
+                <i class="pi pi-check-circle text-primary mr-2"></i>
+                <span class="text-900">Pay as per the use</span>
+            </li>
+            <li class="flex align-items-center mb-3">
+                <i class="pi pi-check-circle text-primary mr-2"></i>
+                <span class="text-900">File explorer</span>
+            </li>
+            <li class="flex align-items-center mb-3">
+                <i class="pi pi-check-circle text-primary mr-2"></i>
+                <span class="text-900">Share and revoke access to files</span>
+            </li>
+        </ul>
+        <hr class="mb-3 mx-0 border-top-1 border-none surface-border mt-auto" />
+        <button pButton pRipple label="Subscribe" [disabled]="!subscriptionStatus" (click)="start_subscription()" class="p-3 w-full p-button-outlined"></button>
+    </div>
+</div>

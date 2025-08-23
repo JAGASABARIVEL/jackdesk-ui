@@ -1,0 +1,86 @@
+
+
+<div class="flex flex-column gap-4">
+
+  <h5 class="text-center mt-4">Idle vs Active Time Report</h5>
+<div>
+<p-toolbar styleClass="mb-4 gap-2">
+        <ng-template pTemplate="left">
+                        <div class="flex align-items-center justify-content-between">
+                <h5 class="m-0"></h5>
+                <span>
+                    <p-inputgroup>
+                        <p-inputgroup-addon>
+                            <i class="pi pi-search"></i>
+                        </p-inputgroup-addon>
+                        <input 
+                            pInputText 
+                            type="text" 
+                            #searchInput 
+                            (input)="onSearchInput($event, dt)"
+                            placeholder="Search..."
+                        />
+                    </p-inputgroup>
+                </span>
+            </div>
+        </ng-template>
+
+        <ng-template pTemplate="right">
+            <button pButton type="button" label="Download" icon="pi pi-download" class="p-button-outlined" (click)="downloadCSV()"></button>
+        </ng-template>
+    </p-toolbar>
+    <div class="card">
+
+    
+<p-table  #dt [value]="_productivityData" sortField="score" [globalFilterFields]="['user']" [sortOrder]="-1" [paginator]="true" [rows]="10" [rowHover]="true" [showCurrentPageReport]="true" currentPageReportTemplate="Showing {first} to {last} of {totalRecords} entries">
+  <ng-template pTemplate="header">
+    <tr>
+      <th pSortableColumn="user">
+                    Name <p-sortIcon field="user" />
+                </th>
+      <th pSortableColumn="productive_time_minutes">
+                    Productive (min) <p-sortIcon field="productive_time_minutes" />
+                </th>
+      <th pSortableColumn="afk_time_minutes">
+                    Idle (min) <p-sortIcon field="afk_time_minutes" />
+                </th>
+      <th pSortableColumn="score">
+                    Score <p-sortIcon field="score" />
+                </th>
+    </tr>
+  </ng-template>
+  <ng-template pTemplate="body" let-row>
+    <tr>
+      <td>{{ row.user }}</td>
+      <td>{{ row.productive_time_minutes }}</td>
+      <td>{{ row.afk_time_minutes }}</td>
+      <td>{{ row.score }}</td>
+    </tr>
+  </ng-template>
+</p-table>
+</div>
+
+</div>
+
+
+
+
+
+
+
+<h5 class="text-center">Idle vs Active Time Distribution</h5>
+
+<div class="grid">
+        <div class="card col">
+        <p-chart type="bar" [data]="timeChartData" [options]="stackedOptions" width="100%" height="350px"></p-chart>
+    </div>
+</div>
+
+<div class="grid">
+    <div class="card col">
+        <p-chart type="bar" [data]="scoreChartData" [options]="barOptions" width="100%" height="350px"></p-chart>
+    </div>
+
+</div>
+
+</div>

@@ -1,0 +1,13 @@
+@media (min-width: 769px) {
+  ::ng-deep .inline-flex.flex-col {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+
+  .card {
+    display: flex;
+    justify-content: center;
+    border-style: none;
+  }
+}

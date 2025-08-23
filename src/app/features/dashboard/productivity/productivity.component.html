@@ -1,0 +1,50 @@
+<div class="flex align-items-center justify-content-center mb-4">
+
+    <div class="flex align-items-center gap-2">
+    <div class="flex">
+        <p-datepicker showIcon [(ngModel)]="fromDates" [readonlyInput]="true"
+            dateFormat="yy-mm-dd" [style]="" styleClass="w-full shadow-1" [showTime]="true" [hourFormat]="'24'" [stepHour]="1"/>
+        <p-datepicker showIcon [(ngModel)]="toDates" [readonlyInput]="true"
+            dateFormat="yy-mm-dd" [style]="" styleClass="w-full shadow-1" [showTime]="true" [hourFormat]="'24'" [stepHour]="1"/>
+    </div>
+    <div class="flex">
+        <p-select [virtualScroll]="true" [virtualScrollItemSize]="10" placeholder="email"
+            styleClass="w-full shadow-1 p-1" [options]="registeredUsers" filter="true" optionLabel="details.email"
+            optionValue="details.id" class="w-full md:w-56" [(ngModel)]="selected_user" appendTo="body" class="flex-auto" />
+    </div>
+    <button pButton *ngIf="selected_user && fromDates && fromDates !== null && toDates && toDates !== null"
+        icon="pi pi-search" class="p-button-outlined shadow-1" (click)="getProductivityData()"></button>
+</div>
+
+</div>
+
+
+<div class="card" *ngIf="leaderboardData !== null && employeeProductivityData !== null && profile?.user?.role !== 'individual' && profile?.user?.role !=='employee'">
+
+
+
+    <p-tabs value="0" styleClass="tabview-custom">
+        <p-tablist>
+            <p-tab value="0" class="flex items-center !gap-2">
+                <i class="pi pi-people"></i>
+                <span class="font-bold white-space-nowrap m-0">
+                    Employee
+                </span>
+            </p-tab>
+            <p-tab value="1" class="flex items-center !gap-2">
+                <i class="pi pi-work"></i>
+                <span class="font-bold white-space-nowrap m-0">
+                    Organization
+                </span>
+            </p-tab>
+        </p-tablist>
+        <p-tabpanels>
+            <p-tabpanel value="0">
+                <app-individual-level *ngIf="selected_duration && employeeProductivityData" [productivityData]="employeeProductivityData" [selectedDuration]="selected_duration"></app-individual-level>
+            </p-tabpanel>
+            <p-tabpanel value="1">
+                <app-org-level *ngIf="leaderboardData" [productivityData]="leaderboardData"></app-org-level>
+            </p-tabpanel>
+        </p-tabpanels>
+    </p-tabs>
+</div>

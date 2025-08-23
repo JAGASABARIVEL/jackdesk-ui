@@ -1,0 +1,386 @@
+<p-toast></p-toast>
+
+<div>
+  <p-accordion value="0">
+    <p-accordion-panel value="0">
+      <p-accordion-header>Employee</p-accordion-header>
+      <p-accordion-content>
+        <div class="flex align-items-start justify-content-start">
+          <p-card class="mr-4">
+            <form [formGroup]="employeeForm">
+              <p-select [virtualScroll]="true" [virtualScrollItemSize]="10" placeholder="Employee Email" styleClass="w-full mb-4"
+                [options]="registeredUsers" filter="true" [loading]="registeredUsersLoading" optionLabel="email"
+                optionValue="id" class="w-full md:w-56" formControlName="employee_id" appendTo="body"
+                class="flex-auto" />
+              <p-select [virtualScroll]="true" [virtualScrollItemSize]="10" placeholder="Employee Role" styleClass="w-full mb-4"
+                [options]="registeredEmployeeTypes" filter="true" optionLabel="name"
+                optionValue="name" class="w-full md:w-56" formControlName="employment_role" appendTo="body"
+                class="flex-auto" />
+              <input placeholder="uuid" styleClass="w-full" id="uuid" pInputText formControlName="uuid"
+                class="flex-auto" />
+              <button pButton class="p-button-outlined" styleClass="w-full mt-4" label="Add" (click)="addEmployee()"
+                [disabled]="employeeForm.invalid"></button>
+            </form>
+          </p-card>
+          <div class="card">
+            <p-table [value]="employees" [paginator]="true" [rows]="10">
+              <ng-template pTemplate="header">
+                <tr>
+                  <th pSortableColumn="details.username">
+                    Username <p-sortIcon field="details.username" />
+                  </th>
+                  <th pSortableColumn="details.email">
+                    Email <p-sortIcon field="details.email" />
+                  </th>
+                  <th pSortableColumn="role">
+                    Role <p-sortIcon field="role" />
+                  </th>
+                  <th>Actions</th>
+                </tr>
+              </ng-template>
+              <ng-template pTemplate="body" let-employee>
+                <tr>
+                  <td>{{ employee.details.username }}</td>
+                  <td>{{ employee.details.email }}</td>
+                  <td>{{ employee.role }}</td>
+                  <td>
+                    <button [disabled]="employee.role === 'owner'" pButton type="button" icon="pi pi-trash"
+                      class="p-button-danger" (click)="removeEmployee(employee)">
+                    </button>
+                  </td>
+                </tr>
+              </ng-template>
+            </p-table>
+          </div>
+        </div>
+      </p-accordion-content>
+    </p-accordion-panel>
+
+    <p-accordion-panel value="1">
+      <p-accordion-header>Agent</p-accordion-header>
+      <p-accordion-content>
+        <div class="flex align-items-start justify-content-start">
+          <p-card class="mr-4">
+            <form [formGroup]="agentForm">
+              <p-inputgroup class="mb-4">
+                <input placeholder="email" styleClass="w-full" id="agent_email" pInputText formControlName="agent_email"
+                  (keyup)="validateAgentEmailAvailable()" />
+                <p-inputgroup-addon>
+                  <i *ngIf="agentEmailValid" class="pi pi-check" style="color: var(--primary-color)"
+                    pTooltip="Email available" tooltipPosition="top"></i>
+                  <i *ngIf="!agentEmailValid" class="pi pi-times" style="color: red" pTooltip="Email not available"
+                    tooltipPosition="top"></i>
+                </p-inputgroup-addon>
+              </p-inputgroup>
+              <input placeholder="username" styleClass="w-full" id="agent_username" pInputText
+                formControlName="agent_username" />
+              <button pButton class="p-button-outlined" styleClass="w-full mt-4" label="Add" (click)="addAgent()"
+                [disabled]="agentForm.invalid || !agentEmailValid"></button>
+            </form>
+          </p-card>
+          <div class="card">
+            <p-table [value]="agents" [paginator]="true" [rows]="10">
+              <ng-template pTemplate="header">
+                <tr>
+                  <th pSortableColumn="details.username">
+                    Username <p-sortIcon field="details.username" />
+                  </th>
+                  <th pSortableColumn="details.email">
+                    Email <p-sortIcon field="details.email" />
+                  </th>
+                  <th pSortableColumn="role">
+                    Role <p-sortIcon field="role" />
+                  </th>
+                  <th>Actions</th>
+                </tr>
+              </ng-template>
+              <ng-template pTemplate="body" let-agent>
+                <tr>
+                  <td>{{ agent.details.username }}</td>
+                  <td>{{ agent.details.email }}</td>
+                  <td>{{ agent.role }}</td>
+                  <td>
+                    <button [disabled]="agent.role === 'owner'" pButton type="button" icon="pi pi-trash"
+                      class="p-button-danger" (click)="removeAgent(agent)">
+                    </button>
+                  </td>
+                </tr>
+              </ng-template>
+            </p-table>
+          </div>
+        </div>
+      </p-accordion-content>
+    </p-accordion-panel>
+
+    <p-accordion-panel value="2">
+      <p-accordion-header>Add Custom Fields (Contact)</p-accordion-header>
+      <p-accordion-content>
+        <div class="card" header="Add New Custom Field">
+          <form (ngSubmit)="onCustomFiledsSubmit()" [formGroup]="fieldForm">
+            <div class="field grid">
+              <label for="name" class="col-fixed" style="width:100px">Field Name</label>
+              <div class="col">
+                <input id="name" type="text" pInputText formControlName="name"
+                  class="text-base text-color surface-overlay p-2 border-1 border-solid surface-border border-round appearance-none outline-none focus:border-primary" />
+              </div>
+            </div>
+            <div class="field grid">
+              <label for="key" class="col-fixed" style="width:100px">Field Key</label>
+              <div class="col">
+                <input id="key" type="text" pInputText formControlName="key"
+                  class="text-base text-color surface-overlay p-2 border-1 border-solid surface-border border-round appearance-none outline-none focus:border-primary" />
+              </div>
+            </div>
+            <div class="field grid">
+              <label for="type" class="col-fixed" style="width:100px">Field Type</label>
+              <div class="col">
+                <p-select [options]="fieldTypes" optionLabel="label" optionValue="value" formControlName="field_type"
+                  class="text-base text-color surface-overlay p-2 border-1 border-solid surface-border border-round appearance-none outline-none focus:border-primary"></p-select>
+              </div>
+            </div>
+            <div class="field grid">
+              <label for="required" class="col-fixed" style="width:100px">Required</label>
+              <div class="col">
+                <p-checkbox formControlName="required" binary="true"
+                  class="text-base text-color surface-overlay p-2 border-1 border-solid surface-border border-round appearance-none outline-none focus:border-primary"></p-checkbox>
+              </div>
+            </div>
+            <div class="field grid" *ngIf="showOptionsField()">
+              <label for="options" class="col-fixed" style="width:100px">Options (comma separated)</label>
+              <div class="col">
+                <input id="options" type="text" pInputText formControlName="options"
+                  class="text-base text-color surface-overlay p-2 border-1 border-solid surface-border border-round appearance-none outline-none focus:border-primary" />
+              </div>
+            </div>
+            <div class="col-6">
+              <button pButton label="Add Field" type="submit" [disabled]="fieldForm.invalid"></button>
+            </div>
+          </form>
+        </div>
+        <p-table [value]="customFields" [paginator]="true" [rows]="5" *ngIf="customFields.length > 0">
+          <ng-template pTemplate="header">
+            <tr>
+              <th>Name</th>
+              <th>Key</th>
+              <th>Type</th>
+              <th>Required</th>
+              <th>Actions</th>
+            </tr>
+          </ng-template>
+          <ng-template pTemplate="body" let-field>
+            <tr>
+              <td>{{ field.name }}</td>
+              <td>{{ field.key }}</td>
+              <td>{{ field.field_type }}</td>
+              <td>{{ field.required ? 'Yes' : 'No' }}</td>
+              <td>
+                <button pButton icon="pi pi-trash" class="p-button-danger p-button-sm"
+                  (click)="deleteField(field)"></button>
+              </td>
+            </tr>
+          </ng-template>
+        </p-table>
+      </p-accordion-content>
+    </p-accordion-panel>
+
+    <p-accordion-panel value="3">
+      <p-accordion-header>Block/Unblock Contact</p-accordion-header>
+      <p-accordion-content>
+        <p-table *ngIf="allBlockedContacts.length > 0" [value]="allBlockedContacts" [paginator]="true" [rows]="10">
+          <ng-template pTemplate="header">
+            <tr>
+              <th>Contact</th>
+              <th>Type</th>
+              <th>Reason</th>
+              <th>Blocked At</th>
+              <th>Action</th>
+            </tr>
+          </ng-template>
+          <ng-template pTemplate="body" let-row>
+            <tr>
+              <td>{{ row.contact_value }}</td>
+              <td>{{ row.contact_type }}</td>
+              <td>{{ row.reason || '-' }}</td>
+              <td>{{ row.blocked_at | date: 'short' }}</td>
+              <td>
+                <button pButton icon="pi pi-times" class="p-button-danger p-button-sm"
+                  (click)="unblockContact(row.platform, row.contact_value)"></button>
+              </td>
+            </tr>
+          </ng-template>
+        </p-table>
+        <p-button icon="pi pi-plus" label="Block New Contact" class="p-button-sm p-mt-2"
+          (click)="blockDialogVisible = true"></p-button>
+      </p-accordion-content>
+    </p-accordion-panel>
+
+        <p-accordion-panel value="4">
+            <p-accordion-header>Platform</p-accordion-header>
+            <p-accordion-content>
+                <!-- Platforms Section -->
+<div *ngIf="profile.user.role == 'owner'" class="mb-4">
+  <h4 class="mb-3">Platforms</h4>
+  <p-table [value]="platforms" editable="true" dataKey="id">
+    <ng-template pTemplate="header">
+      <tr>
+        <th></th>
+        <th>App ID</th>
+        <th>Login ID</th>
+        <th>Secret Key</th>
+        <th>Token</th>
+        <th>Actions</th>
+      </tr>
+    </ng-template>
+    <ng-template pTemplate="body" let-rowData let-editing="editing">
+      <tr tooltipStyleClass="custom-tooltip-wide" [pTooltip]="'Name: ' + rowData.user_platform_name + '\nId: ' + rowData.login_id" tooltipPosition="top">
+        <!-- Icon -->
+        <td>
+          <i *ngIf="rowData.platform_name.startsWith('whatsapp')" class="pi pi-whatsapp text-green-500 text-xl"></i>
+          <i *ngIf="rowData.platform_name.startsWith('web')" class="pi pi-globe text-orange-400 text-xl"></i>
+          <i *ngIf="rowData.platform_name.startsWith('messenger')" class="pi pi-comment text-blue-400 text-xl"></i>
+          <i *ngIf="rowData.platform_name.startsWith('gmail')" class="pi pi-envelope text-red-500 text-xl"></i>
+        </td>
+        <!-- Editable Fields -->
+        <td [pEditableColumn]="rowData.app_id">
+          <p-cellEditor>
+            <ng-template pTemplate="input">
+              <input pInputText [(ngModel)]="rowData.app_id" />
+            </ng-template>
+            <ng-template pTemplate="output">
+              {{ rowData.app_id }}
+            </ng-template>
+          </p-cellEditor>
+        </td>
+        <td [pEditableColumn]="rowData.login_id">
+          <p-cellEditor>
+            <ng-template pTemplate="input">
+              <input pInputText [(ngModel)]="rowData.login_id" />
+            </ng-template>
+            <ng-template pTemplate="output">
+              {{ rowData.login_id }}
+            </ng-template>
+          </p-cellEditor>
+        </td>
+        <td [pEditableColumn]="rowData.secret_key">
+          <p-cellEditor>
+            <ng-template pTemplate="input">
+              <input pInputText [(ngModel)]="rowData.secret_key" />
+            </ng-template>
+            <ng-template pTemplate="output">
+              {{ rowData.secret_key }}
+            </ng-template>
+          </p-cellEditor>
+        </td>
+        <td [pEditableColumn]="rowData.login_credentials">
+          <p-cellEditor>
+            <ng-template pTemplate="input">
+              <textarea pInputTextarea rows="2" cols="30" [(ngModel)]="rowData.login_credentials"></textarea>
+            </ng-template>
+            <ng-template pTemplate="output">
+              {{ rowData.login_credentials | slice:0:40 }}...
+            </ng-template>
+          </p-cellEditor>
+        </td>
+        <td>
+          <div class="flex gap-1">
+            <button pButton icon="pi pi-save" class="p-button-sm p-button-success p-button-outlined" (click)="savePlatform(rowData)"></button>
+          <button
+    *ngIf="rowData.platform_name === 'gmail'"
+    pButton
+    icon="pi pi-sign-in"
+    class="p-button-sm p-button-danger p-button-outlined"
+    (click)="connectGmail(rowData.id)"
+  ></button>
+          </div>
+      </tr>
+    </ng-template>
+  </p-table>
+</div>
+
+    <!-- Action Buttons -->
+    <div *ngIf="profile.user.role == 'owner'" class="flex gap-3">
+        <p-button label="Add" (click)="addNewPlatformDialogVisible=true" icon="pi pi-plus" class="mr-2"></p-button>
+        <!--p-button label="Save" (click)="onSave()" icon="pi pi-save"></p-button-->
+    </div>
+            </p-accordion-content>
+        </p-accordion-panel>
+  </p-accordion>
+</div>
+
+
+
+
+<p-dialog header="Block Contact" [(visible)]="blockDialogVisible" [modal]="true" [closable]="true"
+  [style]="{ width: '400px' }">
+  <div class="field grid">
+    <label for="platform" class="col-fixed" style="width:100px">Platform</label>
+    <div class="col">
+      <p-select
+        class="text-base text-color surface-overlay p-2 border-1 border-solid surface-border border-round appearance-none outline-none focus:border-primary"
+        id="platform" [options]="registeredPlatforms" [(ngModel)]="blockForm.platform" optionLabel="user_platform_name"
+        placeholder="Select Platform" [appendTo]="'body'">
+      </p-select>
+    </div>
+  </div>
+
+  <div class="field grid">
+    <label for="contactValue" class="col-fixed" style="width:100px">Contact (Email or Phone)</label>
+    <div class="col">
+      <input
+        class="text-base text-color surface-overlay p-2 border-1 border-solid surface-border border-round appearance-none outline-none focus:border-primary"
+        id="contactValue" type="text" pInputText [(ngModel)]="blockForm.contact_value" />
+    </div>
+  </div>
+  <div class="field grid">
+    <label for="reason" class="col-fixed" style="width:100px">Reason (Optional)</label>
+    <div class="col">
+      <textarea
+        class="text-base text-color surface-overlay p-2 border-1 border-solid surface-border border-round appearance-none outline-none focus:border-primary"
+        id="reason" rows="2" pInputTextarea [(ngModel)]="blockForm.reason"></textarea>
+    </div>
+  </div>
+  <ng-template pTemplate="footer">
+    <button pButton label="Block" icon="pi pi-ban" (click)="submitBlockContact()"
+      [disabled]="!blockForm.contact_value || !blockForm.platform"></button>
+  </ng-template>
+</p-dialog>
+
+
+
+
+
+    <!-- Add Platform Dialog -->
+    <p-dialog header="Add Platform" [modal]="true" [(visible)]="addNewPlatformDialogVisible" [style]="{ width: '25rem' }">
+        <form [formGroup]="newPlatformformGroup">
+            <div class="field mb-3">
+                <label for="platform" class="font-semibold">Platform</label>
+                <p-select class="w-full" [options]="supported_platforms" formControlName="selected_platform_ctrl" optionLabel="name" [filter]="true" filterBy="name" [showClear]="true" placeholder="Select a platform"></p-select>
+            </div>
+            <div class="field mb-3">
+                <label for="platform" class="font-semibold">Name</label>
+                <input pInputText id="platform_name" formControlName="platformname_form_field_ctrl" class="w-full" autocomplete="off" />
+            </div>
+            <div class="field mb-3">
+                <label for="app_id" class="font-semibold">App Id</label>
+                <input pInputText id="app_id" formControlName="app_id_form_field_ctrl" class="w-full" autocomplete="off" />
+            </div>
+            <div class="field mb-3">
+                <label for="login_id" class="font-semibold">Login Id</label>
+                <input pInputText id="login_id" formControlName="login_id_form_filed_ctrl" class="w-full" autocomplete="off" />
+            </div>
+            <div class="field mb-3">
+                <label for="token" class="font-semibold">Token</label>
+                <input pInputText id="token" formControlName="token_form_filed_ctrl" class="w-full" autocomplete="off" />
+            </div>
+            <div class="field mb-3">
+                <label for="secret_key" class="font-semibold">Secret Key</label>
+                <input pInputText id="secret_key" formControlName="secret_key_field_ctrl" class="w-full" autocomplete="off" />
+            </div>
+            <div class="flex justify-content-end gap-2">
+                <p-button label="Cancel" severity="secondary" (click)="addNewPlatformDialogVisible = false"></p-button>
+                <p-button [disabled]="newPlatformformGroup.invalid" label="Save" icon="pi pi-save" (click)="onAddPlatform()"></p-button>
+            </div>
+        </form>
+    </p-dialog>
+
+<p-confirmDialog [style]="{ width: '450px' }" />

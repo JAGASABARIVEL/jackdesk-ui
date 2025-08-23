@@ -1,0 +1,56 @@
+<div class="surface-ground px-4 py-8 md:px-6 lg:px-8">
+  <div class="text-700 font-bold text-6xl mb-4 text-center">Pricing Plans</div>
+  <div class="text-700 text-xl mb-6 text-center line-height-3">
+    Choose the plan that fits your organization’s needs.
+  </div>
+
+  <div class="grid">
+    <!-- Free Plan -->
+    <div class="col-12 lg:col-6" *ngIf="freePlanDescription">
+      <div class="p-3 h-full">
+        <div class="shadow-2 p-3 h-full flex flex-column surface-card" style="border-radius: 6px">
+          <div class="text-700 font-medium text-xl mb-2 text-center">Community</div>
+          <div class="text-600 text-center">*Store your data without any prior cost</div>
+          <hr class="my-3 mx-0 border-top-1 border-none surface-border" />
+          <div class="flex align-items-center justify-content-center">
+            <span class="font-bold text-2xl text-700">₹ {{ freePlanPrice }}</span>
+            <span class="ml-2 font-medium text-600">per year</span>
+          </div>
+          <hr class="my-3 mx-0 border-top-1 border-none surface-border" />
+          <ul class="list-none p-0 m-0 flex-grow-1">
+            <li class="flex align-items-center mb-3" *ngFor="let feature of freePlanFeatures">
+              <i class="pi pi-check-circle text-green-500 mr-2"></i>
+              <span class="text-700">{{ feature }}</span>
+            </li>
+          </ul>
+          <hr class="mb-3 mx-0 border-top-1 border-none surface-border mt-auto" />
+          <button (click)="onBuyNowClick();" pButton pRipple label="Get Started" class="p-3 w-full mt-auto"></button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Enterprise Plan -->
+    <div class="col-12 lg:col-6" *ngIf="enterprisePlanDescription">
+      <div class="p-3 h-full">
+        <div class="shadow-2 p-3 h-full flex flex-column surface-card" style="border-radius: 6px">
+          <div class="text-700 font-medium text-xl mb-2 text-center">Enterprise</div>
+          <div class="text-600 text-center">{{ enterprisePlanDescription }}</div>
+          <hr class="my-3 mx-0 border-top-1 border-none surface-border" />
+          <div class="flex align-items-center justify-content-center">
+            <span class="font-bold text-2xl text-700">₹ {{ enterprisePlanPrice }}</span>
+            <span class="ml-2 font-medium text-600">per year</span>
+          </div>
+          <hr class="my-3 mx-0 border-top-1 border-none surface-border" />
+          <ul class="list-none p-0 m-0 flex-grow-1">
+            <li class="flex align-items-center mb-3" *ngFor="let feature of enterprisePlanFeatures">
+              <i class="pi pi-check-circle text-green-500 mr-2"></i>
+              <span class="text-700">{{ feature }}</span>
+            </li>
+          </ul>
+          <hr class="mb-3 mx-0 border-top-1 border-none surface-border mt-auto" />
+          <button (click)="onBuyNowClick();" pButton pRipple label="Get Enterprise Access" class="p-3 w-full mt-auto p-button-outlined"></button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

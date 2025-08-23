@@ -1,0 +1,20 @@
+<div class="card">
+
+  <div #header class="shadow-1 p-4 mb-2">
+     <app-header (searchQuery)="onSearch($event)" (compose)="composeRef?.show()" />
+  </div>
+
+  <div class="flex">
+    <div #sidebar>
+      <aside class="w-64 border-r">
+        <app-sidebar />
+      </aside>
+    </div>
+
+    <div #main class="flex justify-content-between ml-2">
+        <app-email-list style="width: 20vw;"/>
+        <app-email-detail style="width: 72vw;"/>
+    </div>
+  </div>
+</div>
+<app-compose-email #composeRef (emailSent)="onEmailSent($event)" />

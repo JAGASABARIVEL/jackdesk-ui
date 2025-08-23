@@ -1,0 +1,30 @@
+<div class="card" *ngIf="profile.user.role !== 'individual'">
+    <p-tabs value="0" styleClass="tabview-custom">
+        <p-tablist>
+            <p-tab value="0" class="flex items-center !gap-2">
+                <i class="pi pi-user"></i>
+                <span class="font-bold white-space-nowrap m-0">
+                    Contacts
+                </span>
+                <p-badge [value]="total_contacts" />
+            </p-tab>
+            <p-tab value="1" class="flex items-center !gap-2">
+                <i class="pi pi-users"></i>
+                <span class="font-bold white-space-nowrap m-0">
+                    Groups
+                </span>
+                <p-badge [value]="total_groups" />
+            </p-tab>
+        </p-tablist>
+        <p-tabpanels>
+            <p-tabpanel value="0">
+                <app-contact (totalContacts)="onTotalContactsHandler($event)"></app-contact>
+            </p-tabpanel>
+            <p-tabpanel value="1">
+                <app-groups (totalGroups)="onTotalGroupsHandler($event)"></app-groups>
+            </p-tabpanel>
+
+        </p-tabpanels>
+
+    </p-tabs>
+</div>

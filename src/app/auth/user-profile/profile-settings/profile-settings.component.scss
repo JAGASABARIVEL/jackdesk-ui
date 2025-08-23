@@ -1,0 +1,22 @@
+.p-card-header {
+    text-align: center;
+  }
+  
+  .p-card-body {
+    padding: 2rem;
+  }
+  
+  .p-field {
+    margin-bottom: 1rem;
+  }
+  
+  textarea {
+    resize: none;
+  }
+  
+  /* styles.scss or component.scss with ViewEncapsulation.None */
+::ng-deep .custom-tooltip-wide {
+  max-width: 800px !important;
+  white-space: normal !important;
+  word-break: break-word;
+}

@@ -1,0 +1,16 @@
+<p-drawer header="Folders" [(visible)]="menuVisible" position="left">
+  <ul class="list-none p-0 m-0">
+    <li *ngFor="let folder of folders" class="cursor-pointer hover:bg-gray-200 p-2 rounded" (click)="selectFolder(folder)">
+      <i [class]="folder.icon"></i> {{ folder.label }}
+    </li>
+  </ul>
+  <p-divider/>
+  <app-account-manager class="p-2 border-b"/>
+</p-drawer>
+
+
+
+<div class="flex flex-column gap-3 shadow-1" style="height: 80vh;">
+  <button pButton class="transform -rotate-90 mt-6 mb-4 p-button-outlined p-button-sm px-3" icon="pi pi-envelope" (mouseenter)="menuVisible = true">Inbox</button>
+  <button pButton class="transform -rotate-90 mt-4 p-button-outlined p-button-sm px-3" icon="pi pi-send" (mouseenter)="menuVisible = true">sent</button>
+</div>

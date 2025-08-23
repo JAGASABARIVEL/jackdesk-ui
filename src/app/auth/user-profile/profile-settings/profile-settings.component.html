@@ -1,0 +1,35 @@
+<p-toast></p-toast>
+<div class="card p-4">
+    <!-- User Information -->
+    <div class="grid ">
+        <div class="col-4 flex flex-column justify-content-between align-items-start gap-2">
+            <img [src]="profile?.user.image">
+            <p-button icon="pi pi-check" *ngIf="profile.user.is_registration_complete" label="Verified" severity="primary"></p-button>
+            <p-button icon="pi pi-times" *ngIf="!profile.user.is_registration_complete" label="Unverified" severity="danger" (click)="takeToLoginScreen();"></p-button>
+            <!--p-button *ngIf="profile.user.role === 'individual'" label="Convert To Enterprise" severity="primary" (click)="visible = false"></p-button-->
+        </div>
+        <div class="col-6">
+            <p-inputgroup class="mb-3">
+                <p-inputgroup-addon><i class="pi pi-user"></i></p-inputgroup-addon>
+                <input disabled id="username" type="text" pInputText [(ngModel)]="profile.user.username" placeholder="Username" />
+            </p-inputgroup>
+
+            <p-inputgroup class="mb-3">
+                <p-inputgroup-addon><i class="pi pi-at"></i></p-inputgroup-addon>
+                <input disabled id="email" type="text" pInputText [(ngModel)]="profile.user.email" placeholder="example@email.com" />
+            </p-inputgroup>
+            
+            <p-inputgroup class="mb-3">
+                <p-inputgroup-addon><i class="pi pi-graduation-cap"></i></p-inputgroup-addon>
+                <input disabled id="org" type="text" pInputText [(ngModel)]="profile.user.role" placeholder="Role" />
+            </p-inputgroup>
+
+            <p-inputgroup class="mb-3" *ngIf="profile.user.role !== 'individual'">
+                <p-inputgroup-addon><i class="pi pi-briefcase"></i></p-inputgroup-addon>
+                <input disabled id="org" type="text" pInputText [(ngModel)]="org_name" placeholder="Organization Name" />
+            </p-inputgroup>
+        </div>
+    </div>
+    <p-divider *ngIf="profile.user.role !== 'individual'"></p-divider>
+
+    

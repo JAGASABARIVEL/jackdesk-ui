@@ -1,0 +1,20 @@
+.avatar-wrapper {
+  position: relative;
+  display: inline-block;
+}
+
+.whatsapp-platform-icon {
+  position: absolute;
+  top: -6px;
+  left: -6px;
+  z-index: 1;
+}
+
+.preview {
+  margin: 0;
+  color: #888;
+  font-size: 0.9rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}

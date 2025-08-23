@@ -1,0 +1,269 @@
+<p-dialog *ngIf="profile.user.role==='owner'" header="Conversations Report" [(visible)]="reportAllConversationVisible"
+    [modal]="true" [breakpoints]="{ '1199px': '75vw', '575px': '90vw' }" [style]="{ width: '80vw' }" [draggable]="true"
+    [resizable]="true">
+    <app-report-conversations [users]="employees" [is_user_specific]="false"
+        [status_filter]="filter_status_report"></app-report-conversations>
+</p-dialog>
+
+<p-dialog *ngIf="profile.user.role==='employee'" header="Conversations Report"
+    [(visible)]="reportAllConversationVisible" [modal]="true" [breakpoints]="{ '1199px': '75vw', '575px': '90vw' }"
+    [style]="{ width: '80vw' }" [draggable]="true" [resizable]="true">
+    <app-report-conversations [users]="employees" [is_user_specific]="true"
+        [status_filter]="filter_status_report"></app-report-conversations>
+</p-dialog>
+
+<div class="px-4 py-5 md:px-6 lg:px-8">
+
+    <div class="grid">
+
+        <div class="col-12">
+            <div class="flex align-items-center justify-content-end">
+                <p-floatlabel>
+                    <p-datepicker (onClose)="onSelectedConversationMainIntervalChange()"
+                        [(ngModel)]="select_global_duration" id="global_interval" showIcon dateFormat="yy-mm-dd"
+                        selectionMode="range" />
+                    <label for="global_interval">Choose Duration</label>
+                </p-floatlabel>
+                <!--p-floatlabel>
+                <p-dropdown 
+                    [options]="periods" 
+                    [(ngModel)]="selectedConversationMainPeriod" 
+                    optionLabel="name"
+                    id="global_period"
+                />
+                <label for="global_period">Choose Interval</label>
+                </p-floatlabel-->
+            </div>
+        </div>
+
+
+        <div *ngIf="organizationConversationPerformance" class="col-12 md:col-6 lg:col-3">
+            <div class="surface-card shadow-2 p-3 border-round cursor-pointer"
+                (click)="reportAllConversationVisible=true;filter_status_report='';">
+                <div class="flex justify-content-between mb-3">
+                    <div>
+                        <span class="block text-500 font-medium mb-3">All Conversations</span>
+                        <div *ngIf="profile.user.role === 'owner'" class="text-900 font-medium text-xl text-center">
+                            {{organizationConversationPerformance?.new}}</div>
+                        <div *ngIf="profile.user.role !== 'owner'" class="text-900 font-medium text-xl text-center">
+                            {{myStats?.active + myStats?.closed}}</div>
+                    </div>
+                    <div class="flex align-items-center justify-content-center bg-primary-100 border-round"
+                        style="width:2.5rem;height:2.5rem">
+                        <i class="pi pi-comment text-primary text-xl"></i>
+                    </div>
+                </div>
+                <span *ngIf="profile.user.role === 'owner'"
+                    class="text-green-500 font-medium">{{organizationConversationPerformance?.new}} total </span>
+                <span *ngIf="profile.user.role !== 'owner'" class="text-green-500 font-medium">{{myStats?.active +
+                    myStats?.closed}} total </span>
+                <span class="text-500">in the selected duration</span>
+            </div>
+        </div>
+        <div *ngIf="organizationConversationPerformance" class="col-12 md:col-6 lg:col-3"
+            (click)="reportAllConversationVisible=true;filter_status_report='active';">
+            <div class="surface-card shadow-2 p-3 border-round cursor-pointer">
+                <div class="flex justify-content-between mb-3">
+                    <div>
+                        <span class="block text-500 font-medium mb-3">Active Conversations</span>
+                        <div *ngIf="profile.user.role === 'owner'" class="text-900 font-medium text-xl text-center">
+                            {{organizationConversationPerformance?.active}}</div>
+                        <div *ngIf="profile.user.role !== 'owner'" class="text-900 font-medium text-xl text-center">
+                            {{myStats?.active}}</div>
+                    </div>
+                    <div class="flex align-items-center justify-content-center bg-orange-200 border-round"
+                        style="width:2.5rem;height:2.5rem">
+                        <i class="pi pi-comment text-primary text-xl"></i>
+                    </div>
+                </div>
+                <span *ngIf="profile.user.role === 'owner'"
+                    class="text-green-500 font-medium">{{organizationConversationPerformance?.active}} active </span>
+                <span *ngIf="profile.user.role !== 'owner'" class="text-green-500 font-medium">{{myStats?.active}}
+                    active </span>
+                <span class="text-500">in the selected duration</span>
+            </div>
+        </div>
+        <div *ngIf="organizationConversationPerformance" class="col-12 md:col-6 lg:col-3"
+            (click)="reportAllConversationVisible=true;filter_status_report='closed';">
+            <div class="surface-card shadow-2 p-3 border-round cursor-pointer">
+                <div class="flex justify-content-between mb-3">
+                    <div>
+                        <span class="block text-500 font-medium mb-3">Closed Conversations</span>
+                        <div *ngIf="profile.user.role === 'owner'" class="text-900 font-medium text-xl text-center">
+                            {{organizationConversationPerformance?.closed}}</div>
+                        <div *ngIf="profile.user.role !== 'owner'" class="text-900 font-medium text-xl text-center">
+                            {{myStats?.closed}}</div>
+                    </div>
+                    <div class="flex align-items-center justify-content-center bg-primary-100 border-round"
+                        style="width:2.5rem;height:2.5rem">
+                        <i class="pi pi-comment text-primary text-xl"></i>
+                    </div>
+                </div>
+                <span *ngIf="profile.user.role === 'owner'"
+                    class="text-green-500 font-medium">{{organizationConversationPerformance?.closed}} closed </span>
+                <span *ngIf="profile.user.role !== 'owner'" class="text-green-500 font-medium">{{myStats?.closed}}
+                    closed </span>
+                <span class="text-500">in the selected duration</span>
+            </div>
+        </div>
+        <div *ngIf="profile.user.role === 'owner' && organizationConversationPerformance"
+            class="col-12 md:col-6 lg:col-3">
+            <div class="surface-card shadow-2 p-3 border-round">
+                <div class="flex justify-content-between mb-3">
+                    <div>
+                        <span class="block text-500 font-medium mb-3">Avg Resolution Rate</span>
+                        <div class="text-900 font-medium text-xl text-center">
+                            {{organizationConversationPerformance?.resolutionrate}}%</div>
+                    </div>
+                    <div class="flex align-items-center justify-content-center bg-primary-100 border-round"
+                        style="width:2.5rem;height:2.5rem">
+                        <i class="pi pi-verified text-primary text-xl"></i>
+                    </div>
+                </div>
+                <span class="text-green-500 font-medium"> </span>
+                <span class="text-500">in the selected duration</span>
+            </div>
+        </div>
+
+        <div *ngIf="organizationConversationPerformance" class="col-12 md:col-6 lg:col-3">
+            <div class="surface-card shadow-2 p-3 border-round">
+                <div class="flex justify-content-between mb-3">
+                    <div>
+                        <span class="block text-500 font-medium mb-3">Avg Resolution Time</span>
+                        <div *ngIf="profile.user.role === 'owner'" class="text-900 font-medium text-xl text-center">
+                            {{organizationConversationPerformance?.resolutiontime}} hours</div>
+                        <div *ngIf="profile.user.role !== 'owner'" class="text-900 font-medium text-xl text-center">
+                            {{myStats?.resolutiontime}} hours</div>
+                    </div>
+                    <div class="flex align-items-center justify-content-center bg-orange-200 border-round"
+                        style="width:2.5rem;height:2.5rem">
+                        <i class="pi pi-question-circle text-primary text-xl"></i>
+                    </div>
+                </div>
+                <span class="text-green-500 font-medium"> </span>
+                <span class="text-500">in the selected duration</span>
+            </div>
+        </div>
+
+        <div *ngIf="organizationConversationPerformance" class="col-12 md:col-6 lg:col-3">
+            <div class="surface-card shadow-2 p-3 border-round">
+                <div class="flex justify-content-between mb-3">
+                    <div>
+                        <span class="block text-500 font-medium mb-3">Avg Response Time</span>
+                        <div *ngIf="profile.user.role === 'owner'" class="text-900 font-medium text-xl text-center">
+                            {{organizationConversationPerformance?.responsetime}} hours</div>
+                        <div *ngIf="profile.user.role !== 'owner'" class="text-900 font-medium text-xl text-center">
+                            {{myStats?.responsetime}} hours</div>
+                    </div>
+                    <div class="flex align-items-center justify-content-center bg-orange-200 border-round"
+                        style="width:2.5rem;height:2.5rem">
+                        <i class="pi pi-clock text-primary text-xl"></i>
+                    </div>
+                </div>
+                <span class="text-green-500 font-medium"> </span>
+                <span class="text-500">in the selected duration</span>
+            </div>
+        </div>
+
+        <div class="col-12 md:col-6 lg:col-3">
+
+        </div>
+
+        <div class="col-12">
+            <app-list-conversations [users]="employees" [heading]="'New'"></app-list-conversations>
+        </div>
+
+        <div *ngIf="profile.user.role==='employee'" class="col-12">
+            <app-list-active-conversations [is_user_specific]="true"
+                [heading]="'Active'"></app-list-active-conversations>
+        </div>
+
+        <div *ngIf="profile.user.role==='owner'" class="col-12">
+            <app-list-active-conversations [is_user_specific]="false"
+                [heading]="'Active'"></app-list-active-conversations>
+        </div>
+
+           
+
+
+            <div *ngIf="employees?.length > 0 && profile.user.role === 'owner'" class="col-6">
+                <div class="card">
+                    <div class="flex justify-content-between align-items-center">
+                        <h5>Leader Board</h5>
+                    </div>
+                    <!-- Table Summary -->
+                    <p-table [value]="employees" sortField="closed" [sortOrder]="-1" [paginator]="true" [rows]="15"
+                        [responsiveLayout]="'scroll'" [rowsPerPageOptions]="[15, 30, 45]">
+                        <ng-template #header>
+                            <tr>
+                                <th pSortableColumn="details.email">
+                                    User <p-sortIcon field="details.email" />
+                                </th>
+                                <th pSortableColumn="active">
+                                    Total Owned <p-sortIcon field="active" />
+                                </th>
+                                <th pSortableColumn="closed">
+                                    Total Closed <p-sortIcon field="closed" />
+                                </th>
+                            </tr>
+                        </ng-template>
+                        <ng-template #body let-data>
+                            <tr>
+                                <td>{{ data.details.email }}</td>
+                                <td>{{ data.active }}</td>
+                                <td>
+                                    <p-badge [value]="data.closed" [severity]="countSeverity(data.closed)" />
+                                </td>
+                            </tr>
+                        </ng-template>
+                    </p-table>
+                </div>
+            </div>
+
+            <div *ngIf="profile.user.role === 'owner'" class="col-6">
+                    <div class="col card">
+                        <div class="flex justify-content-between align-items-center">
+                            <h5>Organization Metrics</h5>
+        
+                            <p-select [options]="periods" [(ngModel)]="selectedOrgConversationPerformerPeriod"
+                                optionLabel="name" placeholder="Choose Interval" (onChange)="loadConversationOrgMetrics()">
+                            </p-select>
+                        </div>
+                        <p-chart type="bar" [data]="conversationOrgProductivityChartData" [options]="conversationChartOptions">
+                        </p-chart>
+                    </div>
+                    <div class="col card">
+                        <div class="flex align-items-center justify-content-between align-items-center">
+                            <div class="flex">
+                                <h5>Employee Metrics</h5>
+                            </div>
+                            <div class="flex gap-1 justify-content-end">
+                            <p-select [options]="employees" [(ngModel)]="select_employee_metric"
+                                optionLabel="details.email" placeholder="Choose Emploee"
+                                (onChange)="loadConversationEmploeeMetrics()">
+                            </p-select>
+                            <p-select [options]="periods" [(ngModel)]="selectedConversationPerformerPeriod"
+                                optionLabel="name" placeholder="Choose Interval"
+                                (onChange)="loadConversationEmploeeMetrics()">
+                            </p-select>
+                            </div>
+                        </div>
+                        <p-chart type="bar" [data]="conversationEmployeeProductivityChartData"
+                            [options]="conversationChartOptions">
+                        </p-chart>
+                    </div>
+
+        </div>
+
+        
+
+
+        
+
+        
+
+        
+
+        
+    </div>
+</div>

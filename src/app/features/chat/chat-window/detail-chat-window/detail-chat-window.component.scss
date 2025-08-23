@@ -1,0 +1,100 @@
+.template-status {
+    margin-top: -10px;
+    margin-left: 10px;
+}
+
+.drop-zone {
+  border: 2px dashed #128C7E;
+  padding: 20px;
+  border-radius: 8px;
+  background-color: #f7f7f7;
+  cursor: pointer;
+}
+
+.drop-zone:hover {
+  background-color: #e0f2f1;
+}
+
+.preview-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+.pdf-thumbnail {
+  width: 100px;
+  height: auto;
+  object-fit: contain;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+
+.file-name {
+  font-size: 0.9rem;
+  color: #333;
+}
+
+/* Red Line and Centered Text */
+.status-marker {
+  display: flex;
+  align-items: center;
+  justify-content: center; /* Centers the text with respect to the lines */
+  margin: 1rem 0; /* Space above and below */
+ /* Red color for text */
+  font-size: 0.9rem;
+  text-align: center;
+}
+
+.status-marker .closed-text {
+  color: #ff0000;
+}
+.status-marker .open-text {
+  color: rgb(9, 147, 105);
+}
+.status-marker .closed-line {
+  flex: 1; /* Makes the line take up available space */
+  height: 2px; /* Slightly thicker line */
+  background-color: #ff0000; /* Red color */
+  margin: 0 10px; /* Spacing around the text */
+}
+
+.status-marker .open-line {
+  flex: 1; /* Makes the line take up available space */
+  height: 2px; /* Slightly thicker line */
+  background-color: rgb(9, 147, 105);/* Teal color */
+  margin: 0 10px; /* Spacing around the text */
+}
+
+.status-marker .status-text {
+  white-space: nowrap; /* Prevents text wrapping */
+  padding: 0 5px;
+  background-color: #fff; /* Matches the background to avoid overlap */
+  z-index: 1; /* Ensures the text is above the lines */
+}
+
+.chat-window {
+  background-color: #f5f0ed;
+  background-image: url("https://www.transparenttextures.com/patterns/wild-flowers.png");
+
+  background-repeat: repeat;
+  background-size: cover; /* or 'contain' depending on your design */
+}
+
+.media-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.media-item {
+  width: 160px;
+  text-align: center;
+  background-color: #f8f9fa;
+  border: 1px solid #dcdcdc;
+}
+
+::ng-deep .wide-sidebar {
+  width: 39vw !important;
+  max-width: 39vw !important;
+}

@@ -1,0 +1,543 @@
+<!-- Outer Container: full height column layout -->
+<div class="flex flex-column" style="height: 80vh;">
+  <!-- Header: fixed -->
+  <div class="flex justify-content-between align-items-start p-3 border-bottom-1 surface-border shadow-1">
+    <!-- Left: Contact Info -->
+    <div class="flex align-items-center">
+      <!-- Avatar -->
+      <img *ngIf="selectedConversation.contact?.img" [src]="selectedConversation.contact.img"
+        class="border-circle mr-2 ml-2" style="width: 38px; height: 38px;" />
+      <p-avatar *ngIf="selectedConversation.contact?.name && !selectedConversation.contact?.img"
+        label="{{ selectedConversation.contact.name | slice:0:1 }}" size="large" shape="circle"
+        styleClass="mr-2 ml-2"></p-avatar>
+      <p-avatar *ngIf="selectedConversation.contact?.name === '' && !selectedConversation.contact?.img"
+        label="{{ selectedConversation.contact?.phone | slice:0:1 }}" size="large" shape="circle"
+        styleClass="mr-2 ml-2"></p-avatar>
+      <!-- Name & Platform -->
+      <div class="flex flex-column ml-2">
+        <p class="m-0 font-semibold text-xl">{{ selectedConversation.contact?.name || selectedConversation.contact?.phone}}</p>
+        <div>
+          <img *ngIf="selectedConversation.contact?.platform_name === 'webchat'"
+            src="../../../../../assets/Icons/Schedule/webchat.png" style="width: 18px;">
+          <img *ngIf="selectedConversation.contact?.platform_name === 'whatsapp'"
+            src="../../../../../assets/Icons/Schedule/whatsapp.svg" style="width: 24px;">
+          <img *ngIf="selectedConversation.contact?.platform_name === 'messenger'"
+            src="../../../../../assets/Icons/Schedule/messenger.png" style="width: 18px;">
+          <div class="flex align-items-center gap-2">
+            <img *ngIf="selectedConversation.contact?.platform_name === 'gmail'"
+            src="../../../../../assets/Icons/Schedule/gmail.png" style="width: 18px;">
+            <span>{{selectedConversation.subject}}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="flex gap-1">
+      <!-- Info Button -->
+      <button pButton type="button" icon="pi pi-info-circle" class="p-button-outlined"
+        (click)="chatdetaildrawerVisible = true" [disabled]="!selectedConversation"></button>
+      <button pButton icon="pi pi-history" *ngIf="selectedConversation.contact.platform_name !== 'gmail'"
+        (click)="loadHistoricalConversation()" class="p-button-outlined"></button>
+      <button pButton
+        *ngIf="!isWorkedBySomeone && selectedConversation.status ==='new'"
+        icon="pi pi-play" (click)="ownThisConversation()" class="p-button-outlined"></button>
+      <button pButton
+        *ngIf="!isWorkedBySomeone && selectedConversation.status !=='new' && selectedConversation.status !== 'org_new' && selectedConversation.status !== 'closed'"
+        icon="pi pi-lock" (click)="closeConversation()" class="p-button-outlined"></button>
+      <button pButton *ngIf="selectedConversation.status === 'org_new' || selectedConversation.contact.platform_name === 'gmail'" icon="pi pi-lock-open"
+        (click)="newConversation()" class="p-button-outlined"></button>
+    </div>
+  </div>
+  <!-- Scrollable Message Content -->
+  <div #scrollMe class="flex-grow-1 overflow-auto px-3 py-2 chat-window" style="min-height: 0;" (dragover)="onDragOver($event)"
+    (dragleave)="onDragLeave($event)" (drop)="onFileDrop($event)">
+    <div *ngFor="let message of selectedConversation?.messages" class="my-3">
+
+      <div style="width: 100%" *ngIf="message.type === 'start_tag' || message.type === 'end_tag'"
+						class="status-marker">
+						<div *ngIf="message.type === 'start_tag'" class="open-line"></div>
+						<div *ngIf="message.type === 'end_tag'" class="closed-line"></div>
+
+						<span *ngIf="message.type === 'start_tag'" class="open-text">
+							Started by : {{ message.by }} : {{ message.reason || '' }}
+						</span>
+						<span *ngIf="message.type === 'end_tag'" class="closed-text">
+							Closed by : {{ message.by }} : {{ message.reason || '' }}
+						</span>
+						<div *ngIf="message.type === 'start_tag'" class="open-line"></div>
+						<div *ngIf="message.type === 'end_tag'" class="closed-line"></div>
+					</div>
+
+      <div class="flex flex-column justify-content-end">
+
+        
+
+      </div>
+      <!-- Message Header (time, status) -->
+      <div class="flex justify-content-end align-items-center gap-2" *ngIf="message.type === 'org'">
+      </div>
+      <div class="flex justify-content-start align-items-center p-1" *ngIf="message.type === 'customer'">
+        
+      </div>
+      
+      <!-- Customer Message -->
+      <div *ngIf="message.type === 'customer'" class="flex flex-column align-items-start justify-content-start mb-2" style="max-width: 100%; width: fit-content;">
+          <span class="flex text-xs text-color-secondary text-left p-1">{{ message.displayTime }}</span>
+              <div class="flex flex-column p-3 border-round surface-100" style="word-break: break-word;">
+								<img *ngIf="!message.media_urls?.length && message.message_type !== 'text' && message.message_type !== 'email' && message.message_type.includes('image')"
+									[src]="message.media_url" style="width: 300px; height: 300px;"
+									(contextmenu)="onRightClick($event, message.status_details, cm, message.media_url)">
+								<video *ngIf="!message.media_urls?.length && message.message_type !== 'text' && message.message_type.includes('video')"
+									[src]="message.media_url" controls
+									(contextmenu)="onRightClick($event, message.status_details, cm, message.media_url)"></video>
+								<audio *ngIf="!message.media_urls?.length && message.message_type !== 'text' && message.message_type.includes('audio')"
+									[src]="message.media_url" controls
+									(contextmenu)="onRightClick($event, message.status_details, cm, message.media_url)"></audio>
+								<img *ngIf="!message.media_urls?.length && (message?.message_type?.includes('spreadsheet'))"
+									style="width: 100px; height: 100px; cursor: pointer;"
+									src="../../../../assets/Icons/Schedule/ms-excel.svg"
+									(contextmenu)="onRightClick($event, message.status_details, cm, message.media_url)" />
+                <iframe *ngIf="!message.media_urls?.length && (message?.message_type?.includes('pdf'))" [src]="message.media_url | safeUrl" width="100%" height="300px"
+                  style="border: none; border-radius: 8px;" (contextmenu)="onRightClick($event, message.status_details, cm, message.media_url)"></iframe>
+								<img *ngIf="!message.media_urls?.length && message.message_type !== 'email' && !(message?.message_type?.includes('spreadsheet') || message?.message_type?.includes('pdf') || message?.message_type?.includes('image') || message.message_type.includes('video') || message.message_type.includes('audio') || message?.message_type === 'text')"
+									style="width: 100px; height: 100px; cursor: pointer;"
+									src="../../../../assets/Icons/Schedule/file.png"
+									(contextmenu)="onRightClick($event, message.status_details, cm, message.media_url)" />
+                <!-- Common text message element-->
+                <div *ngIf="message.message_type !== 'email'">{{message.message_body}}</div>
+                <!-- Gmail Text and Content Blocks -->
+                <div *ngIf="message.message_type === 'email' || message.media_urls?.length">
+                  <ng-container *ngFor="let block of message.content_blocks">
+                    <div *ngIf="block.type === 'html'" [innerHTML]="getSanitizedHtml(block.html)"></div>
+                  </ng-container>
+                </div>
+                <!-- Media Attachments -->
+                <div *ngIf="message.media_urls?.length" class="media-grid mt-2">
+                  <ng-container *ngFor="let media of message.media_urls">
+                    <div class="media-item p-2 surface-200 border-round">
+                      <img *ngIf="media.type.includes('image')" [src]="media.url" style="width: 150px; height: 150px; object-fit: cover;" (contextmenu)="onRightClick($event, message.status_details, cm, media.url)"/>
+                      <video *ngIf="media.type.includes('video')" [src]="media.url" controls style="width: 150px; height: 150px;" (contextmenu)="onRightClick($event, message.status_details, cm, media.url)"></video>
+                      <audio *ngIf="media.type.includes('audio')" [src]="media.url" controls style="width: 100%;" (contextmenu)="onRightClick($event, message.status_details, cm, media.url)"></audio>
+                      <iframe *ngIf="media.type.includes('pdf')" [src]="media.url | safeUrl" width="150" height="150" style="border: none; border-radius: 4px;" (contextmenu)="onRightClick($event, message.status_details, cm, media.url)"></iframe>
+                      <img *ngIf="!media.type.includes('application/x-zip-compressed') && !media.type.includes('image') && !media.type.includes('video') && !media.type.includes('audio') && !media.type.includes('pdf')"
+                        src="assets/file.png" style="width: 100px; height: 100px; cursor: pointer;" (contextmenu)="onRightClick($event, message.status_details, cm, media.url)"/>
+                      <img *ngIf="media.type.includes('application/x-zip-compressed')"
+                        src="../../../../assets/Icons/Schedule/zip-folder.png" alt=""
+                        style="width: 100px; height: 100px; cursor: pointer;"
+                        (contextmenu)="onRightClick($event, message.status_details, cm, media.url)">
+                      <p class="text-sm mt-1">{{ media.filename }}</p>
+                    </div>
+                  </ng-container>
+                </div>
+
+					</div>
+      </div>
+      <!-- Agent Message -->
+      <div *ngIf="message.type === 'org'" class="flex justify-content-end mb-2">
+        <div class="flex flex-column align-items-end">
+          <div class="flex justify-content-end align-items-center gap-2 p-1 mr-5" *ngIf="message.type === 'org'">
+            <span class="text-xs text-color-secondary text-right">{{getEmployeeNameFromId(message.sender)?.details?.username }}</span>
+            <span class="text-xs text-color-secondary text-right">{{message.displayTime }}</span>
+          </div>
+        <div class="flex justify-content-end align-items-end gap-2">
+          <app-message-preview *ngIf="message.template" [selectedTemplateForPreview]="message.template" [media_url]="message.media_url"
+          (previewReady)="onTemplatePreviewReadyEvent($event)" [messageDetails]="message"></app-message-preview>
+          <div *ngIf="!message.template" class="p-3 border-round bg-green-100" style="max-width: 100%;">
+            <div class="flex flex-column">
+				  				<img *ngIf="message.message_type !== 'text' && message.message_type.includes('image')"
+				  					[src]="message.media_url" style="width: 300px; height: 300px;"
+				  					(contextmenu)="onRightClick($event, message.status_details, cm, message.media_url)">
+				  				<video *ngIf="message.message_type !== 'text' && message.message_type.includes('video')"
+				  					[src]="message.media_url" controls
+				  					(contextmenu)="onRightClick($event, message.status_details, cm, message.media_url)"></video>
+				  				<audio *ngIf="message.message_type !== 'text' && message.message_type.includes('audio')"
+				  					[src]="message.media_url" controls
+				  					(contextmenu)="onRightClick($event, message.status_details, cm, message.media_url)"></audio>
+				  				<img *ngIf="(message?.message_type?.includes('spreadsheet'))"
+				  					style="width: 100px; height: 100px; cursor: pointer;"
+				  					src="../../../../assets/Icons/Schedule/ms-excel.svg"
+				  					(contextmenu)="onRightClick($event, message.status_details, cm, message.media_url)" />
+                  <iframe *ngIf="(message?.message_type?.includes('pdf'))" [src]="message.media_url | safeUrl" width="100%" height="300px"
+                    style="border: none; border-radius: 8px;" (contextmenu)="onRightClick($event, message.status_details, cm, message.media_url)"></iframe>
+				  				<img *ngIf="!(message?.message_type?.includes('application/zip') || message?.message_type?.includes('spreadsheet') || message?.message_type?.includes('pdf') || message?.message_type?.includes('image') || message.message_type.includes('video') || message.message_type.includes('audio') || message?.message_type === 'text')"
+				  					style="width: 100px; height: 100px; cursor: pointer;"
+				  					src="../../../../assets/Icons/Schedule/file.png"
+				  					(contextmenu)="onRightClick($event, message.status_details, cm, message.media_url)" />
+                  <img *ngIf="message?.message_type?.includes('application/zip')"
+                    src="../../../../assets/Icons/Schedule/zip-folder.png" alt=""
+                    style="width: 100px; height: 100px; cursor: pointer;"
+                    (contextmenu)="onRightClick($event, message.status_details, cm, message.media_url)">
+				  				<span style="white-space: pre-wrap;">{{ message?.message_body || '' }}</span>
+				  	</div>
+          </div>
+          <div *ngIf="message.type === 'org'" [ngClass]="{'template-status': message.template}">
+            <i *ngIf="message.status === 'sent_to_server'" class="pi pi-check"></i>
+            <!-- Double Tick -->
+            <ng-container>
+              <i *ngIf="['sent', 'delivered'].includes(message.status)"
+   class="pi pi-check-circle bg-gray-100 text-black border-circle text-md"
+   style="display: inline-flex; width: 1.2rem; height: 1.2rem; justify-content: center; align-items: center;"></i>
+
+              <i *ngIf="message.status === 'read'" class="pi pi-check-circle bg-primary text-white border-circle text-md"
+   style="display: inline-flex; width: 1.2rem; height: 1.2rem; justify-content: center; align-items: center;"></i>
+            </ng-container>
+            <span *ngIf="message.status === 'failed'" [pTooltip]="message.status_details"
+              tooltipPosition="top">
+              <i class="pi pi-times-circle bg-red-400 text-white border-circle text-md"
+   style="display: inline-flex; width: 1.2rem; height: 1.2rem; justify-content: center; align-items: center;"></i>
+            </span>
+          </div>
+        </div>
+      </div>
+        
+      </div>
+      
+    </div>
+  </div>
+  <!-- Chat Footer with Drag and Drop Attachment -->
+  <div *ngIf="selectedConversation.assigned?.id === profile.user.id && selectedConversation.status !== 'org_new' && selectedConversation.status !== 'closed'" class="flex flex-column border-top-1 surface-border p-2 relative">
+    <!-- Drop Area Overlay -->
+    <div *ngIf="isDragging"
+      class="absolute w-full h-full top-0 left-0 bg-black-alpha-50 z-3 flex align-items-center justify-content-center border-dashed border-2 border-primary"
+      (drop)="onFileDrop($event)" (dragover)="onDragOver($event)" (dragleave)="onDragLeave($event)">
+      <div class="text-white text-lg">Drop file to attach</div>
+    </div>
+    <!-- Attachment Preview (WhatsApp-like style) -->
+    <div *ngIf="attachedFile" class="border-round overflow-hidden mb-2 bg-white shadow-2"
+      style="max-width: 100%; position: relative;">
+      <!-- Image preview -->
+      <ng-container *ngIf="isImage(attachedFile)">
+        <img [src]="previewUrl" class="w-full" style="max-height: 250px; object-fit: cover;" />
+        <textarea [(ngModel)]="messageText" rows="2" placeholder="Add a caption..."
+          class="w-full p-2 border-0 border-top-1 surface-border text-sm resize-none" style="outline: none;"></textarea>
+      </ng-container>
+      <ng-container *ngIf="!isImage(attachedFile)">
+        <!-- Fallback framed view for unsupported preview -->
+        <div class="p-3 border-round bg-white-100 flex align-items-center gap-3 shadow-1"
+          style="max-width: 100%; border: 1px solid #ccc; object-fit: cover;">
+          <div class="flex flex-column h-full gap-4 justify-content-between">
+            <div class="flex" style="width: 100%;">
+              <i class="pi pi-file" style="font-size: 2rem; color: #6c757d;"></i>
+              <div class="w-full flex flex-column overflow-hidden">
+                <span class="text-sm font-medium text-900 truncate">{{ attachedFile.name }}</span>
+                <span class="text-xs text-color-secondary">{{ formatBytes(attachedFile.size) }}</span>
+              </div>
+            </div>
+            <!-- Caption input -->
+            <textarea [(ngModel)]="messageText" placeholder="Add a caption..."
+              class="w-full p-2 border-0 border-top-1 surface-border text-sm resize-none" style="outline: none;">
+  </textarea>
+          </div>
+        </div>
+      </ng-container>
+      <!-- Close icon -->
+      <button pButton icon="pi pi-times" class="p-button-rounded p-button-sm p-button-danger"
+        style="position: absolute; top: 0.5rem; right: 0.5rem; z-index: 2;" (click)="removeAttachment()">
+      </button>
+    </div>
+    <!-- Message + Attach/Send buttons -->
+    <div class="flex justify-content-center align-items-center gap-2">
+      <input *ngIf="!attachedFile" pInputText [(ngModel)]="messageText" rows="1" pInputTextarea autoResize="true"
+        placeholder="Type a message" class="flex-1 text-sm" (keyup.enter)="sendMessage()"/>
+      <!-- Drag area + click to attach -->
+      <label for="fileInput" class="p-button p-button-text m-0 p-0" style="cursor: pointer;"
+        (dragover)="onDragOver($event)" (drop)="onFileDrop($event)">
+        <i class="pi pi-paperclip text-xl"></i>
+      </label>
+      <input type="file" id="fileInput" hidden (change)="onFileSelected($event)" (click)="resetFileInput($event)">
+      <!-- Send button -->
+      <button pButton icon="pi pi-send" class="p-button-rounded p-button-primary"
+        [disabled]="!messageText && !attachedFile" (click)="sendMessage()">
+      </button>
+    </div>
+  </div>
+</div>
+
+
+<!-- PrimeNG Sidebar as Drawer -->
+<p-sidebar [(visible)]="chatdetaildrawerVisible" position="right" [modal]="false" styleClass="wide-sidebar"
+  [style]="{width: '80vw', maxWidth: '80vw'}">
+  <app-additional-detail-chat-window *ngIf="selectedConversation !== null"
+    [selectedConversation]="selectedConversation" (changeContactInSelectedConversationObject)="editContacDialogVisible=true;"></app-additional-detail-chat-window>
+</p-sidebar>
+<!-- Close conversation dialog -->
+<p-dialog header="Close Conversation" [modal]="true" [(visible)]="closeConversationVisible" [style]="{ width: '35rem' }">
+        <div class="field grid">
+            <label for="ingredient1" class="ml-2" style="width: 100px;">Closing Reason</label>
+            <div class="col">
+                <input pInputText id="username" class="flex-auto" [(ngModel)]="closedReason" autocomplete="off" />
+            </div>
+        </div>
+        <div class="field grid">
+            <label for="ingredient1" class="ml-2" style="width: 100px;">Block</label>
+            <div class="col">
+                <p-checkbox inputId="ingredient1" name="viewpermission" [(ngModel)]="blockForm.should_block" [binary]="true" />
+            </div>
+        </div>
+        <div class="flex justify-content-between">
+                <button pButton label="Cancel" class="p-button-outlined" severity="secondary" (click)="closedReason = ''; closeConversationVisible = false"></button>
+            <button pButton label="Save" class="p-button-outlined" (click)="onClosedReasonSave()"></button>
+        </div>
+    </p-dialog>
+
+<!-- Open conversation dialog -->
+<p-dialog header="New Message" [modal]="true" [(visible)]="openConversationWhatsappVisible" [style]="{ width: '50rem' }">
+  <p-select styleClass="w-full mr-2" [options]="registeredPlatforms" [(ngModel)]="selected_platform"
+    optionLabel="platform_name" [filter]="true" (onChange)="onPlatformSelected()" filterBy="name" [showClear]="true"
+    placeholder="Select platform" class="w-full md:w-56" [appendTo]="'body'">
+    <ng-template #selectedItem let-selectedOption>
+      <div class="flex items-center gap-2">
+        <img
+          [src]="'../../../../assets/Icons/Schedule/' + selectedOption.platform_name + '.' +selectedOption.image_type"
+          style="width: 18px" />
+        <div>{{ selectedOption.platform_name }}</div>
+      </div>
+    </ng-template>
+    <ng-template let-platform #item>
+      <div class="flex items-center gap-2">
+        <img [src]="'../../../../assets/Icons/Schedule/' + platform.platform_name + '.' + platform.image_type"
+          style="width: 18px" />
+        <div>{{ platform.platform_name }}</div>
+      </div>
+    </ng-template>
+  </p-select>
+  <div *ngIf="avaliable_templates.length > 0">
+    <p-select id="template_dropdown" [options]="avaliable_templates" optionLabel="name" class="w-full p-1"
+      styleClass="my-4" [filter]="true" filterBy="name" [(ngModel)]="selectedTemplate" [showClear]="true"
+      placeholder="Choose template" optionLabel="name" appendTo="body" (onChange)="onSelectTemplate()" />
+    <div class="flex justify-content-center">
+      <app-message-preview [selectedTemplateForPreview]="selectedTemplate"></app-message-preview>
+    </div>
+    <!-- Attachment Drop Area -->
+    <div *ngIf="isDocumentHeader()" class="attachment-drop-area">
+      <label class="block mb-2 text-sm font-medium text-gray-700">Attach Document</label>
+      <div class="drop-zone" (dragover)="onTemplateDragOver($event)" (drop)="onTemplateDrop($event)">
+        <ng-container *ngIf="!temaplteattachedFile">
+          <p>Drag & drop PDF file here or click to select</p>
+          <button type="button" pButton label="Select File" (click)="fileInput.click()"
+            class="mt-2 p-button-sm"></button>
+        </ng-container>
+        <ng-container *ngIf="temaplteattachedFile">
+          <div class="preview-container">
+            {{temapltepdfPreviewUrl}}
+            <iframe [src]="temapltepdfPreviewUrl | safeUrl" width="100%" height="300px"
+                  style="border: none; border-radius: 8px;"></iframe>
+
+            
+            <p class="file-name">{{ temaplteattachedFile.name }}</p>
+            <button type="button" pButton icon="pi pi-times" class="p-button-danger p-button-sm"
+              (click)="removeTemaplteFile()" label="Remove"></button>
+          </div>
+        </ng-container>
+        <input type="file" accept="application/pdf" (change)="onTemplateFileSelected($event)" hidden #fileInput (click)="resetFileInput($event)"/>
+      </div>
+    </div>
+    <!-- Dynamic Form Fields -->
+    <div class="grid mt-4">
+      <div class="col-4" *ngFor="let field of dynamicFields; let i = index">
+        <p-floatlabel>
+          <input pInputText [(ngModel)]="fieldValues[field]" [id]="'field-' + i" />
+          <label [for]="'field-' + i">{{ field }}</label>
+        </p-floatlabel>
+      </div>
+    </div>
+    <div class="flex justify-end gap-2">
+      <button pButton class="p-button-outlined" label="Cancel" severity="secondary"
+        (click)="openConversationWhatsappVisible = false"> </button>
+      <button pButton class="p-button-outlined" *ngIf="this.selectedTemplate && isFiledValuesValid" label="Send"
+        (click)="startNewConversationOnWhatsapp()"> </button>
+    </div>
+  </div>
+</p-dialog>
+
+<!-- New Gmail Compose Dialog -->
+<p-dialog header="New Gmail" [(visible)]="openConversationGmailVisible" [modal]="true" [style]="{ width: '50rem' }" [closable]="false">
+  <div class="p-fluid grid p-3 gap-3">
+
+    <!-- Subject -->
+    <div class="col-12">
+      <label for="subject" class="block mb-2">Platform</label>
+      <p-select styleClass="w-full mr-2" [options]="registeredPlatforms" [(ngModel)]="selected_platform"
+    optionLabel="user_platform_name" [filter]="true" filterBy="name" [showClear]="true"
+    placeholder="Select platform" class="w-full md:w-56" [appendTo]="'body'">
+    </p-select>
+    </div>
+    
+    
+    <!-- Subject -->
+    <div class="col-12">
+      <label for="subject" class="block mb-2">Subject</label>
+      <input type="text" pInputText id="subject" [(ngModel)]="newConversationSubjectForGmail" placeholder="Enter subject" />
+    </div>
+
+    <!-- Message Body -->
+    <div class="col-12">
+      <label for="messageBody" class="block mb-2">Message</label>
+      <textarea pInputTextarea id="messageBody" [(ngModel)]="newConversationGmailMessageBody" rows="6" placeholder="Type your message..."></textarea>
+    </div>
+
+    <!-- Attachment -->
+    <div class="col-12">
+      <label class="block mb-2">Attachment</label>
+      <p-fileUpload name="file" mode="advanced" [auto]="true" [customUpload]="true" (uploadHandler)="handleFileUploadGmail($event)" chooseLabel="Choose File" dragDropSupport="true" accept="image/*,application/pdf,.doc,.docx,.txt,.csv,.xlsx,.zip">
+      </p-fileUpload>
+      <small class="text-sm text-gray-500" *ngIf="newConversationGmailAttachment">Selected: {{ newConversationGmailAttachment.name }}</small>
+    </div>
+  </div>
+
+  <!-- Action Buttons -->
+  <div class="flex justify-end gap-2 mt-4 px-3 pb-3">
+    <button pButton label="Cancel" severity="secondary" class="p-button-outlined" (click)="openConversationGmailVisible = false"></button>
+    <button pButton label="Send" class="p-button-outlined" [disabled]="!newConversationGmailMessageBody || !newConversationSubjectForGmail" (click)="startNewConversationOnGmail()"></button>
+  </div>
+</p-dialog>
+
+
+
+<p-toast></p-toast>
+<p-confirmpopup />
+<!-- Right-click Context Menu -->
+<p-contextMenu #cm [model]="contextMenuItems"></p-contextMenu>
+
+<p-dialog
+        [(visible)]="editContacDialogVisible" 
+        [style]="{ width: '450px' }" 
+        header="Edit Contact" 
+        [modal]="true" 
+        styleClass="p-fluid">
+            
+            <ng-template pTemplate="content">
+                <!--img 
+                    [src]="'https://primefaces.org/cdn/primeng/images/demo/product/' + product.image" 
+                    [alt]="product.image" 
+                    class="block m-auto pb-3" 
+                    *ngIf="product.image" / -->
+                <img *ngIf="selectedContact?.image" [src]="selectedContact.image" alt="avatar"
+                    class="border-round mr-2 ml-2" style="width: 48px; height: 48px;"/>
+                <p-avatar 
+                    *ngIf="!selectedContact?.image" 
+                    icon="pi pi-user" 
+                    styleClass="w-2 h-2 mb-3" size="large"
+                />
+                
+                <div class="flex justify-content-between align-items-center mb-3">
+                    <label for="name">Name</label>
+                    <input 
+                        type="text" 
+                        pInputText 
+                        id="name" 
+                        [(ngModel)]="selectedContact.name" 
+                        required 
+                        autofocus />
+                    <small class="p-error" *ngIf="submitted && !selectedContact.name">
+                        Name is required.
+                    </small>
+                </div>
+
+                <div class="flex justify-content-between align-items-center mb-3">
+                    <label for="description">Description</label>
+                    <textarea
+                        id="description" 
+                        pInputTextarea 
+                        [(ngModel)]="selectedContact.description" 
+                        required
+                        >
+                    </textarea>
+                </div>
+                <div class="field">
+                    <label class="mb-3">Category</label>
+                    <div class="formgrid grid">
+                        <div class="field-radiobutton col-6">
+                            <p-radioButton 
+                                id="category1" 
+                                name="category" 
+                                value="Individual" 
+                                [(ngModel)]="selectedContact.category" />
+                            <label for="category1">Individual</label>
+                        </div>
+                        <div class="field-radiobutton col-6">
+                            <p-radioButton 
+                                id="category2" 
+                                name="category" 
+                                value="Micro Enterprise" 
+                                [(ngModel)]="selectedContact.category" />
+                            <label for="category2">Micro Enterprise</label>
+                        </div>
+                        <div class="field-radiobutton col-6">
+                            <p-radioButton 
+                                id="category3" 
+                                name="category" 
+                                value="Small Enterprise" 
+                                [(ngModel)]="selectedContact.category" />
+                            <label for="category3">Small Enterprise</label>
+                        </div>
+                        <div class="field-radiobutton col-6">
+                            <p-radioButton 
+                                id="category4" 
+                                name="category" 
+                                value="Medium Enterprise" 
+                                [(ngModel)]="selectedContact.category" />
+                            <label for="category4">Medium Enterprise</label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="formgrid grid">
+                    <div class="field col">
+                        <label for="name">Contact</label>
+                        <input 
+                            type="text" 
+                            pInputText 
+                            id="name" 
+                            [(ngModel)]="selectedContact.phone" 
+                            required 
+                            autofocus />
+                        <small class="p-error" *ngIf="submitted && !selectedContact.phone">
+                            Contact is required.
+                        </small>
+                    </div>
+                    <div class="field col">
+                        <label for="quantity">Address</label>
+                        <textarea 
+                            type="text" 
+                            pInputTextarea
+                            id="name" 
+                            [(ngModel)]="selectedContact.address" 
+                            required 
+                            autofocus>
+                        </textarea>
+                    </div>
+                </div>
+
+            <div class="field" *ngIf="selectedContact.custom_fields">
+  <div *ngFor="let field of selectedContact.custom_fields | keyvalue" class="mb-3">
+    <label>{{ field.key }}</label>
+    <input
+      type="text"
+      pInputText
+      [(ngModel)]="selectedContact.custom_fields[field.key]" />
+  </div>
+</div>
+            </ng-template>
+
+            <ng-template pTemplate="footer">
+                <button 
+                    pButton
+                    class="mr-2 p-button-outlined" 
+                    label="Cancel" 
+                    icon="pi pi-times" 
+                    [text]="true"
+                    (click)="editContacDialogVisible=false;">
+                </button>
+                <button
+                    pButton
+                    class="mr-2 p-button-outlined" 
+                    label="Save" 
+                    icon="pi pi-check" 
+                    [text]="true"
+                    [disabled]="!selectedContact.name || !selectedContact.phone"
+                    (click)="saveContactInConversationObject()">
+                </button>
+            </ng-template>
+    </p-dialog>
+
+<p-confirmDialog [style]="{ width: '450px' }" />

@@ -1,1 +1,24 @@
+
 /* You can add global styles to this file, and also import other style files */
+/* PrimeFlex Utilities */
+@use "primeflex/primeflex.scss" as *;
+
+/* Your custom variables or styles */
+$gutter: 1rem;
+
+/* Layout styles */
+@use "./assets/layout/styles/layout/layout.scss" as *;
+
+
+/* Demos */
+//@import "assets/demo/styles/flags/flags.css";
+//@import "assets/demo/styles/badges.scss";
+//@import "assets/demo/styles/code.scss";
+
+// import Quill styles in styles.scss
+//@import "quill/dist/quill.core.css";
+//@import "quill/dist/quill.snow.css";
+
+body {
+    background-color: white;
+}

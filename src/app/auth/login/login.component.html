@@ -1,0 +1,125 @@
+
+
+<div *ngIf="step === 0" class="login-container">
+    <div class="login-card">
+      <!-- Google Sign-in Button -->
+      <div id="googleSignInDiv"></div>
+    </div>
+</div>
+<p-toast></p-toast>
+
+<!-- Registration Dialog -->
+<p-dialog header="User Registration" [(visible)]="showDialog" [modal]="true" [closable]="false" [style]="{ width: '40rem' }">
+    <!-- Step 1: Choose User Type -->
+    <div *ngIf="step === 1">
+        <div class="flex items-center">
+          <p-radioButton name="userType" value="individual" label="Individual" [(ngModel)]="userType" inputId="individual"></p-radioButton>
+          <label for="individual" class="ml-2">Individual</label>
+        </div>
+
+        <div class="flex items-center">
+          <p-radioButton name="userType" value="enterprise" label="Enterprise" [(ngModel)]="userType" class="mt-2" inputId="enterprise"></p-radioButton>
+          <label for="individual" class="ml-2 mt-2">Enterprise</label>
+        </div>
+        <div class="flex justify-content-end mt-4">
+            <button pButton class="p-button-outlined" label="Next" (click)="nextStep()" [disabled]="!userType"></button>
+        </div>
+    </div>
+
+    <!-- Step 2: Enterprise - Owner or Employee -->
+    <div *ngIf="step === 2">
+      <div class="flex items-center">
+        <p-radioButton name="role" value="owner" label="Owner" [(ngModel)]="role" inputId="owner"></p-radioButton>
+        <label for="owner" class="ml-2">Owner</label>
+      </div>
+      <!--div class="flex items-center">
+        <p-radioButton name="role" value="employee" label="Employee" [(ngModel)]="role" class="mt-2" inputId="employee"></p-radioButton>
+        <label for="employee" class="ml-2 mt-2">Employee</label>
+      </div-->
+        <div class="flex justify-content-between mt-4">
+            <button pButton class="p-button-outlined" label="Back" (click)="prevStep()"></button>
+            <button pButton class="p-button-outlined" label="Next" (click)="nextStep()" [disabled]="!role"></button>
+        </div>
+    </div>
+
+    <!-- Step 3: Owner Form -->
+<form [formGroup]="ownerForm" *ngIf="step === 3 && role === 'owner'">
+
+  <div class="p-grid p-fluid">
+      <div class="p-col-12 p-md-6 flex align-items-center mb-2">
+          <label for="organization_name" class="w-8rem">Organization</label>
+          <input id="organization_name" pInputText formControlName="organization_name" class="flex-auto" />
+      </div>
+
+      <div class="p-col-12 p-md-6 flex align-items-center mb-2">
+          <label for="uuid" class="w-8rem">UUID</label>
+          <input id="uuid" pInputText formControlName="uuid" class="flex-auto" />
+      </div>
+
+      <div class="p-col-12 p-md-6 flex align-items-center mb-2">
+          <label for="platform_name" class="w-8rem">Platform</label>
+          <p-select
+          [options]="supportedPlatforms"
+          filter="true"
+          optionLabel="name"
+          optionValue="name"
+          class="flex-auto"
+          formControlName="platform_name"
+          appendTo="body"/>
+      </div>
+
+      <div class="p-col-12 p-md-6 flex align-items-center mb-2">
+        <label for="friendly_platform_name" class="w-8rem">User Friendly Platform Name</label>
+        <input id="friendly_platform_name" pInputText formControlName="friendly_platform_name" class="flex-auto" />
+      </div>
+
+      <div class="p-col-12 p-md-6 flex align-items-center mb-2">
+        <label for="app_id" class="w-8rem">App ID</label>
+        <input id="app_id" pInputText formControlName="app_id" class="flex-auto" />
+      </div>
+
+      <div class="p-col-12 p-md-6 flex align-items-center mb-2">
+          <label for="login_id" class="w-8rem">App Login ID</label>
+          <input id="login_id" pInputText formControlName="login_id" class="flex-auto" />
+      </div>
+
+      <div class="p-col-12 flex align-items-center mb-2">
+          <label for="login_credentials" class="w-8rem">App Key</label>
+          <input id="login_credentials" pInputText formControlName="login_credentials" class="flex-auto" />
+      </div>
+
+      <div class="p-col-12 flex align-items-center mb-2">
+          <label for="secret_key" class="w-8rem">Secret Key</label>
+          <input id="secret_key" pInputText formControlName="secret_key" class="flex-auto" />
+      </div>
+  </div>
+
+  <div class="flex justify-content-between mt-4">
+      <button pButton class="p-button-outlined" label="Back" (click)="prevStep()"></button>
+      <button pButton class="p-button-outlined" label="Submit" (click)="submitOwner()" [disabled]="ownerForm.invalid"></button>
+  </div>
+</form>
+
+<!-- Step 3: Employee Form -->
+<!--form [formGroup]="employeeForm" *ngIf="step === 3 && role === 'employee'">
+  <div class="p-grid p-fluid">
+      <div class="p-col-12 p-md-6 flex align-items-center mb-2">
+          <label for="organization_id" class="w-8rem">Organization ID</label>
+
+          <p-select [options]="registeredOrganizations" filter="true" [loading]="registeredOrganizationLoading" optionLabel="name" optionValue="id" class="w-full md:w-56" formControlName="organization_id" appendTo="body" class="flex-auto"/>
+      </div>
+
+      <div class="p-col-12 p-md-6 flex align-items-center">
+          <label for="uuid" class="w-8rem">UUID</label>
+          <input id="uuid" pInputText formControlName="uuid" class="flex-auto" />
+      </div>
+  </div>
+
+  <div class="flex justify-content-between mt-4">
+      <p-button label="Back" (onClick)="prevStep()"></p-button>
+      <p-button label="Submit" (onClick)="submitEmployee()" [disabled]="employeeForm.invalid"></p-button>
+  </div>
+</form-->
+
+</p-dialog>
+

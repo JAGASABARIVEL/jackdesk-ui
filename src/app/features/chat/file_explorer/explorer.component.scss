@@ -1,0 +1,270 @@
+.home-directory {
+    cursor: pointer;
+}
+
+.vertical-marigin {
+    margin-top: 2vh;
+    margin-bottom: 2vh;
+}
+
+h4 {
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 10px;
+}
+
+.actions-content {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.sidebar-right {
+    max-height: 100vh;
+    overflow-y: auto;
+    width: 150px;
+    background: white;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 2px 0 10px rgba(0, 0, 0, 0.05);
+}
+
+.actions {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+
+    .custom-file-upload {
+        display: flex;
+        align-items: center;
+         background: rgb(231, 110, 110);
+        color: white;
+        padding: 8px 12px;
+        border-radius: 6px;
+        cursor: pointer;
+        transition: 0.3s ease-in-out;
+
+        &:hover {
+            background: rgb(114, 25, 25);
+        }
+
+        input[type="file"] {
+            display: none;
+        }
+
+        i {
+            margin-right: 5px;
+        }
+    }
+
+    input {
+        width: 250px;
+        padding: 8px;
+        font-size: 14px;
+        border-radius: 6px;
+        border: 1px solid #ddd;
+        outline: none;
+
+        &:focus {
+            border-color: #007bff;
+        }
+    }
+}
+
+.file-manager-container {
+    display: flex;
+    background: #ffffff;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+
+
+    .sidebar {
+        max-height: 100vh;
+        overflow-y: auto;
+        overflow-x: auto;
+        width: 25vw;
+        background: white;
+        padding: 20px;
+        border-radius: 10px;
+        box-shadow: 2px 0 10px rgba(0, 0, 0, 0.05);
+
+        h3 {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 15px;
+        }
+
+        ul {
+            list-style: none;
+            padding: 0;
+
+            li {
+                padding: 12px;
+                font-size: 16px;
+                display: flex;
+                align-items: center;
+                gap: 12px;
+                cursor: pointer;
+                border-radius: 6px;
+                transition: background 0.2s ease-in-out;
+
+                &:hover {
+                    background: rgba(0, 123, 255, 0.1);
+                }
+
+                i {
+                    color: #007bff;
+                }
+            }
+        }
+    }
+
+    .content {
+        flex: 1;
+        margin-left: 20px;
+        padding: 15px;
+
+        .file-container {
+            &.grid {
+                display: grid;
+                grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+                gap: 20px;
+            }
+        }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+
+            h2 {
+                font-size: 22px;
+                font-weight: bold;
+            }
+
+            
+        }
+
+        .storage-info {
+            margin-bottom: 15px;
+            p {
+                font-size: 14px;
+                color: #555;
+            }
+        }
+
+        .view-toggle {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 30px;
+        }
+    }
+}
+
+.file-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 20px;
+}
+
+.folder-grid-image {
+    width: 5rem;
+    height:5rem;
+}
+
+.folder-list-image {
+    width: 2rem;
+    height:2rem;
+}
+
+.file-item {
+    background: white;
+    padding: 12px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    //box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    transition: transform 0.2s ease-in-out;
+
+    &:hover {
+        transform: scale(1.03);
+        //background: #f0f0f0;
+    }
+
+    i {
+        font-size: 5rem;
+        //color: #007bff;                    
+    }
+
+    
+}
+
+
+.list {
+    display: flex;
+    flex-direction: column;
+
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        background: white;
+        border-radius: 6px;
+        overflow: hidden;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+
+        thead {
+            background: #007bff;
+            color: white;
+
+            th {
+                padding: 12px;
+                text-align: left;
+                font-size: 14px;
+            }
+        }
+
+        tbody {
+            tr {
+                border-bottom: 1px solid #ddd;
+                transition: background 0.2s ease-in-out;
+
+                &:hover {
+                    background: rgba(0, 123, 255, 0.1);
+                }
+
+                td {
+                    padding: 12px;
+                    font-size: 14px;
+                    text-align: left;
+                    display: table-cell;
+                }
+
+                td:first-child {
+                    display: flex;
+                    align-items: center;
+                    gap: 10px;
+                }
+
+                i {
+                    color: #007bff;
+                }
+            }
+        }
+    }
+}
+
+
+::ng-deep .storage-ok .p-progressbar-value {
+    background-color: rgb(94, 206, 94); // green
+  }
+  ::ng-deep .storage-warning .p-progressbar-value {
+    background-color: rgb(194, 148, 64) // yellow
+  }
+  ::ng-deep .storage-full .p-progressbar-value {
+    background-color: rgb(163, 18, 18); // red
+  }
+  

@@ -1,0 +1,107 @@
+<p-toolbar styleClass="mb-4 gap-2">
+  <ng-template pTemplate="left">
+    <!-- Month & Year Filters -->
+  <div class="flex justify-content-start align-items-center">
+    <!-- Month Dropdown -->
+     <div class="flex">
+      <p-select 
+        [options]="months" 
+        [(ngModel)]="selectedMonth" 
+        optionLabel="name" 
+        optionValue="value"
+        placeholder="Month"
+        inputId="month"
+        class="w-full mr-1">
+      </p-select>
+
+      <p-select 
+        [options]="years" 
+        [(ngModel)]="selectedYear" 
+        placeholder="Year"
+        inputId="year"
+        class="w-full mr-1">
+      </p-select>
+
+      <button 
+        pButton 
+        type="button" 
+        label="Filter" 
+        icon="pi pi-filter" 
+        (click)="fetchCostReport()" 
+        class="p-button-outlined p-button-primary w-full">
+    </button>
+     </div>
+  </div>
+</ng-template>
+  <ng-template pTemplate="right">
+      <button
+          pButton
+          label="Reload"
+          class="mr-2 p-button-outlined"
+          icon="pi pi-replay"
+          (click)="fetchCostReport()">
+      </button>
+  </ng-template>
+</p-toolbar>
+<p-card *ngIf="!loading" class="p-mb-4">
+  
+  <!-- Summary Split into Two Columns -->
+  <div class="flex justify-content-start align-items-center">
+    <div class="card mr-4">
+      <p><strong>Storage Cost:</strong> {{ costReport.total_storage_cost | currency:'INR':'symbol':'1.5-5' }}</p>
+      <p><strong>Download Cost:</strong> {{ costReport.total_download_cost | currency:'INR':'symbol':'1.5-5' }}</p>
+    </div>
+    <div class="card">
+      <p><strong>Due:</strong> {{ costReport.total_due | currency:'INR':'symbol':'1.5-5' }}</p>
+      <p><strong>Wallet Balance:</strong> {{ costReport.excess_credit | currency:'INR':'symbol':'1.5-5' }}</p>
+    </div>
+
+    
+
+    <!-- Workaround to fix the flexed card size -->
+    <div></div>
+    <!---->
+  
+  </div>
+
+  <!-- File Cost Breakdown -->
+   <div class="card">
+
+    <p-table 
+    [value]="costReport.file_breakdown" 
+    [rows]="5" 
+    [paginator]="true" 
+    [scrollable]="true" 
+    scrollHeight="300px"
+    class="p-datatable-sm p-mb-4">
+    
+    <ng-template pTemplate="header">
+      <tr>
+        <th>File Name</th>
+        <th>Size (GB)</th>
+        <th>Storage Cost</th>
+        <th>Download Cost</th>
+      </tr>
+    </ng-template>
+    
+    <ng-template pTemplate="body" let-file>
+      <tr>
+        <td>{{ file.file_name }}</td>
+        <td>{{ file.file_size | number:'1.5-5' }}</td>
+        <td>{{ file.storage_cost | currency:'INR':'symbol':'1.5-5' }}</td>
+        <td>{{ file.download_cost | currency:'INR':'symbol':'1.5-5' }}</td>
+      </tr>
+    </ng-template>
+  </p-table>
+    
+   </div>
+
+
+
+
+</p-card>
+
+<!-- No Data Message -->
+<div *ngIf="!costReport && !loading" class="p-text-center p-mt-4">
+  <p>No data available for this month.</p>
+</div>

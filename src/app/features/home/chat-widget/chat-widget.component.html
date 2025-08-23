@@ -1,0 +1,24 @@
+<div class="chat-container">
+  <button class="chat-toggle" (click)="toggleChat()">
+    💬
+  </button>
+
+  <div class="chat-box" *ngIf="isOpen">
+    <div class="chat-header">
+      <span>Support Chat</span>
+      <button (click)="toggleChat()">×</button>
+    </div>
+
+    <div class="chat-messages">
+      <div *ngFor="let msg of messages" [ngClass]="msg.sender">
+        <p-avatar *ngIf="msg.sender == 'agent'" image="https://www.gravatar.com/avatar/05dfd4b41340d09cae045235eb0893c3?d=mp" class="flex items-center justify-center mr-2" size="xlarge" />
+        <span>{{ msg.text }}</span>
+      </div>
+    </div>
+
+    <div class="chat-input">
+      <input [(ngModel)]="message" (keydown.enter)="sendMessage()" placeholder="Type a message..." />
+      <button (click)="sendMessage()">➤</button>
+    </div>
+  </div>
+</div>

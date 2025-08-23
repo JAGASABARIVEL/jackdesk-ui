@@ -1,0 +1,31 @@
+<div class="card" *ngIf="profile?.user?.role !== 'individual'">
+    <p-tabs value="0" styleClass="tabview-custom">
+        <p-tablist>
+            <p-tab value="0" class="flex items-center !gap-2">
+                <i class="pi pi-whatsapp"></i>
+                <span class="font-bold white-space-nowrap m-0">
+                    Conversation
+                </span>
+            </p-tab>
+            <!--p-tab value="1" class="flex items-center !gap-2" *ngIf="profile.user.role === 'owner'">
+                <i class="pi pi-calendar-clock"></i>
+                <span class="font-bold whitespace-nowrap">Schedules</span>
+                <div class="flex align-items-center gap-2">
+                    <i class="pi pi-calendar-clock"></i>
+                    <span class="font-bold white-space-nowrap m-0">
+                        Keylogger
+                    </span>
+                </div>
+            </p-tab-->
+        </p-tablist>
+        <p-tabpanels>
+            <p-tabpanel value="0">
+                <app-conversation-dashboard></app-conversation-dashboard>
+            </p-tabpanel>
+
+            <!--p-tabpanel value="1" *ngIf="profile.user.role === 'owner'">
+            <app-keylogger-dashboard></app-keylogger-dashboard>
+        </p-tabpanel-->
+        </p-tabpanels>
+    </p-tabs>
+</div>

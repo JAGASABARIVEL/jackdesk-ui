@@ -1,0 +1,201 @@
+<p-toast />
+<div class="card">
+    <div class="flex gap-2 align-items-center" *ngIf="heading">
+        <i class="pi pi-circle-on" style="color: var(--primary-color)"></i>
+        <h5 *ngIf="heading">{{heading}}</h5>
+    </div>
+    <p-dialog header="Close Conversation" [modal]="true" [(visible)]="closeConversationVisible" [style]="{ width: '35rem' }">
+        <div class="field grid">
+            <label for="ingredient1" class="ml-2" style="width: 100px;">Closing Reason</label>
+            <div class="col">
+                <input pInputText id="username" class="flex-auto" [(ngModel)]="closedReason" autocomplete="off" />
+            </div>
+        </div>
+        <div class="field grid">
+            <label for="ingredient1" class="ml-2" style="width: 100px;">Block</label>
+            <div class="col">
+                <p-checkbox inputId="ingredient1" name="viewpermission" [(ngModel)]="blockForm.should_block" [binary]="true" />
+            </div>
+        </div>
+        <div class="flex justify-content-between">
+                <button pButton label="Cancel" class="p-button-outlined" severity="secondary" (click)="closedReason = ''; closeConversationVisible = false"></button>
+            <button pButton label="Save" class="p-button-outlined" (click)="closeTask()"></button>
+        </div>
+    </p-dialog>
+    <p-toast />
+    <p-toolbar styleClass="mb-4 gap-2">
+        <ng-template pTemplate="left">
+                        <div class="flex align-items-center justify-content-between">
+                <h5 class="m-0"></h5>
+                <span>
+                    <p-inputgroup>
+                        <p-inputgroup-addon>
+                            <i class="pi pi-search"></i>
+                        </p-inputgroup-addon>
+                        <input 
+                            pInputText 
+                            type="text" 
+                            #searchInput 
+                            (input)="onSearchInput($event, dt)"
+                            placeholder="Search..."
+                        />
+                    </p-inputgroup>
+                </span>
+            </div>
+        </ng-template>
+
+        <ng-template pTemplate="right">
+            <button
+                pButton
+                class="mr-2 p-button-outlined"
+                icon="pi pi-replay"
+                label="Reload"
+                (click)="loadConversations()">
+            </button>
+        </ng-template>
+    </p-toolbar>
+
+    <p-table
+        #dt
+        [value]="conversations"
+        [rows]="10"
+        [paginator]="true"
+        [globalFilterFields]="['contact.name', 'contact.phone', 'assigned.name', 'status']"
+        [tableStyle]="{ 'min-width': '75rem' }"
+        [(selection)]="selectedConversations"
+        [rowHover]="true"
+        dataKey="conversation_id"
+        [loading]="loading"
+        
+        currentPageReportTemplate="Showing {first} to {last} of {totalRecords} entries"
+        [showCurrentPageReport]="true"
+    >
+        <ng-template pTemplate="header">
+            <tr>
+                <!--th style="width: 4rem">
+                    <p-tableHeaderCheckbox />
+                </th-->
+                
+                <th></th>
+                <th pSortableColumn="contact.name">
+                    Name <p-sortIcon field="contact.name" />
+                </th>
+                <th pSortableColumn="assigned?.name">
+                    Assignee <p-sortIcon field="assigned?.name" />
+                </th>
+                <th pSortableColumn="status">
+                    Status <p-sortIcon field="status" />
+                </th>
+                <th pSortableColumn="created_at">
+                    Created On <p-sortIcon field="created_at"/>
+                </th>
+                <th pSortableColumn="contact.description">
+                    Description <p-sortIcon field="contact.description"/>
+                </th>
+
+                <th></th>
+            </tr>
+        </ng-template>
+        <ng-template pTemplate="body" let-conversation>
+            <tr>
+                <!--td>
+                    <p-tableCheckbox [value]="conversation" />
+                </td-->
+                
+                <td>
+                    <img *ngIf="conversation.contact?.image" [src]="conversation.contact.image" alt="avatar"
+							    class="border-round mr-2 ml-2" style="width: 48px; height: 48px;"/>
+                    <p-avatar *ngIf="conversation.contact?.name !== '' && !conversation.contact?.image"
+                    label="{{conversation.contact.name | slice:0:1}}"
+                    styleClass="mr-2" size="xlarge" />
+                    <p-avatar *ngIf="conversation.contact?.name  === '' && !conversation.contact?.image"
+                    label="{{conversation.contact.phone | slice:0:1}}"
+                    styleClass="mr-2" size="xlarge" />
+                <td *ngIf="conversation.contact.name !== ''">
+                    {{ conversation.contact.name }}
+                </td>
+                <td *ngIf="conversation.contact.name === ''">
+                    {{ conversation.contact.phone }}
+                </td>
+                <td>
+                    {{ conversation.assigned?.name }}
+                </td>
+                <td>
+                    <p-tag 
+                        [value]="conversation.status || 'N/A'" 
+                        [severity]="getSeverity(conversation.status)"
+                    />
+                </td>
+                <td>{{conversation.created_at | date}}</td>
+                <td>{{conversation.contact.description}}</td>
+
+                <td>
+                    <div>
+                      <!-- Conditional rendering -->
+                      <ng-container *ngIf="!conversation.isDropdownVisible; else dropdownSearch">
+                        <button 
+                          pButton
+                          icon="pi pi-pencil" 
+                          class="mr-2 p-button-outlined" 
+                          [rounded]="true" 
+                          [outlined]="true" 
+                          label="Re-assign" 
+                          severity="success" 
+                          (click)="toggleDropdown(conversation)">
+                        </button>
+                        <button 
+                          pButton 
+                          icon="pi pi-lock" 
+                          class="p-button-outlined" 
+                          severity="danger" 
+                          label="Close" 
+                          [rounded]="true" 
+                          [outlined]="true"
+                          (click)="closePreTask(conversation)">
+                        </button>
+                      </ng-container>
+                      
+                      <!-- Dropdown Search -->
+                      <ng-template #dropdownSearch>
+                        <div style="display: flex; align-items: center;">
+                          <p-select 
+                            [options]="users" 
+                            [(ngModel)]="conversation.assigned" 
+                            optionLabel="details.username"
+                            placeholder="Select user to assign"
+                            filter 
+                            filterBy="details.username,details.phone"
+                            appendTo="body">
+                          </p-select>
+                          <button 
+                            pButton
+                            icon="pi pi-check" 
+                            label="Save" 
+                            [disabled]="!conversation.assigned" 
+                            class="ml-2 p-button-outlined" 
+                            (click)="assignTask(conversation)">
+                          </button>
+                          <button 
+                            pButton 
+                            icon="pi pi-times" 
+                            label="Cancel" 
+                            class="ml-2 p-button-outlined" 
+                            (click)="cancelAssignment(conversation)">
+                          </button>
+                        </div>
+                      </ng-template>
+                    </div>
+                  </td>
+            </tr>
+        </ng-template>
+        <ng-template pTemplate="summary">
+            <div class="flex align-items-center justify-content-between">
+                In total there are {{ conversations ? conversations.length : 0 }} tickets.
+            </div>
+        </ng-template>
+    </p-table>
+
+    
+
+    <p-confirmDialog [style]="{ width: '450px' }" />
+</div>

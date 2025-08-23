@@ -1,0 +1,47 @@
+<p-card class="preview-card">
+  <ng-template pTemplate="content">
+
+    <div *ngIf="selectedTemplateForPreview && selectedTemplateForPreview.name !== 'None'" class="whatsapp-preview" [ngClass]="{'whatsapp-preview-message': messageDetails !== null}">
+      <div class="whatsapp-message">
+        <ng-container *ngFor="let component of selectedTemplateForPreview.components">
+          <ng-container [ngSwitch]="component.type">
+            <!-- Document Header with Image Preview -->
+            <div *ngSwitchCase="'HEADER'" class="whatsapp-header">
+              <ng-container *ngIf="component.format === 'DOCUMENT'; else textHeader">
+
+                <img *ngIf="!mediaPreviewUrl" src="../../../../../assets/Icons/Schedule/pdf.avif" alt=""
+                  style="width: 200px; height: 200px;">
+
+                <iframe *ngIf="mediaPreviewUrl" [src]="mediaPreviewUrl | safeUrl" width="100%" height="300px"
+                  style="border: none; border-radius: 8px;"></iframe>
+              </ng-container>
+              <ng-template #textHeader>
+                {{ component.text }}
+              </ng-template>
+            </div>
+            <!-- Body -->
+            <p *ngSwitchCase="'BODY'" class="whatsapp-body">
+              {{ component.text }}
+            </p>
+
+            <!-- Footer -->
+            <p *ngSwitchCase="'FOOTER'" class="whatsapp-footer">
+              {{ component.text }}
+            </p>
+            <!-- Buttons -->
+            <div *ngSwitchCase="'BUTTONS'" class="whatsapp-buttons">
+              <button *ngFor="let button of component.buttons" class="whatsapp-button"
+                [ngClass]="{'url-button': button.type === 'URL'}">
+                {{ button.text }}
+              </button>
+            </div>
+          </ng-container>
+        </ng-container>
+      </div>
+      
+    </div>
+
+    <p *ngIf="!selectedTemplateForPreview">No template selected.</p>
+
+  </ng-template>
+</p-card>

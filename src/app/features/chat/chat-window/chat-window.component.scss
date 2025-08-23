@@ -1,0 +1,10 @@
+.chat-list-item {
+  cursor: pointer;
+  transition: background-color 0.2s;
+  border-radius: 10px;
+}
+
+.chat-list-item:hover,
+.chat-list-item.active {
+  background-color: #F3F3F3;
+}

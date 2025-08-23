@@ -1,0 +1,107 @@
+
+
+<div class="flex flex-column gap-4">
+
+    <div class="card summary-box">
+      <div class="flex flex-column gap-2">
+
+  <div class="flex">
+    <strong style="min-width: 130px;">Selected Duration</strong>
+    <div>: {{ totalSummary.selectedDuration }}</div>
+  </div>
+
+  <div class="flex">
+    <strong style="min-width: 130px;">Active</strong>
+    <div>: {{ totalSummary.active }}</div>
+  </div>
+
+  <div class="flex">
+    <strong style="min-width: 130px;">Idle</strong>
+    <div>: {{ totalSummary.idle }}</div>
+  </div>
+
+</div>
+
+
+
+
+  
+</div>
+
+
+
+
+
+<div class="grid">
+    <div class="card col-6">
+        <p-chart type="pie" [data]="idlePieChartData" [options]="pieChartOptions" height="350px"
+    width="100%"></p-chart>
+    </div>
+
+    <!-- 3. Cumulative Active Time -->
+  <div class="card col-6">
+    <p-chart
+      height="350px"
+      width="100%"
+      [data]="cumulativeActiveChartData"
+      [options]="productivityCumulativelineChartOptions"
+      [type]="'line'">
+    </p-chart>
+  </div>
+  
+    <!-- 1. Idle vs App Usage -->
+  <div class="card col-12">
+
+        <p-chart type="line" [data]="idleAppLineChartData" [options]="lineAppChartOptions" height="350px"
+            width="100%"></p-chart>
+  </div>
+
+  <!-- 2. Context Switches -->
+  <div class="card col-12">
+    <p-chart
+      height="350px"
+      width="100%"
+      [data]="contextSwitchChartData"
+      [options]="productivityContextlineChartOptions"
+      [type]="'line'"
+      >
+    </p-chart>
+  </div>
+
+  
+</div>
+
+<div class="grid">
+    <!-- 4. Top App Usage Trends -->
+  <div class="card col-12">
+    <div class="flex flex-column">
+        <div class="flex justify-content-end">
+            <p-select 
+  [options]="[3, 5, 10]" 
+  [(ngModel)]="topN"
+  placeholder="Top N Apps"
+  (onChange)="prepareTopUsageAppCharts()">
+</p-select>
+
+        </div>
+
+            <p-chart
+      height="350px"
+      width="100%"
+      [data]="topAppsOverTimeChartData"
+      [options]="productivityTopApplineChartOptions"
+      [type]="'line'">
+    </p-chart>
+
+    </div>
+    
+  </div>
+    <div class="card col">
+        <p-chart type="bar" [data]="appUsageChartData" [options]="barChartOptions"></p-chart>
+    </div>
+    
+</div>
+
+</div>
+
+

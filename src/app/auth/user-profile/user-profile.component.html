@@ -1,0 +1,22 @@
+<div class="card">
+    <p-tabs value="0">
+        <p-tablist>
+            <p-tab value="0">
+                <i class="pi pi-user"></i>
+                <span>Profile</span>
+            </p-tab>
+            <p-tab value="1" *ngIf="profile?.user.role === 'owner'">
+                <i class="pi pi-user-plus"></i>
+                <span>Settings</span>
+            </p-tab>
+        </p-tablist>
+        <p-tabpanels>
+            <p-tabpanel value="0">
+                <app-user-profile-settings></app-user-profile-settings>
+            </p-tabpanel>
+            <p-tabpanel value="1" *ngIf="profile?.user.role === 'owner'">
+                <app-admin-settings></app-admin-settings>
+            </p-tabpanel>
+        </p-tabpanels>
+    </p-tabs>
+</div>

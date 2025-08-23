@@ -1,0 +1,211 @@
+<p-toolbar styleClass="mb-4 gap-2">
+    <ng-template pTemplate="left">
+        <!-- Month & Year Filters -->
+        <div class="flex justify-content-start align-items-center">
+            <!-- Month Dropdown -->
+            <div class="flex">
+                
+            </div>
+        </div>
+    </ng-template>
+    <ng-template pTemplate="right">
+        <button pButton type="button" icon="pi pi-replay" (click)="loadContent()"
+            class="mr-2 p-button-outlined p-button-primary p-2 w-full"></button>
+        <button class="mr-2 p-2 w-full p-button-outlined" pButton icon="pi pi-th-large" (click)="viewMode = 'grid'"></button>
+        <button class="mr-2 p-2 w-full p-button-outlined" pButton icon="pi pi-list" (click)="viewMode = 'list'"></button>
+        <input type="text" pInputText [(ngModel)]="searchQuery" placeholder="Search files..." />
+        
+        
+    </ng-template>
+</p-toolbar>
+
+<div class="file-manager-container">
+    <!-- Sidebar -->
+    <div class="sidebar">
+        <p-toast></p-toast>
+        <p-tree [value]="files" selectionMode="single" [(selection)]="selectedHomeFile"
+            (onNodeSelect)="nodeSelect($event)" />
+        <hr>
+
+        <!-- Storage Info -->
+        <div class="storage-info">
+            <p>Storage Used: {{ usedStorage | number:'1.5-5' }} GB</p>
+            <p-progressBar [value]="totalStorage" [showValue]="false" [styleClass]="storageUsageColorIndicatorLevel">
+            </p-progressBar>
+        </div>
+    </div>
+
+
+    
+
+    <!-- Main Content -->
+    <div class="content">
+        
+
+
+        <!-- Grid View -->
+        <div class="file-container grid" *ngIf="viewMode === 'grid'">
+            <div *ngFor="let file of filteredFiles()" class="file-item" (contextmenu)="onRightClick($event, file, cm)"
+                (dblclick)="openFile(file)">
+                <img *ngIf="file.is_folder" class="folder-grid-image" src="assets/Icons/Schedule/folder.jpg">
+                <img *ngIf="file.type === 'pdf'" class="folder-grid-image" src="assets/Icons/Schedule/pdf.avif">
+                <img *ngIf="file.type === 'image'" class="folder-grid-image" src="assets/Icons/Schedule/image.png">
+                <img *ngIf="file.type === 'spreadsheet'" class="folder-grid-image" src="assets/Icons/Schedule/ms-excel.svg">
+                <img *ngIf="file.type === 'compress'" class="folder-grid-image"
+                    src="assets/Icons/Schedule/zip-folder.png">
+                <img *ngIf="file.type === 'msword'" class="folder-grid-image" src="assets/Icons/Schedule/msword.png">
+                <img *ngIf="file.type === 'txt'" class="folder-grid-image" src="assets/Icons/Schedule/file.png">
+                <!--i *ngIf="!file.is_folder" class="pi" [ngClass]="file.icon"></i-->
+                <span>{{ file.name }}</span>
+            </div>
+        </div>
+
+
+        <!-- List View -->
+        <div class="list" *ngIf="viewMode === 'list'">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Type</th>
+                        <th>Size</th>
+                        <th>Created Date</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr *ngFor="let file of filteredFiles()" (contextmenu)="onRightClick($event, file, cm)"
+                        (dblclick)="openFile(file)">
+                        <td>
+                            <img *ngIf="file.is_folder" class="folder-list-image"
+                                src="assets/Icons/Schedule/folder.jpg">
+                            <img *ngIf="file.type === 'pdf'" class="folder-list-image"
+                                src="assets/Icons/Schedule/pdf.avif">
+                            <img *ngIf="file.type === 'image'" class="folder-list-image"
+                                src="assets/Icons/Schedule/image.png">
+                            <img *ngIf="file.type === 'spreadsheet'" class="folder-list-image"
+                                src="assets/Icons/Schedule/ms-excel.svg">
+                            <img *ngIf="file.type === 'compress'" class="folder-list-image"
+                                src="assets/Icons/Schedule/zip-folder.png">
+                            <img *ngIf="file.type === 'msword'" class="folder-list-image"
+                                src="assets/Icons/Schedule/msword.png">
+                            <img *ngIf="file.type === 'txt'" class="folder-list-image"
+                                src="assets/Icons/Schedule/file.png">
+                            <span>{{ file.name }}</span>
+                        </td>
+                        <td>{{ file.type }}</td>
+                        <td>{{ file.size }}</td>
+                        <td>{{ file.created_at | date:'short' }}</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="sidebar-right">
+        <div class="actions">
+            <button pButton label="New" icon="pi pi-folder" class="p-button-outlined" (click)="createFolder()"></button>
+            <label class="custom-file-upload">
+                <input type="file" (click)="resetInput($event)" (change)="uploadFile($event)" />
+                <i class="pi pi-upload"></i> Upload
+            </label>
+        </div>
+    </div>
+</div>
+
+
+
+
+<!-- Right-click Context Menu -->
+<p-contextMenu #cm [model]="contextMenuItems"></p-contextMenu>
+
+<div *ngIf="shareDialogVisible" class="card flex justify-center">
+    <p-dialog header="Share File" [modal]="true" [(visible)]="shareDialogVisible" [style]="{ width: '30rem' }">
+        <span class="p-text-secondary block mb-4">Select users to share the file with.</span>
+
+        <!-- Search User Dropdown -->
+        <div class="flex justify-center gap-4 vertical-marigin">
+            <label for="user" class="font-semibold">Select User</label>
+            <p-select id="user" [options]="users" optionLabel="email" [(ngModel)]="selectedUser" appendTo="body"
+                placeholder="Search or select a user" [filter]="true">
+            </p-select>
+        </div>
+
+        <!-- Permission Selection -->
+        <div class="flex justify-center gap-4 vertical-marigin">
+            <label class="font-semibold">Permission</label>
+            <div class="flex justify-between items-center">
+                <p-checkbox inputId="ingredient1" name="viewpermission" [(ngModel)]="fileShare.can_read"
+                    [binary]="true" />
+                <label for="ingredient1" class="ml-2"> View </label>
+            </div>
+            <div class="flex justify-between items-center">
+                <p-checkbox inputId="ingredient2" name="editpermission" [(ngModel)]="fileShare.can_write"
+                    [binary]="true" />
+                <label for="ingredient2" class="ml-2"> Edit </label>
+            </div>
+        </div>
+
+        <!-- Add User Button -->
+        <div class="flex justify-center gap-4 vertical-marigin">
+            <p-button label="Add User" icon="pi pi-plus" [disabled]="!selectedUser"
+                (click)="confirmShareFile()"></p-button>
+        </div>
+
+        <!-- Selected Users List -->
+        <div *ngIf="sharedUsers.length > 0">
+            <h4 class="font-semibold mb-2">Shared With:</h4>
+            <ul class="p-0">
+                <li *ngFor="let user of sharedUsers" class="flex justify-between items-center">
+                    <p-chip [label]="user.email" [removable]="true" (onRemove)="removeUser(user)" />
+                </li>
+            </ul>
+        </div>
+
+        <!-- Dialog Buttons -->
+        <div class="flex justify-end gap-2 mt-4">
+            <p-button label="Close" severity="secondary" (click)="shareDialogVisible = false" />
+        </div>
+    </p-dialog>
+</div>
+
+
+
+
+<!-- Dialog -->
+<p-dialog header="Manage File Permissions" [(visible)]="revokeShareDialogVisible" [modal]="true"
+    [style]="{ width: '40rem' }">
+    <span class="p-text-secondary block mb-4">Manage user permissions for this file.</span>
+
+    <!-- User Permissions Table -->
+    <p-table [value]="fileUsers" responsiveLayout="scroll">
+        <ng-template pTemplate="header">
+            <tr>
+                <th>Email</th>
+                <th>View</th>
+                <th>Edit</th>
+                <th>Action</th>
+            </tr>
+        </ng-template>
+        <ng-template pTemplate="body" let-user>
+            <tr>
+                <td>{{ user.email }}</td>
+                <td class="text-center">
+                    <p-checkbox [(ngModel)]="user.can_read" binary="true"></p-checkbox>
+                </td>
+                <td class="text-center">
+                    <p-checkbox [(ngModel)]="user.can_write" binary="true"></p-checkbox>
+                </td>
+                <td class="text-center">
+                    <p-button icon="pi pi-trash" class="p-button-danger p-button-text"
+                        (click)="revokeRemoveUser(user.user)"></p-button>
+                </td>
+            </tr>
+        </ng-template>
+    </p-table>
+
+    <!-- Dialog Footer Buttons -->
+    <div class="flex justify-end mt-4">
+        <p-button label="Cancel" severity="secondary" (click)="revokeShareDialogVisible = false"></p-button>
+        <p-button label="Update" (click)="saveRevokePermissions()"></p-button>
+    </div>
+</p-dialog>

@@ -1,0 +1,195 @@
+<p-toast />
+
+<div class="grid">
+    <div class="col-12 lg:col-6 xl:col-4">
+        <div class="card">
+            <p-floatLabel>
+                <input
+                    id="sname"
+                    type="text"
+                    pInputText
+                    [(ngModel)]="schedule_name"
+                    class="w-full p-3"
+                    placeholder=""
+                    (blur)="onScheduleNameSelected()"
+                />
+                 <label *ngIf="schedule_name == undefined" for="sname">Schedule Name</label>
+            </p-floatLabel>
+        </div>
+        <div *ngIf="schedule_name != undefined" class="card">
+            <p-floatLabel>
+                <p-select
+                    id="contact_type"
+                    styleClass="w-full p-2"
+                    [options]="contact_types"
+                    [(ngModel)]="selected_contact_type"
+                    optionLabel="name"
+                    [filter]="true"
+                    filterBy="name"
+                    [showClear]="true"
+                    (onChange)="onContactTypeSelected()"
+                    />
+                <label for="contact_type">Recipient Type</label>
+            </p-floatLabel>
+        </div>
+        <div *ngIf="selected_contact_type?.value === 'individual'" class="card">
+                <p-floatLabel>
+                <p-select
+                id="user_contact_list"
+                styleClass="w-full p-2"
+                [options]="contacts"
+                [(ngModel)]="selected_contacts"
+                optionLabel="name"
+                [filter]="true"
+                filterBy="name"
+                [showClear]="true"
+                [virtualScroll]="true" [virtualScrollItemSize]="10"
+                />
+                <label for="user_contact_list">Select User</label>
+                </p-floatLabel>
+        </div>
+
+        <div *ngIf="selected_contact_type?.value === 'group'" class="card">
+                <p-floatLabel>
+                    <p-select
+                    id="contact_list"
+                    styleClass="w-full p-2"
+                    [options]="contacts" 
+                    [(ngModel)]="selected_contacts" 
+                    optionLabel="name" 
+                    [filter]="true" 
+                    filterBy="name" 
+                    [showClear]="true" 
+                    [virtualScroll]="true" [virtualScrollItemSize]="10" 
+                    (onChange)="onContactSelected()"
+                    />
+                    <label for="contact_list">Select Group</label>
+                </p-floatLabel>
+        </div>
+
+        
+
+    </div>
+    
+
+    <div *ngIf="selected_contacts != undefined" class="col-12 lg:col-6 xl:col-4">
+        <div class="card">
+            <p-floatLabel>            
+            <p-datepicker
+              styleClass="w-full p-1"
+              [(ngModel)]="selected_date_time"
+              inputId="schedule_date"
+              showIcon
+              [showTime]="true"
+              iconDisplay="input"
+              (onSelect)="onScheduleDateTimeSelected()"
+            />
+
+            <label for="schedule_date">Schedule Date</label>
+        </p-floatLabel>
+        </div>
+    
+        <div *ngIf="selected_date_time != undefined" class="card">
+            <p-floatLabel>
+                <p-select
+                    id="frequency"
+                    styleClass="w-full p-2"
+                    [options]="frequency" 
+                    [(ngModel)]="selected_frequency"
+                    [filter]="true"
+                    filterBy="label"
+                    [showClear]="true"
+                    optionLabel="label" 
+                    (onChange)="onFrequencySelected()"
+                />
+                <label for="frequency">Frequency</label>
+            </p-floatLabel>
+        </div>
+
+        <div *ngIf="selected_date_time != undefined" class="card">
+            <p-floatLabel>
+                <p-select
+            id="platform"
+            styleClass="w-full p-2"
+            [options]="platform" 
+            [(ngModel)]="selected_platform"
+            [filter]="true"
+            filterBy="platform_name"
+            [showClear]="true"
+            optionLabel="platform_name" 
+            (onChange)="onPlatformSelected()"
+            />
+                <label for="platform">Platform</label>
+            </p-floatLabel>
+        </div>
+    </div>
+
+    <div *ngIf="selected_platform != undefined" class="col-12 lg:col-6 xl:col-4">
+    <div class="card">
+        <p-floatLabel>
+        <p-select
+            id="datasource"
+            styleClass="w-full p-2"
+            [options]="datasource" 
+            [(ngModel)]="selected_datasource"
+            [filter]="true"
+            filterBy="name"
+            [showClear]="true"
+            optionLabel="name" 
+            (onChange)="onDatasourceSelected()"
+            />
+            <label for="datasource">Data Source</label>
+        </p-floatLabel>
+    </div>
+</div>
+
+
+<app-message-templates *ngIf="selected_platform != undefined" class="col-4" [selectedPlatform]="selected_platform" (selectTemplate)="onTemplateSelected($event)"></app-message-templates>
+
+<div *ngIf="selected_platform != undefined"  class="col-8">
+        
+    <p-fileUpload name="myfile[]" [multiple]="false" accept=".xls,.xlsx" maxFileSize="1000000000" (onUpload)="onTemplatedUpload()" (onSelect)="onSelectedFiles($event)">
+        <ng-template pTemplate="header" let-files let-chooseCallback="chooseCallback" let-clearCallback="clearCallback" let-uploadCallback="uploadCallback">
+            <div class="flex flex-wrap justify-content-between align-items-center flex-1 gap-2">
+                <div class="flex gap-2">
+                    <button pButton (click)="choose($event, chooseCallback)" icon="pi pi-images" [rounded]="true" [outlined]="true" class="p-button-outlined"></button>
+                    <button pButton (click)="clearCallback()" icon="pi pi-times" [rounded]="true" [outlined]="true" severity="danger" [disabled]="!files || files.length === 0" class="p-button-outlined"></button>
+                </div>
+            </div>
+        </ng-template>
+        <ng-template pTemplate="content" let-files let-uploadedFiles="uploadedFiles" let-removeFileCallback="removeFileCallback" let-removeUploadedFileCallback="removeUploadedFileCallback">
+            <div *ngIf="files?.length > 0">
+                <h5>Files Selected</h5>
+                <div class="flex flex-wrap p-0 sm:p-5 gap-5">
+                    <div *ngFor="let file of files; let i = index" class="card m-0 px-6 flex flex-column border-1 surface-border align-items-center gap-3">
+                        <div>
+                            <img role="presentation" [alt]="file.name" [src]="excel_icon" width="100" height="50" />
+                        </div>
+                        <span class="font-semibold">{{ file.name }}</span>
+                        <div>{{ formatSize(file.size) }}</div>
+                        <p-badge value="selected" severity="warn" />
+                        <button pButton icon="pi pi-times" class="p-button-outlined" (click)="onRemoveTemplatingFile($event, file, removeFileCallback, i)" [outlined]="true" [rounded]="true" severity="danger"></button>
+                    </div>
+                </div>
+            </div>
+        </ng-template>
+        <ng-template pTemplate="file"> </ng-template>
+        <ng-template pTemplate="empty">
+            <div class="flex align-items-center justify-content-center flex-column">
+                <i class="pi pi-cloud-upload border-2 border-circle p-5 text-8xl text-400 border-400"></i>
+                <p class="mt-4 mb-0">Drag and drop files here to upload.</p>
+            </div>
+        </ng-template>
+    </p-fileUpload>
+</div>
+
+    <div *ngIf="selected_datasource != undefined && selected_template === undefined" class="col-12">
+        <p-editor (onTextChange)="onMessageText($event)" [style]="{ height: '320px' }" />
+    </div>
+
+    <div *ngIf="selected_datasource != undefined && this.files?.length > 0" class="col-12 flex justify-content-end gap-2">
+        <p-button (click)="onReset()" label="Reset" severity="secondary" />
+        <p-button label="Start Campaign" (click)="onSchedule()"/>
+    </div>
+
+</div>

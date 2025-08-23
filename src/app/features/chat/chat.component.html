@@ -1,0 +1,59 @@
+<div class="card" *ngIf="profile.user.role !== 'individual'">
+    <p-tabs value="0" styleClass="tabview-custom">
+        <p-tablist>
+            <p-tab value="0" class="flex items-center !gap-2">
+                <i class="pi pi-users"></i>
+                <span class="font-bold white-space-nowrap m-0">
+                    Chats
+                </span>
+                <p-badge *ngIf="total_new_conversation_me > 0" [value]="total_new_conversation_me" />
+            </p-tab>
+            <p-tab value="1" class="flex items-center !gap-2">
+                <i class="pi pi-briefcase"></i>
+                <span class="font-bold white-space-nowrap m-0">
+                    Active
+                </span>
+                <p-badge *ngIf="total_active_conversations > 0" [value]="total_active_conversations" />
+            </p-tab>
+            <p-tab value="2" class="flex items-center !gap-2">
+                <div class="flex align-items-center gap-2">
+                    <i class="pi pi-chart-line"></i>
+                    <span class="font-bold white-space-nowrap m-0">
+                        Usage Cost
+                    </span>
+                </div>
+            </p-tab>
+
+        </p-tablist>
+        <p-tabpanels>
+            <!--p-tabpanel>
+            <ng-template pTemplate="header">
+                <div class="flex align-items-center gap-2">
+                    <i class="pi pi-ticket"></i>
+                    <span class="font-bold white-space-nowrap m-0">
+                        New
+                    </span>
+                    <p-badge *ngIf="total_conversations > 0" [value]="total_conversations" />
+                </div>
+            </ng-template>
+            <app-list-conversations [users]="this.users" (totalConversations)="onTotalConversationsHandler($event)"></app-list-conversations>
+        </p-tabpanel-->
+
+            <p-tabpanel value="0">
+                <!--app-chat-window [employees]="this.users"
+                    (newUniqueConversationMessageCount)="onTotalNewConversationsMeHandler($event)"></app-chat-window-->
+                <app-chat-window></app-chat-window>
+            </p-tabpanel>
+            <p-tabpanel value="1">
+                <app-list-active-conversations [users]="this.users" [is_user_specific]="false"
+                    (totalActiveConversations)="onTotalActiveConversationsHandler($event)"></app-list-active-conversations>
+            </p-tabpanel>
+
+            
+
+            <p-tabpanel value="2">
+                <app-cost-analysis-chat></app-cost-analysis-chat>
+            </p-tabpanel>
+        </p-tabpanels>
+    </p-tabs>
+</div>
