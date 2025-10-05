@@ -99,7 +99,7 @@
                     </i>
                 </p-overlayBadge>
 
-                <p-overlayBadge *ngIf="layoutService.newTaskmessages().length > 0" [value]="layoutService.newTaskmessages().length"
+                <p-overlayBadge *ngIf="layoutService.newTaskmessages().length > 0" [value]="layoutService.newTaskmessages()[0]?.total_count"
                     severity="danger">
                     <i class="pi pi-briefcase cursor-pointer text-2xl" (click)="toggleMessages()">
                     </i>

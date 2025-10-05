@@ -8,7 +8,10 @@ import { HOST } from '../../../environment'
 })
 export class ChatManagerService {
 
+
   conversations_url = `${HOST}/conversations/`;
+  non_chat_conversations_uri = `conversation/`;
+
   new_conversation_uri = "?status=new"
   active_conversation_uri = "?status=active"
   active_conversation_for_user_uri = "active_conversation_for_user/"
@@ -35,63 +38,135 @@ export class ChatManagerService {
     }
   }
 
-  list_notification() {
+  list_notification(base_url_type='chat') {
     const headers = new HttpHeaders().set('Authorization', `Bearer ${this.auth_token}`);
     return this.http.get(`${this.conversations_url}${this.notification_uri}`, { headers });
   }
 
-  list_all_conversations(is_user_specific=false): Observable<any> {
-    const headers = new HttpHeaders().set('Authorization', `Bearer ${this.auth_token}`);
-    return this.http.get(`${this.conversations_url}?is_user_specific=${is_user_specific}`, { headers });
+  list_all_conversations(
+  base_url_type="chat",
+  is_user_specific: boolean = false,
+  statusFilter: string = 'all',
+  page: number = 1,
+  pageSize: number = 10,
+  search = ""
+): Observable<any> {
+  const headers = new HttpHeaders().set('Authorization', `Bearer ${this.auth_token}`);
+
+  const params: any = {
+    status: statusFilter,
+    page: page,
+    page_size: pageSize,
+    search: search
+  };
+  if (is_user_specific) {
+    params.is_user_specific = "true";
+  }
+  
+  if (base_url_type !== "chat") {
+    return this.http.get(`${this.conversations_url}${this.non_chat_conversations_uri}`, { headers, params });
   }
 
-  list_conversation_from_id(conversationId): Observable<any> {
+  return this.http.get(`${this.conversations_url}`, { headers, params });
+}
+
+
+  list_conversation_from_id(base_url_type="chat", conversationId): Observable<any> {
     const headers = new HttpHeaders().set('Authorization', `Bearer ${this.auth_token}`);
+    if (base_url_type !== "chat") {
+      return this.http.get(`${this.conversations_url}${this.non_chat_conversations_uri}${conversationId}/`, { headers });      
+    
+  }
     return this.http.get(`${this.conversations_url}${conversationId}/`, { headers });
   }
 
-  list_new_conversations(): Observable<any> {
+  list_new_conversations(base_url_type="chat", page: number = 1,
+  pageSize: number = 1000, search=''): Observable<any> {
     const headers = new HttpHeaders().set('Authorization', `Bearer ${this.auth_token}`);
-    return this.http.get(`${this.conversations_url}${this.new_conversation_uri}`, { headers });
+    const params: any = {
+    page: page,
+    page_size: pageSize,
+    search: search
+  };
+  if (base_url_type !== "chat") {
+    return this.http.get(`${this.conversations_url}${this.non_chat_conversations_uri}${this.new_conversation_uri}`, { headers, params });
+    
+  }
+    return this.http.get(`${this.conversations_url}${this.new_conversation_uri}`, { headers, params });
   }
 
-  list_active_conversations(is_user_specific=false): Observable<any> {
+  list_active_conversations(base_url_type="chat", is_user_specific:boolean=false,
+    page: number = 1,
+    pageSize: number = 1000, search=''): Observable<any> {
     const headers = new HttpHeaders().set('Authorization', `Bearer ${this.auth_token}`);
-    return this.http.get(`${this.conversations_url}${this.active_conversation_uri}&is_user_specific=${is_user_specific}`, { headers });
+    const params: any = {
+    page: page,
+    page_size: pageSize,
+    search: search
+  };
+  if (base_url_type !== "chat") {
+    return this.http.get(`${this.conversations_url}${this.non_chat_conversations_uri}${this.active_conversation_uri}`, { headers, params });
+    
+  }
+    return this.http.get(`${this.conversations_url}${this.active_conversation_uri}`, { headers, params });
   }
 
-  list_new_active_conversations(): Observable<any> {
+  list_new_active_conversations(base_url_type="chat"): Observable<any> {
     const headers = new HttpHeaders().set('Authorization', `Bearer ${this.auth_token}`);
+    if (base_url_type !== "chat") {
+      return this.http.get(`${this.conversations_url}${this.non_chat_conversations_uri}${this.active_conversation_for_org_uri}`, { headers });
+    
+  }
     return this.http.get(`${this.conversations_url}${this.active_conversation_for_org_uri}`, { headers });
   }
 
-  list_active_coversations_for_user(): Observable<any> {
+  list_active_coversations_for_user(base_url_type="chat"): Observable<any> {
     const headers = new HttpHeaders().set('Authorization', `Bearer ${this.auth_token}`);
+    if (base_url_type !== "chat") {
+      return this.http.get(`${this.conversations_url}${this.non_chat_conversations_uri}${this.active_conversation_for_user_uri}`, { headers });
+    
+  }
     return this.http.get(`${this.conversations_url}${this.active_conversation_for_user_uri}`, { headers });
   }
 
-  list_all_coversations_for_user(): Observable<any> {
+  list_all_coversations_for_user(base_url_type="chat"): Observable<any> {
     const headers = new HttpHeaders().set('Authorization', `Bearer ${this.auth_token}`);
+    if (base_url_type !== "chat") {
+      return this.http.get(`${this.conversations_url}${this.non_chat_conversations_uri}${this.all_conversation_for_user_uri}`, { headers });
+    
+  }
     return this.http.get(`${this.conversations_url}${this.all_conversation_for_user_uri}`, { headers });
   }
 
-  list_historical_conversations_for_contact(contactId): Observable<any> {
+  list_historical_conversations_for_contact(base_url_type="chat", contactId): Observable<any> {
     const headers = new HttpHeaders().set('Authorization', `Bearer ${this.auth_token}`);
+    if (base_url_type !== "chat") {
+      return this.http.get(`${this.conversations_url}${this.non_chat_conversations_uri}${this.history_by_contact_uri}?contact_id=${contactId}`, { headers });
+    
+  }
     return this.http.get(`${this.conversations_url}${this.history_by_contact_uri}?contact_id=${contactId}`, { headers });
   }
 
-  assign_conversation(conversationId, assigneeId): Observable<any> {
+  assign_conversation(base_url_type="chat", conversationId, assigneeId): Observable<any> {
     let payload = {"id": assigneeId}
     const headers = new HttpHeaders().set('Authorization', `Bearer ${this.auth_token}`);
+    if (base_url_type !== "chat") {
+      return this.http.post(`${this.conversations_url}${this.non_chat_conversations_uri}${conversationId}${this.assign_conversation_uri}`, payload=payload, { headers });
+    
+  }
     return this.http.post(`${this.conversations_url}${conversationId}${this.assign_conversation_uri}`, payload=payload, { headers });
   }
 
-  close_conversation(conversationId, payload): Observable<any> {
+  close_conversation(base_url_type="chat", conversationId, payload): Observable<any> {
     const headers = new HttpHeaders().set('Authorization', `Bearer ${this.auth_token}`);
+    if (base_url_type !== "chat") {
+      return this.http.post(`${this.conversations_url}${this.non_chat_conversations_uri}${conversationId}${this.close_conversation_uri}`, payload=payload, { headers });
+    
+  }
     return this.http.post(`${this.conversations_url}${conversationId}${this.close_conversation_uri}`, payload=payload, { headers });
   }
 
-  respond_to_message(conversationId: number, payload: any): Observable<any> {
+  respond_to_message(base_url_type="chat", conversationId: number, payload: any): Observable<any> {
     const url = `${this.conversations_url}${conversationId}${this.respond_to_message_uri}`;
     const headers = new HttpHeaders().set('Authorization', `Bearer ${this.auth_token}`);
   
@@ -110,8 +185,12 @@ export class ChatManagerService {
     }
   }
 
-  start_new_conversation(payload): Observable<any> {
+  start_new_conversation(base_url_type="chat", payload): Observable<any> {
     const headers = new HttpHeaders().set('Authorization', `Bearer ${this.auth_token}`);
+    if (base_url_type !== "chat") {
+      return this.http.post(`${this.conversations_url}${this.non_chat_conversations_uri}${this.start_new_conversation_uri}`, payload=payload, { headers });
+    
+  }
     return this.http.post(`${this.conversations_url}${this.start_new_conversation_uri}`, payload=payload, { headers });
   }
 

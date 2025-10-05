@@ -89,7 +89,6 @@ export class ReportConversationsComponent implements OnInit, OnDestroy, AfterVie
       this.router.navigate(['/apps/login']);
       return;
     }
-    this.loadConversations();
   }
 
   ngAfterViewInit() {
@@ -114,29 +113,60 @@ export class ReportConversationsComponent implements OnInit, OnDestroy, AfterVie
     return dayDifference;
   }
 
-  loadConversations(skip_notification=true) {
-    this.loading = true;
-    this.conversationService.list_all_conversations(this.is_user_specific).pipe(takeUntil(this.destroy$)).subscribe((data) => {
-      data.forEach((convers) => {
-        convers.sla = this.calculateDateDifference(convers.updated_at);
-      })
-      this.conversations = data;
-      this.loading = false;
-      if (!skip_notification){
-        this.assignmentEventService.emitAssignmentChange("Assignment Change");
+  currentPage: number = 1;
+pageSize: number = 10;
+totalRecords: number = 0;
+
+  onPageChange(event: any) {
+  const page = event.first / event.rows + 1;  // PrimeNG gives zero-based
+  const pageSize = event.rows;
+  this.loadConversationsLazy(page, pageSize);
+}
+
+loadConversationsLazy(page: number = this.currentPage, pageSize: number = this.pageSize, search?: string) {
+  this.loading = true;
+  this.conversationService
+    .list_all_conversations("non-chat", this.is_user_specific, this._statusFilter, page, pageSize, search)
+    .pipe(takeUntil(this.destroy$))
+    .subscribe(
+      (data: any) => {
+        // Always expect DRF pagination
+        if (!data || !Array.isArray(data.results)) {
+          console.error("Unexpected response format:", data);
+          this.conversations = [];
+          this.totalRecords = 0;
+          this.loading = false;
+          return;
+        }
+
+        const results = data.results;
+
+        results.forEach((convers: any) => {
+          convers.sla = this.calculateDateDifference(convers.updated_at);
+        });
+
+
+        this.conversations = results;  // ✅ always array
+        this.totalRecords = data.count ?? results.length;
+        this.currentPage = page;
+        this.pageSize = pageSize;
+        this.loading = false;
+      },
+      (err) => {
+        console.error("Error loading conversations:", err);
+        this.conversations = [];
+        this.loading = false;
       }
-    },
-    (err) => {
-      console.error("List conversation | Error getting conversations ", err);
-      this.loading = false;
-    }
-    )
-  }
+    );
+}
+
+
 
   onSearchInput(event: Event, dt: Table): void {
     const inputElement = event.target as HTMLInputElement;
     const searchValue = inputElement.value;
-    dt.filterGlobal(searchValue, 'contains');
+    this.currentPage = 1;
+    this.loadConversationsLazy(this.currentPage, this.pageSize, searchValue);
   }
 
   getSeverity(status: string) {
@@ -158,11 +188,12 @@ export class ReportConversationsComponent implements OnInit, OnDestroy, AfterVie
   assignTask(row: any): void {
     if (row.assigned) {
       this.conversationService.assign_conversation(
+        "chat",
         row.id,
         row.assigned.user
       ).pipe(takeUntil(this.destroy$)).subscribe((data) => {
         this.messageService.add({ severity: 'success', summary: 'Success', detail: `Task "${row.conversation_id}" assigned to: ${row.assigned.name}` });
-        this.loadConversations(false);
+        this.loadConversationsLazy(this.currentPage, this.pageSize);
       },
       (err) => {
         console.error("List conversation | Error assigning task ", err);

@@ -220,7 +220,7 @@ export class ChatWindowComponent implements OnInit {
           this.playNewMessageNotificationSound();
         } else {
           this.conversationService
-            .list_conversation_from_id(message.conversation_id).pipe(takeUntil(this.destroy$)).subscribe(
+            .list_conversation_from_id("chat", message.conversation_id).pipe(takeUntil(this.destroy$)).subscribe(
               {
                 next: (conversation: any) => {
                   this.reloadContactsIfNeeded(conversation).then(() => {
@@ -243,7 +243,7 @@ export class ChatWindowComponent implements OnInit {
           this.playNewMessageNotificationSound();
           const conversationId = conversations[conversationIndex].id;
           this.conversationService
-            .list_conversation_from_id(conversationId)
+            .list_conversation_from_id("chat", conversationId)
             .pipe(takeUntil(this.destroy$))
             .subscribe({
               next: (conv) => {
@@ -272,7 +272,7 @@ export class ChatWindowComponent implements OnInit {
 
 
   refreshUnrespondedConversationNotifications() {
-    this.conversationService.list_notification().pipe(takeUntil(this.destroy$)).subscribe({
+    this.conversationService.list_notification("chat").pipe(takeUntil(this.destroy$)).subscribe({
       next: (notificationData: ConversationNotificationTemplate) => {
         this.layoutService.unrespondedConversationNotification.update((prev) => notificationData)
       },
@@ -281,7 +281,7 @@ export class ChatWindowComponent implements OnInit {
   }
 
   refreshNewTasksNotifications() {
-    this.conversationService.list_new_conversations().pipe(takeUntil(this.destroy$)).subscribe((data) => {
+    this.conversationService.list_new_conversations("chat").pipe(takeUntil(this.destroy$)).subscribe((data) => {
       let new_parsed_messages = [].concat(...data.map((unparsed_data) => {
         return {
           'customerName': unparsed_data?.contact?.name === '' ? unparsed_data?.contact?.phone : unparsed_data?.contact?.name,
@@ -337,7 +337,7 @@ async loadContacts(): Promise<void> {
   return new Promise((resolve, reject) => {
     this.contactService.list_contact().pipe(takeUntil(this.destroy$)).subscribe({
       next: (contactsData) => {
-        this.conversationService.list_new_active_conversations().pipe(takeUntil(this.destroy$)).subscribe({
+        this.conversationService.list_new_active_conversations("chat").pipe(takeUntil(this.destroy$)).subscribe({
           next: (conversationsData: any[]) => {
             const entries = contactsData.map((contact) => {
               const conv = conversationsData.find((c) => c.contact.id === contact.id);
@@ -382,7 +382,7 @@ async loadContacts(): Promise<void> {
 
   loadConversations(): Promise<void> {
   return new Promise((resolve, reject) => {
-    this.conversationService.list_active_coversations_for_user()
+    this.conversationService.list_active_coversations_for_user("chat")
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: (data) => {

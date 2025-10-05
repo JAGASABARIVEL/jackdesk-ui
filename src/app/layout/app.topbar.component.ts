@@ -216,7 +216,7 @@ export class AppTopBarComponent implements OnInit, OnDestroy {
             if (message.msg_from_type === "CUSTOMER" && this.layoutService.newTaskUpdateToken()) {
                 this.layoutService.newTaskUpdateToken.set(false);
                 if (message.is_conversation_new) {
-                    this.layoutService.newTaskmessages.update((prev) => [...prev, { 'customerName': message.customer_name, 'text': message.message_body }])
+                    this.layoutService.newTaskmessages.update((prev) => [...prev, { 'customerName': message.customer_name, 'text': message.message_body, 'total_count': message.total_count }])
                     this.playNotificationSound();
                 }
                 this.layoutService.newTaskUpdateToken.set(true);

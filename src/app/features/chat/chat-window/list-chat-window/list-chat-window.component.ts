@@ -22,6 +22,8 @@ export class ListChatWindowComponent {
   _conversation;
   lastMessageTime;
 
+  @Input() isActive;
+
   @Input() set conversation(value) {
     this._conversation = value;
     let lastMessage = this._conversation.messages[this._conversation.messages.length - 1];

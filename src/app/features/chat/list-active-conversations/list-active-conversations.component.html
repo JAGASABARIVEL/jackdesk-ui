@@ -58,12 +58,16 @@
     <p-table
         #dt
         [value]="conversations"
-        [rows]="10"
+        [rows]="pageSize"
+        [lazy]="true"
         [paginator]="true"
         [globalFilterFields]="['contact.name', 'contact.phone', 'assigned.name', 'status']"
         [tableStyle]="{ 'min-width': '75rem' }"
         [(selection)]="selectedConversations"
         [rowHover]="true"
+        [totalRecords]="totalRecords"
+        (onLazyLoad)="onPageChange($event)"
+        [first]="(currentPage - 1) * pageSize"
         dataKey="conversation_id"
         [loading]="loading"
         

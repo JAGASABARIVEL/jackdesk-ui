@@ -90,14 +90,13 @@ export class ListActiveConversationsComponent implements OnInit, OnDestroy {
       this.susbscribeAssignemntChangeEvent();
       this.subscribeCloseConversationEvent();
       this.loadUsers();
-      this.loadConversations();
     }
   }
 
   susbscribeAssignemntChangeEvent() {
     this.assignmentEventService.assignmentEvent$.pipe(takeUntil(this.destroy$)).subscribe((convs) => {
       if (convs !== 'skip') {
-        this.loadConversations();
+        this.loadConversations(this.currentPage, this.pageSize);
       }
     });
   }
@@ -105,7 +104,7 @@ export class ListActiveConversationsComponent implements OnInit, OnDestroy {
   subscribeCloseConversationEvent() {
     this.assignmentEventService.closeConversationEvent$.pipe(takeUntil(this.destroy$)).subscribe((message) => {
       if (message !== 'skip') {
-        this.loadConversations();
+        this.loadConversations(this.currentPage, this.pageSize);
       }
     })
   }
@@ -122,6 +121,46 @@ export class ListActiveConversationsComponent implements OnInit, OnDestroy {
     );
   }
 
+
+    currentPage: number = 1;
+pageSize: number = 10;
+totalRecords: number = 0;
+
+  onPageChange(event: any) {
+  const page = event.first / event.rows + 1;  // PrimeNG gives zero-based
+  const pageSize = event.rows;
+  this.loadConversations(page, pageSize);
+}
+
+loadConversations(page: number = this.currentPage, pageSize: number = this.pageSize, search?: string) {
+  this.loading = true;
+  this.conversationService.list_active_conversations("non-chat", this.is_user_specific, page, pageSize, search
+    ).pipe(takeUntil(this.destroy$)).subscribe((result) => {
+        // Always expect DRF pagination
+        if (!result || !Array.isArray(result.results)) {
+          console.error("Unexpected response format:", result);
+          this.conversations = [];
+          this.totalRecords = 0;
+          this.loading = false;
+          return;
+        }
+
+        const data = result.results;
+        this.conversations = data;  // ✅ always array
+        this.totalRecords = result.count ?? data.length;
+        this.currentPage = page;
+        this.pageSize = pageSize;
+        this.loading = false;
+        this.totalActiveConversations.emit(data.length);
+      },
+      (err) => {
+        console.error("Error loading conversations:", err);
+        this.conversations = [];
+        this.loading = false;
+      }
+    );
+}
+
   //loadUsers() {
   //  this.userManagerService.list_users().subscribe((data) => {
   //    this.users = data;
@@ -131,25 +170,26 @@ export class ListActiveConversationsComponent implements OnInit, OnDestroy {
   //  );
   //}
 
-  loadConversations() {
-    this.loading = true;
-    this.conversationService.list_active_conversations(this.is_user_specific
-    ).pipe(takeUntil(this.destroy$)).subscribe((data) => {
-      this.totalActiveConversations.emit(data.length);
-      this.conversations = data;
-      this.loading = false;
-    },
-    (err) => {
-      console.error("List conversation | Error getting conversations ", err);
-      this.loading = false;
-    }
-    )
-  }
+  //loadConversations() {
+  //  this.loading = true;
+  //  this.conversationService.list_active_conversations(this.is_user_specific
+  //  ).pipe(takeUntil(this.destroy$)).subscribe((data) => {
+  //    this.totalActiveConversations.emit(data.length);
+  //    this.conversations = data;
+  //    this.loading = false;
+  //  },
+  //  (err) => {
+  //    console.error("List conversation | Error getting conversations ", err);
+  //    this.loading = false;
+  //  }
+  //  )
+  //}
 
   onSearchInput(event: Event, dt: Table): void {
     const inputElement = event.target as HTMLInputElement;
     const searchValue = inputElement.value;
-    dt.filterGlobal(searchValue, 'contains');
+    this.currentPage = 1;
+    this.loadConversations(this.currentPage, this.pageSize, searchValue);
   }
 
   getSeverity(status: string) {
@@ -172,11 +212,12 @@ export class ListActiveConversationsComponent implements OnInit, OnDestroy {
   assignTask(row: any): void {
     if (row.assigned) {
       this.conversationService.assign_conversation(
+        "chat",
         row.id,
         row.assigned.user
       ).pipe(takeUntil(this.destroy$)).subscribe((data) => {
         this.assignmentEventService.emitAssignmentChange('skip');
-        this.loadConversations();
+        this.loadConversations(this.currentPage, this.pageSize);
         this.refreshUnrespondedConversationNotifications();
         this.messageService.add({ severity: 'success', summary: 'Success', detail: 'Task got re-assigned successfully' });
       },
@@ -195,7 +236,7 @@ export class ListActiveConversationsComponent implements OnInit, OnDestroy {
   }
 
   refreshUnrespondedConversationNotifications() {
-        this.conversationService.list_notification().pipe(takeUntil(this.destroy$)).subscribe({
+        this.conversationService.list_notification("non-chat").pipe(takeUntil(this.destroy$)).subscribe({
             next: (notificationData: ConversationNotificationTemplate) => {
                 this.layoutService.unrespondedConversationNotification.update((prev) => notificationData)
             },
@@ -212,6 +253,7 @@ export class ListActiveConversationsComponent implements OnInit, OnDestroy {
   }
   closeTask() {
     this.conversationService.close_conversation(
+      "chat",
       this.selectedConversation.id,
       {
         "reason": this.closedReason
@@ -220,7 +262,7 @@ export class ListActiveConversationsComponent implements OnInit, OnDestroy {
       this.refreshUnrespondedConversationNotifications();
       this.closeConversationVisible = false;
       this.messageService.add({ severity: 'success', summary: 'Success', detail: 'Conversation closed successfully' });
-      this.loadConversations();
+      this.loadConversations(this.currentPage, this.pageSize);
       this.assignmentEventService.emitCloseConversation("skip");
     });
     if (this.blockForm.should_block) {

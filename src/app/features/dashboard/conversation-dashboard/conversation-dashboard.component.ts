@@ -120,7 +120,7 @@ export class ConversationDashboardComponent implements OnInit, OnDestroy {
       return;
     }
     this.loadUsers();
-    this.loadConversations();
+    //this.loadConversations();
     this.subscribeForNewConversations();
   }
 
@@ -166,7 +166,7 @@ export class ConversationDashboardComponent implements OnInit, OnDestroy {
 
   subscribeForNewConversations() {
     this.conversationEventService.newConversationEvent$.pipe(takeUntil(this.destroy$)).subscribe((event)=> {
-      this.loadConversations();
+      //this.loadConversations();
     });
   }
 
@@ -183,28 +183,28 @@ export class ConversationDashboardComponent implements OnInit, OnDestroy {
     return dayDifference;
   }
 
-  loadConversations() {
-    this.loadingNewConversation = true;
-    this.conversationService.list_new_conversations().pipe(takeUntil(this.destroy$)).subscribe((data) => {
-      data.forEach((convers) => {
-        convers.sla = this.calculateDateDifference(convers.created_at);
-      })
-      this.conversations = data;
-      let new_parsed_messages = [].concat(...data.map((unparsed_data) => {
-        return {
-            'customerName': unparsed_data?.contact?.name === ''? unparsed_data?.contact?.phone : unparsed_data?.contact?.name,
-            'text': unparsed_data?.messages[0].message_body
-        }
-      }))
-      this.layoutService.newTaskmessages.update(() => new_parsed_messages);
-      this.loadingNewConversation = false;
-    },
-    (err) => {
-      console.error("List conversation | Error getting conversations ", err);
-      this.loadingNewConversation = false;
-    }
-    )
-  }
+  //loadConversations() {
+  //  this.loadingNewConversation = true;
+  //  this.conversationService.list_new_conversations().pipe(takeUntil(this.destroy$)).subscribe((data) => {
+  //    data.forEach((convers) => {
+  //      convers.sla = this.calculateDateDifference(convers.created_at);
+  //    })
+  //    this.conversations = data;
+  //    let new_parsed_messages = [].concat(...data.map((unparsed_data) => {
+  //      return {
+  //          'customerName': unparsed_data?.contact?.name === ''? unparsed_data?.contact?.phone : unparsed_data?.contact?.name,
+  //          'text': unparsed_data?.messages[0].message_body
+  //      }
+  //    }))
+  //    this.layoutService.newTaskmessages.update(() => new_parsed_messages);
+  //    this.loadingNewConversation = false;
+  //  },
+  //  (err) => {
+  //    console.error("List conversation | Error getting conversations ", err);
+  //    this.loadingNewConversation = false;
+  //  }
+  //  )
+  //}
 
   /**
    * 

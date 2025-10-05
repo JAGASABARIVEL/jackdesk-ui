@@ -45,7 +45,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
   }
 
   refreshUnrespondedConversationNotifications() {
-        this.conversationService.list_notification().pipe(takeUntil(this.destroy$)).subscribe({
+        this.conversationService.list_notification("non-chat").pipe(takeUntil(this.destroy$)).subscribe({
             next: (notificationData: ConversationNotificationTemplate) => {
                 this.layoutService.unrespondedConversationNotification.update((prev) => notificationData)
             },

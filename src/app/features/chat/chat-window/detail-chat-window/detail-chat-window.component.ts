@@ -196,7 +196,7 @@ getMimeType(url: string): 'image' | 'video' | 'audio' | 'pdf' | 'other' {
   }
 
   loadHistoricalConversation() {
-    this.conversationService.list_historical_conversations_for_contact(this.selectedConversation.contact.id).subscribe(
+    this.conversationService.list_historical_conversations_for_contact("chat", this.selectedConversation.contact.id).subscribe(
       (convs) => {
         let conv_messages: any[] = [];
         convs.forEach((conv) => {
@@ -244,6 +244,7 @@ getMimeType(url: string): 'image' | 'video' | 'audio' | 'pdf' | 'other' {
 
   ownThisConversation() {
     this.conversationService.assign_conversation(
+        "chat",
         this.selectedConversation.id,
         this.profile.user.id
       ).pipe(takeUntil(this.destroy$)).subscribe((data) => {
@@ -267,6 +268,7 @@ getMimeType(url: string): 'image' | 'video' | 'audio' | 'pdf' | 'other' {
   }
   onClosedReasonSave() {
     this.conversationService.close_conversation(
+      "chat",
       this.selectedConversation.id,
       {
         "closed_by": this.profile.user.id,
@@ -341,6 +343,7 @@ submitBlockContact() {
     }
 
     this.conversationService.start_new_conversation(
+      "chat",
       newConversationPayload
     ).pipe(takeUntil(this.destroy$)).subscribe(
       (success_data: any) => {   
@@ -394,6 +397,7 @@ submitBlockContact() {
       newConversationPayload.append('file', this.newConversationGmailAttachment);
     }
     this.conversationService.start_new_conversation(
+      "chat",
       newConversationPayload
     ).pipe(takeUntil(this.destroy$)).subscribe(
       (success_data: any) => {   
@@ -729,6 +733,7 @@ sendMessage() {
       });
 
       this.conversationService.respond_to_message(
+        "chat",
         messagePayload.conversation_id,
         messagePayload
       ).pipe(takeUntil(this.destroy$)).subscribe({
@@ -764,7 +769,7 @@ onChangeInSelectedConversationObjectFromChildren() {
 }
 
 private reloadActiveConversation(): void {
-    this.conversationService.list_conversation_from_id(this.selectedConversation.id)
+    this.conversationService.list_conversation_from_id("chat", this.selectedConversation.id)
     .pipe(takeUntil(this.destroy$))
       .subscribe(conv => {
         this._selectedConversation = conv;
@@ -777,7 +782,7 @@ private reloadActiveConversation(): void {
   
 
   refreshUnrespondedConversationNotifications() {
-    this.conversationService.list_notification()
+    this.conversationService.list_notification("chat")
     .pipe(takeUntil(this.destroy$))
     .subscribe({
       next: (notificationData: ConversationNotificationTemplate) => {

@@ -97,9 +97,7 @@ export class ListNewConversationsComponent implements OnInit, OnDestroy {
       this.layoutService.addNotification(
           {'severity': 'error', 'app': 'Dashboard', 'text': 'Socket connection not available for new notification'}
       )
-    }
-    
-    this.loadConversations();
+    }    
   }
 
   subscribeToWebSocketChatMessages(): void {
@@ -134,38 +132,75 @@ export class ListNewConversationsComponent implements OnInit, OnDestroy {
     return dayDifference;
   }
 
-  loadConversations(skip_notification=true) {
-    this.loading = true;
-    this.conversationService.list_new_conversations().pipe(takeUntil(this.destroy$)).subscribe((data) => {
-      data.forEach((convers) => {
-        convers.sla = this.calculateDateDifference(convers.created_at);
-      })
-      this.conversations = data;
-      let new_parsed_messages = [].concat(...data.map((unparsed_data) => {
-        return {
-            'customerName': unparsed_data?.contact?.name === ''? unparsed_data?.contact?.phone : unparsed_data?.contact?.name,
-            'text': unparsed_data?.messages[0].message_body
+  currentPage: number = 1;
+pageSize: number = 10;
+totalRecords: number = 0;
+
+  onPageChange(event: any) {
+  const page = event.first / event.rows + 1;  // PrimeNG gives zero-based
+  const pageSize = event.rows;
+  this.loadConversations(true, page, pageSize);
+}
+
+
+
+  loadConversations(skip_notification = true, page: number = this.currentPage, pageSize: number = this.pageSize, search?: string) {
+  this.loading = true;
+  this.conversationService.list_new_conversations("non-chat", page, pageSize, search)
+    .pipe(takeUntil(this.destroy$))
+    .subscribe({
+      next: (result) => {
+        // Normalize response
+        let data: any[];
+        // Always expect DRF pagination
+        if (!result || !Array.isArray(result.results)) {
+          console.error("Unexpected response format:", data);
+          this.conversations = [];
+          this.totalRecords = 0;
+          this.loading = false;
+          return;
         }
-      }))
-      this.layoutService.newTaskmessages.update(() => new_parsed_messages);
-      this.layoutService.newTaskUpdateToken.set(true);
-      this.loading = false;
-      if (!skip_notification){
-        this.assignmentEventService.emitAssignmentChange("Assignment Change");
+        data = result.results;
+        // Update SLA
+        data.forEach((convers) => {
+          convers.sla = this.calculateDateDifference(convers.created_at);
+        });
+        // Always assign an array
+        this.conversations = data;
+        this.totalRecords = result.count ?? data.length; // DRF count or fallback
+        this.currentPage = page;
+        this.pageSize = pageSize;
+        this.loading = false;
+
+        // Update messages for layout
+        const newParsedMessages = data.map((unparsed) => ({
+          customerName: unparsed?.contact?.name || unparsed?.contact?.phone,
+          text: unparsed?.messages?.[0]?.message_body,
+          total_count: result.count // TODO: Including the count in every payload until we add pagination to notification topbar
+        }));
+        this.layoutService.newTaskmessages.update(() => newParsedMessages);
+        this.layoutService.newTaskUpdateToken.set(true);
+
+        if (!skip_notification) {
+          this.assignmentEventService.emitAssignmentChange("Assignment Change");
+        }
+      },
+      error: (err) => {
+        this.layoutService.newTaskUpdateToken.set(true);
+        console.error("List conversation | Error getting conversations", err);
+        this.conversations = [];
+        this.loading = false;
       }
-    },
-    (err) => {
-      this.layoutService.newTaskUpdateToken.set(true);
-      console.error("List conversation | Error getting conversations ", err);
-      this.loading = false;
-    }
-    )
-  }
+    });
+}
+
 
   onSearchInput(event: Event, dt: Table): void {
     const inputElement = event.target as HTMLInputElement;
     const searchValue = inputElement.value;
-    dt.filterGlobal(searchValue, 'contains');
+    this.currentPage = 1;
+    this.loadConversations(true, this.currentPage, this.pageSize, searchValue);
+    //dt.filterGlobal(searchValue, 'contains');
   }
 
   getSeverity(status: string) {
@@ -187,6 +222,7 @@ export class ListNewConversationsComponent implements OnInit, OnDestroy {
   assignTask(row: any): void {
     if (row.assigned) {
       this.conversationService.assign_conversation(
+        "chat",
         row.id,
         row.assigned.user
       ).pipe(takeUntil(this.destroy$)).subscribe((data) => {
@@ -204,7 +240,7 @@ export class ListNewConversationsComponent implements OnInit, OnDestroy {
   }
 
   refreshUnrespondedConversationNotifications() {
-        this.conversationService.list_notification().pipe(takeUntil(this.destroy$)).subscribe({
+        this.conversationService.list_notification("non-chat").pipe(takeUntil(this.destroy$)).subscribe({
             next: (notificationData: ConversationNotificationTemplate) => {
                 this.layoutService.unrespondedConversationNotification.update((prev) => notificationData)
             },
@@ -226,6 +262,7 @@ export class ListNewConversationsComponent implements OnInit, OnDestroy {
   }
   closeTask() {
     this.conversationService.close_conversation(
+      "chat",
       this.selectedConversation.id,
       {
         "reason": this.closedReason
