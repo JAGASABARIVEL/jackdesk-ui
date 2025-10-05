@@ -87,10 +87,11 @@ leaderboardData = null;
     const diffMs = toDateRaw.getTime() - fromDateRaw.getTime();
     // Convert to seconds
     this.selected_duration = diffMs / 1000;
+    this.selected_duration = diffMs / (1000 * 60);   // store in minutes
 
     this.productivityService.employee_productivity(this.selected_user, fromDate, toDate).pipe(takeUntil(this.destroy$)).subscribe(
       {
-        next: (data) => this.employeeProductivityData = data,
+        next: (data) => {this.employeeProductivityData = data; console.log("Productivity Data ", data)},
         error: () => console.error("Could not get productivity data")
       }
     )
