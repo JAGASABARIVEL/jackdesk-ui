@@ -49,7 +49,8 @@ export class ChatManagerService {
   statusFilter: string = 'all',
   page: number = 1,
   pageSize: number = 10,
-  search = ""
+  search = "",
+  ordering?
 ): Observable<any> {
   const headers = new HttpHeaders().set('Authorization', `Bearer ${this.auth_token}`);
 
@@ -59,6 +60,7 @@ export class ChatManagerService {
     page_size: pageSize,
     search: search
   };
+  if (ordering) params.ordering = ordering;
   if (is_user_specific) {
     params.is_user_specific = "true";
   }
@@ -81,13 +83,14 @@ export class ChatManagerService {
   }
 
   list_new_conversations(base_url_type="chat", page: number = 1,
-  pageSize: number = 1000, search=''): Observable<any> {
+  pageSize: number = 1000, search='', ordering?): Observable<any> {
     const headers = new HttpHeaders().set('Authorization', `Bearer ${this.auth_token}`);
     const params: any = {
     page: page,
     page_size: pageSize,
     search: search
   };
+  if (ordering) params.ordering = ordering;
   if (base_url_type !== "chat") {
     return this.http.get(`${this.conversations_url}${this.non_chat_conversations_uri}${this.new_conversation_uri}`, { headers, params });
     
@@ -97,13 +100,14 @@ export class ChatManagerService {
 
   list_active_conversations(base_url_type="chat", is_user_specific:boolean=false,
     page: number = 1,
-    pageSize: number = 1000, search=''): Observable<any> {
+    pageSize: number = 1000, search='', ordering?): Observable<any> {
     const headers = new HttpHeaders().set('Authorization', `Bearer ${this.auth_token}`);
     const params: any = {
     page: page,
     page_size: pageSize,
-    search: search
+    search: search,
   };
+  if (ordering) params.ordering = ordering;
   if (base_url_type !== "chat") {
     return this.http.get(`${this.conversations_url}${this.non_chat_conversations_uri}${this.active_conversation_uri}`, { headers, params });
     

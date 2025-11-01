@@ -129,12 +129,22 @@ totalRecords: number = 0;
   onPageChange(event: any) {
   const page = event.first / event.rows + 1;  // PrimeNG gives zero-based
   const pageSize = event.rows;
-  this.loadConversations(page, pageSize);
+  const sortField = event.sortField;
+  const sortOrder = event.sortOrder; // 1 for asc, -1 for desc
+  this.loadConversations(page, pageSize, undefined, sortField, sortOrder);
 }
 
-loadConversations(page: number = this.currentPage, pageSize: number = this.pageSize, search?: string) {
+loadConversations(page: number = this.currentPage, pageSize: number = this.pageSize, search?: string, sortField?: string, sortOrder?: number) {
   this.loading = true;
-  this.conversationService.list_active_conversations("non-chat", this.is_user_specific, page, pageSize, search
+  let ordering: string | undefined;
+  if (sortField) {
+    if (sortField.startsWith("assigned")){
+      sortField = "assigned_user__username";
+    }
+    const df = sortField.replace(/\./g, '__'); // convert first
+    ordering = sortOrder === -1 ? `-${df}` : df;
+  }
+  this.conversationService.list_active_conversations("non-chat", this.is_user_specific, page, pageSize, search, ordering
     ).pipe(takeUntil(this.destroy$)).subscribe((result) => {
         // Always expect DRF pagination
         if (!result || !Array.isArray(result.results)) {
