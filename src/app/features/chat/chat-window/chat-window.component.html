@@ -1,12 +1,9 @@
 <div class="flex bg-white" style="max-height: 100vh;">
-
-
   <!-- Left: Chat List -->
   <div class="w-4 shadow-1 p-3" style="height: 80vh;">
     <div class="flex flex-column gap-3 mb-2">
       <div class="flex justify-content-start align-items-center gap-2">
         <div>
-          <!--img [src]="activeUser.img" alt="Your Profile" class="profile-img" /-->
           <img *ngIf="profile.user?.image" [src]="profile.user.image" alt="avatar" class="border-circle h-4rem w-4rem mr-2"/>
           <p-avatar *ngIf="!profile.user?.image" label="{{ profile.user.username | slice:0:1 }}" size="xlarge"
             shape="circle" styleClass="mr-2"></p-avatar>
@@ -16,7 +13,7 @@
           <span class="text-md">{{ profile.user.email }}</span>
         </div>
       </div>
-
+      
       <!-- Search Contacts -->
       <p-inputgroup class="w-full">
         <p-inputgroup-addon>
@@ -25,31 +22,64 @@
         <input pInputText type="text" placeholder="search or start a new conversation" [(ngModel)]="searchQuery"
           (input)="filterContacts()" class="w-full" />
       </p-inputgroup>
-
     </div>
-
+    
     <!-- Scrollable container -->
     <div style="max-height: 62vh; overflow-y: auto;">
-      <div class="p-2 chat-list-item mt-1" [class.active]="conversation.id === selectedConversation()?.id" *ngFor="let conversation of filterconversations()"
-        (click)="onConversationSelected(conversation)">
-        <app-list-chat-window [conversation]="conversation"></app-list-chat-window>
-      </div>
+      <!-- ✅ Show conversations if available -->
+      <ng-container *ngIf="filterconversations() && filterconversations().length > 0; else noConversations">
+        <div class="p-2 chat-list-item mt-1" 
+             [class.active]="conversation.id === selectedConversation()?.id" 
+             *ngFor="let conversation of filterconversations()"
+             (click)="onConversationSelected(conversation)">
+          <app-list-chat-window [conversation]="conversation"></app-list-chat-window>
+        </div>
+      </ng-container>
+      
+      <!-- ✅ Empty state -->
+      <ng-template #noConversations>
+        <div class="flex flex-column align-items-center justify-content-center p-4 text-center" style="height: 50vh;">
+          <i class="pi pi-inbox text-6xl text-color-secondary mb-3"></i>
+          <h3 class="text-xl font-semibold text-color-secondary mb-2">No Conversations</h3>
+          <p class="text-color-secondary">
+            <ng-container *ngIf="searchQuery; else noActiveConversations">
+              No conversations match your search.
+            </ng-container>
+            <ng-template #noActiveConversations>
+              You don't have any active conversations yet.
+            </ng-template>
+          </p>
+        </div>
+      </ng-template>
     </div>
-
   </div>
-
+  
   <!-- Middle: Detail Chat Window -->
   <div class="w-8">
-    <app-detail-chat-window
-      (chatDetailsPageLoaded)="onChatDetailsPageLoad()" 
-      (messageSentEvent)="onMessageSent($event)" 
-      (conversationClosedEvent)="onConversationClosed($event)" 
-      (ownThisConversationEvent)="onOwnThisConversation($event)" 
-      *ngIf="selectedConversation() !== null" 
-      [selectedConversation]="selectedConversation()" 
-      [profile]="profile"
-      [employees]="employees"
-      >
-    </app-detail-chat-window>
+    <!-- ✅ Show detail view only when conversation is selected -->
+    <ng-container *ngIf="selectedConversation() !== null; else noConversationSelected">
+      <app-detail-chat-window
+        (chatDetailsPageLoaded)="onChatDetailsPageLoad()" 
+        (messageSentEvent)="onMessageSent($event)" 
+        (conversationClosedEvent)="onConversationClosed($event)" 
+        (ownThisConversationEvent)="onOwnThisConversation($event)" 
+        (reassignThisConversationEvent)="onReassignThisConversationEvent($event)"
+        [reassignmentProcessSuccess]="reassignmentProcessResponse"
+        [selectedConversation]="selectedConversation()" 
+        [profile]="profile"
+        [employees]="employees">
+      </app-detail-chat-window>
+    </ng-container>
+    
+    <!-- ✅ Empty state for detail view -->
+    <ng-template #noConversationSelected>
+      <div class="flex flex-column align-items-center justify-content-center" style="height: 80vh;">
+        <i class="pi pi-comments text-6xl text-color-secondary mb-3"></i>
+        <h2 class="text-2xl font-semibold text-color-secondary mb-2">Select a Conversation</h2>
+        <p class="text-color-secondary text-center max-w-30rem">
+          Choose a conversation from the list to view messages and start chatting.
+        </p>
+      </div>
+    </ng-template>
   </div>
 </div>

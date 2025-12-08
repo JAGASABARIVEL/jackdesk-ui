@@ -1,7 +1,9 @@
 import { CommonModule } from '@angular/common';
 import { Component, EventEmitter, Input, Output } from '@angular/core';
 import { AvatarModule } from 'primeng/avatar';
+import { BadgeModule } from 'primeng/badge';
 import { ButtonModule } from 'primeng/button';
+import { ChipModule } from 'primeng/chip';
 import { DividerModule } from 'primeng/divider';
 
 
@@ -12,6 +14,9 @@ import { DividerModule } from 'primeng/divider';
 
     AvatarModule,
     ButtonModule,
+    ChipModule,
+    BadgeModule,
+    DividerModule
   ],
   templateUrl: './additional-detail-chat-window.component.html',
   styleUrl: './additional-detail-chat-window.component.scss'

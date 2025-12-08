@@ -309,6 +309,9 @@ export class ChatWindowComponent implements OnInit {
   }
 
   setContacts(data, conversationObject = null, resetAll = false) {
+
+    this.all_contacts() 
+
     this.all_contacts.set(data().map((ctxt) =>
       (conversationObject && ctxt.id === conversationObject.id) || (resetAll === true)
         ?
@@ -380,7 +383,7 @@ async loadContacts(): Promise<void> {
 
 
 
-  loadConversations(): Promise<void> {
+  loadConversations(reassignment = false): Promise<void> {
   return new Promise((resolve, reject) => {
     this.conversationService.list_active_coversations_for_user("chat")
       .pipe(takeUntil(this.destroy$))
@@ -389,11 +392,32 @@ async loadContacts(): Promise<void> {
           this.conversations.set(data);
           this.filterconversations.set(this.conversations());
           this.sortUsersByLastMessageTime();
-          resolve(); // ✅ resolve here
+          
+          // ✅ Handle reassignment safely
+          if (reassignment) {
+            const conversations = this.filterconversations();
+            
+            if (conversations && conversations.length > 0) {
+              // Select first conversation if available
+              this.selectedConversation.set(conversations[0]);
+              this.reassignmentProcessResponse = true;
+            } else {
+              // No conversations available
+              console.log('No conversations available after reassignment');
+              this.selectedConversation.set(null);
+              this.reassignmentProcessResponse = true;
+            }
+          }
+          
+          resolve();
         },
         error: (error_details) => {
           console.error("Cannot load conversations", error_details);
-          reject(error_details); // ✅ reject on error
+          // ✅ Reset state on error
+          this.conversations.set([]);
+          this.filterconversations.set([]);
+          this.selectedConversation.set(null);
+          reject(error_details);
         }
       });
   });
@@ -408,6 +432,15 @@ async loadContacts(): Promise<void> {
     //this.updateNewConversationList();
     this.moveUserConversationToTop(conversationObject);
   }
+
+  reassignmentProcessResponse = false;
+  onReassignThisConversationEvent($event) {
+  this.reassignmentProcessResponse = false;
+  this.loadConversations(true).catch(err => {
+    console.error('Failed to reload conversations after reassignment:', err);
+    this.reassignmentProcessResponse = true;
+  });
+}
 
   /** Callbacks and their actions */
   onMessageSent(conversationObject) {

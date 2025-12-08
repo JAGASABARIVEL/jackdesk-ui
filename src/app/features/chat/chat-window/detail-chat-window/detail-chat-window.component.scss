@@ -98,3 +98,44 @@
   width: 39vw !important;
   max-width: 39vw !important;
 }
+
+// WhatsApp-like menu button
+::ng-deep .p-button.p-button-text {
+  &:hover {
+    background-color: rgba(0, 0, 0, 0.04);
+  }
+}
+
+// Menu styling
+::ng-deep .p-menu {
+  min-width: 200px;
+  
+  .p-menuitem-link {
+    padding: 0.75rem 1rem;
+    
+    .p-menuitem-icon {
+      margin-right: 0.75rem;
+      color: var(--primary-color);
+    }
+    
+    &:hover {
+      background-color: var(--surface-hover);
+    }
+  }
+}
+
+// Reassignment dialog
+::ng-deep .p-dialog {
+  .p-dialog-header {
+    background: var(--primary-color);
+    color: white;
+    
+    .p-dialog-header-icon {
+      color: white;
+      
+      &:hover {
+        background-color: rgba(255, 255, 255, 0.1);
+      }
+    }
+  }
+}

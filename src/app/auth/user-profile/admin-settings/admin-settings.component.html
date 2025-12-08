@@ -239,6 +239,7 @@
           <i *ngIf="rowData.platform_name.startsWith('web')" class="pi pi-globe text-orange-400 text-xl"></i>
           <i *ngIf="rowData.platform_name.startsWith('messenger')" class="pi pi-comment text-blue-400 text-xl"></i>
           <i *ngIf="rowData.platform_name.startsWith('gmail')" class="pi pi-envelope text-red-500 text-xl"></i>
+          <i *ngIf="rowData.platform_name.startsWith('gmessages')" class="pi pi-send text-blue-500 text-xl"></i>
         </td>
         <!-- Editable Fields -->
         <td [pEditableColumn]="rowData.app_id">
@@ -382,5 +383,102 @@
             </div>
         </form>
     </p-dialog>
+
+<!-- GMessage QR Code Dialog -->
+<p-dialog 
+  header="Connect Google Messages" 
+  [(visible)]="gmessageDialogVisible" 
+  [modal]="true" 
+  [closable]="true"
+  [style]="{ width: '500px' }">
+  
+  <div class="flex flex-column align-items-center gap-3">
+    <!-- Status indicator -->
+    <div *ngIf="gmessageStatus" class="w-full">
+      <div *ngIf="gmessageStatus.is_authenticated" class="p-3 bg-green-100 border-round">
+        <div class="flex align-items-center gap-2">
+          <i class="pi pi-check-circle text-green-600 text-xl"></i>
+          <div>
+            <div class="font-semibold text-green-900">Connected</div>
+            <div class="text-sm text-green-700">{{ gmessageStatus.phone_number }}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- QR Code Display -->
+    <div *ngIf="!gmessageStatus?.is_authenticated && gmessageQRCode" class="flex flex-column align-items-center gap-3">
+      <p class="text-center text-600 m-0">Scan this QR code with your Google Messages app</p>
+      
+      <div class="border-2 border-300 border-round p-3 bg-white">
+        <img [src]="gmessageQRCode" alt="GMessage QR Code" style="width: 300px; height: 300px;" />
+      </div>
+      
+      <div class="flex align-items-center gap-2 text-sm text-500">
+        <i class="pi pi-spin pi-spinner" *ngIf="checkingAuthStatus"></i>
+        <span>Waiting for authentication...</span>
+      </div>
+      
+      <div class="text-sm text-600 text-center">
+        <p class="m-0">Steps:</p>
+        <ol class="text-left pl-4">
+          <li>Open Google Messages on your phone</li>
+          <li>Tap Menu (⋮) > Device pairing</li>
+          <li>Tap QR code scanner</li>
+          <li>Scan this QR code</li>
+        </ol>
+      </div>
+      
+      <p-button 
+        label="Refresh QR Code" 
+        icon="pi pi-refresh" 
+        severity="secondary"
+        (click)="generateGMessageQR()" 
+        [disabled]="gmessageQRLoading">
+      </p-button>
+    </div>
+
+    <!-- Loading State -->
+    <div *ngIf="gmessageQRLoading && !gmessageQRCode" class="flex flex-column align-items-center gap-3">
+      <i class="pi pi-spin pi-spinner text-4xl text-primary"></i>
+      <p class="text-600">Generating QR code...</p>
+    </div>
+
+    <!-- Error State -->
+    <div *ngIf="gmessageError" class="w-full">
+      <div class="p-3 bg-red-100 border-round">
+        <div class="flex align-items-center gap-2">
+          <i class="pi pi-exclamation-triangle text-red-600"></i>
+          <span class="text-red-900">{{ gmessageError }}</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <ng-template pTemplate="footer">
+    <div class="flex justify-content-between w-full">
+      <p-button 
+        *ngIf="gmessageStatus?.is_authenticated"
+        label="Disconnect" 
+        icon="pi pi-times" 
+        severity="danger"
+        (click)="disconnectGMessage()">
+      </p-button>
+      <p-button 
+        *ngIf="gmessageStatus?.is_authenticated"
+        label="Sync Now" 
+        icon="pi pi-refresh" 
+        severity="success"
+        (click)="syncGMessage()">
+      </p-button>
+      <p-button 
+        label="Close" 
+        icon="pi pi-times" 
+        severity="secondary"
+        (click)="closeGMessageDialog()">
+      </p-button>
+    </div>
+  </ng-template>
+</p-dialog>
 
 <p-confirmDialog [style]="{ width: '450px' }" />

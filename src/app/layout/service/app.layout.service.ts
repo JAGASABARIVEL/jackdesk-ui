@@ -101,29 +101,46 @@ export class LayoutService {
 
     
 
-activeSeconds = signal(0); // example: 1.5 hours
+activehours = signal(0); // example: 1.5 hours
+
 
 
 totalActiveTime = computed(() => {
-  const seconds = this.activeSeconds();
-  const percent = (seconds / SECONDS_IN_A_DAY) * 100;
-
-  const hours = Math.floor(seconds / 3600);
-  const minutes = Math.floor((seconds % 3600) / 60);
-
-  const durationLabel = `${hours}h ${minutes}m`;
-
+  const percent = (this.activehours() / 24) * 100;
   return [
     {
-      label: 'Active Time',
+      label: 'Active',
       value: Math.round(percent),
       color1: 'var(--p-primary-color)',
       color2: 'var(--p-primary-color)',
       icon: 'pi pi-clock',
-      duration: durationLabel
+      duration: `${this.activehours()}h`
     }
   ];
 });
+
+idlehours = signal(0); // example: 1.5 hours
+
+totalIdleTime = computed(() => {
+  const percent = (this.idlehours() / 24) * 100;
+  return [
+    {
+      label: 'Idle',
+      value: Math.round(percent),
+      color1: 'var(--p-primary-color)',
+      color2: 'var(--p-primary-color)',
+      icon: 'pi pi-clock',
+      duration: `${this.idlehours()}h`
+    }
+  ];
+});
+
+get totalProductivityTime() {
+    return [
+        ...this.totalActiveTime(),
+        ...this.totalIdleTime()
+    ];
+}
 
 
     

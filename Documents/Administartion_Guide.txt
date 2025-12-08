@@ -1,14 +1,25 @@
 
-Check the user
---------------
+1. Check the user
+-----------------
 select id, username, is_subscription_complete, is_registration_complete, is_payment_complete, is_productivity_enable  from manage_users_customuser order by id desc;
 
 
-Allow the user
---------------
+2. Allow the user
+-----------------
 update manage_users_customuser set is_subscription_complete='true', is_payment_complete='true', is_productivity_enable='true' where id=61;   UPDATE 1
 
 
-Add subscription manually to USER
----------------------------------
+3. Add subscription manually to USER
+------------------------------------
 INSERT INTO "manage_subscriptions_usersubscription" ("start_date", "end_date", "status", "plan_id", "user_id") VALUES ('2025-05-26 07:19:48.644316+00', '2026-05-26 07:19:48.644316+00', 'active', '5', '61'), ('2025-05-26 07:19:48.658473+00', '2026-05-26 07:19:48.658473+00', 'active', '4', '61');
+
+
+4. Generate permamanent API Key for the owner of organization
+---------------------------------------------------------------------
+$ python manage.py shell
+>> from django.contrib.auth import get_user_model
+>> from rest_framework.authtoken.models import Token
+>> User = get_user_model()
+>> user = User.objects.filter(email="kjagasabarivel@gmail.com").first()
+>> token, _ = Token.objects.get_or_create(user=user)
+>> print(token.key)

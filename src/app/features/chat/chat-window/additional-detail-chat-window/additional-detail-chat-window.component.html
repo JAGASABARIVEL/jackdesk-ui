@@ -1,6 +1,9 @@
+<!-- conversation-detail.component.html -->
 
 <div class="flex flex-column gap-2">
     <div class="shadow-1 p-4 mt-4 border-round-2xl flex flex-column justify-content-center align-items-center gap-3">
+        
+        <!-- Avatar Section (same as before) -->
         <div>
             <img *ngIf="selectedConversation.contact?.img" [src]="selectedConversation.contact.img" alt="avatar"
                 class="border-circle mr-2 ml-2" style="width: 48px; height: 48px;" />
@@ -13,46 +16,109 @@
                 styleClass="mr-2 ml-2">
             </p-avatar>
         </div>
+
+        <!-- Name -->
         <div>{{selectedConversation.contact?.name || 'Name N/A'}}</div>
-            <div class="flex justify-content-center align-items-center gap-2">
-                <img *ngIf="selectedConversation.contact?.platform_name === 'webchat'"
-                src="../../../../../assets/Icons/Schedule/webchat.png" alt="" style="width: 18px;">
-            <img *ngIf="selectedConversation.contact?.platform_name === 'whatsapp'"
-                src="../../../../../assets/Icons/Schedule/whatsapp.svg" alt="" style="width: 24px;">
-            <img *ngIf="selectedConversation.contact?.platform_name === 'messenger'"
-                src="../../../../../assets/Icons/Schedule/messenger.png" alt="" style="width: 18px;">
+
+        <!-- Platform Info (same as before) -->
+        <div class="flex justify-content-center align-items-center gap-2">
             <img *ngIf="selectedConversation.contact?.platform_name === 'gmail'"
-                src="../../../../../assets/Icons/Schedule/gmail.png" alt="" style="width: 18px;">
-                <span>{{selectedConversation.contact.platform_name}}</span>
-            </div>
+                 src="../../../../../assets/Icons/Schedule/gmail.png" 
+                 alt="" 
+                 style="width: 18px;">
+            <span>{{selectedConversation.contact.platform_name}}</span>
+        </div>
+
+        <!-- Phone -->
         <div class="flex gap-2">
             <i class="pi pi-phone"></i>
             {{selectedConversation.contact.phone}}
         </div>
+
+        <!-- ✅ NEW: Customer's CC Recipients (READ-ONLY) -->
+        <div *ngIf="selectedConversation.contact?.platform_name === 'gmail' && 
+                    selectedConversation.customer_cc_recipients?.length > 0" 
+             class="w-full">
+            <p-divider></p-divider>
+            <div class="flex flex-column gap-2">
+                <div class="flex align-items-center gap-2">
+                    <i class="pi pi-user" style="color: #10B981;"></i>
+                    <strong>Customer's CC:</strong>
+                    <p-badge value="Read-only" severity="info" styleClass="ml-2"></p-badge>
+                </div>
+                <div class="flex flex-wrap gap-2">
+                    <p-chip *ngFor="let cc of selectedConversation.customer_cc_recipients" 
+                            [label]="cc"
+                            icon="pi pi-envelope"
+                            styleClass="text-xs"
+                            [style]="{'background-color': '#D1FAE5', 'color': '#065F46'}">
+                    </p-chip>
+                </div>
+                <small class="text-color-secondary">
+                    <i class="pi pi-lock"></i>
+                    These are the recipients the customer included (cannot be modified)
+                </small>
+            </div>
+        </div>
+
+        <!-- ✅ NEW: Agent's CC Recipients (EDITABLE) -->
+        <div *ngIf="selectedConversation.contact?.platform_name === 'gmail'">
+            <div class="flex flex-column gap-2" 
+                 [class.mt-3]="selectedConversation.customer_cc_recipients?.length > 0">
+                <div class="flex align-items-center gap-2">
+                    <i class="pi pi-users" style="color: #3B82F6;"></i>
+                    <strong>CC:</strong>
+                    <!--p-badge value="Editable" severity="success" styleClass="ml-2"></p-badge-->
+                    <div *ngIf="selectedConversation.agent_cc_recipients?.length > 0; else noAgentCC">
+                    <div class="flex flex-column gap-2">
+                        <p-chip *ngFor="let cc of selectedConversation.agent_cc_recipients" 
+                                [label]="cc"
+                                icon="pi pi-envelope"
+                                styleClass="text-xs"
+                                [style]="{'background-color': '#DBEAFE', 'color': '#1E40AF'}">
+                        </p-chip>
+                    </div>
+                </div>
+                </div>
+                
+                <ng-template #noAgentCC>
+                    <div class="text-color-secondary">
+                        <i class="pi pi-info-circle"></i>
+                        No additional CC recipients. Click Edit to add.
+                    </div>
+                </ng-template>
+            </div>
+        </div>
+
+        <!-- Description, Category, etc. (same as before) -->
         <div class="flex gap-2">
             <i class="pi pi-info-circle"></i>
             {{selectedConversation.contact.description || 'Description N/A'}}
         </div>
+
         <div class="flex gap-2">
             <i class="pi pi-sitemap"></i>
             {{selectedConversation.contact.category || 'Category N/A'}}
         </div>
+
         <div class="flex gap-2">
             <i class="pi pi-book"></i>
             {{selectedConversation.contact.address || 'Address N/A'}}
         </div>
 
-        <div *ngFor="let item of selectedConversation.contact.custom_fields | keyvalue" class="flex gap-2 align-items-center">
-    <i class="pi pi-info-circle"></i>
-    <p>{{ item.key }}:{{ item.value || 'N/A' }}</p>
-    
-</div>
+        <!-- Custom Fields -->
+        <div *ngFor="let item of selectedConversation.contact.custom_fields | keyvalue" 
+             class="flex gap-2 align-items-center">
+            <i class="pi pi-info-circle"></i>
+            <p>{{ item.key }}: {{ item.value || 'N/A' }}</p>
+        </div>
 
-
-        <button pButton icon="pi pi-user-edit" class="p-button-outlined w-full" label="Edit" (click)="onEdit()"></button>
-        
+        <!-- Edit Button -->
+        <button pButton 
+                icon="pi pi-user-edit" 
+                class="p-button-outlined w-full" 
+                label="Edit Contact & CC" 
+                (click)="onEdit()">
+        </button>
     </div>
-    
-    
 </div>
-

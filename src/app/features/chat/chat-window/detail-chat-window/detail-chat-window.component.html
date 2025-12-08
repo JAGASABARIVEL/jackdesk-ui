@@ -1,5 +1,5 @@
 <!-- Outer Container: full height column layout -->
-<div class="flex flex-column" style="height: 80vh;">
+<div class="flex flex-column" style="height: 80vh;" *ngIf="selectedConversation; else noConversation">
   <!-- Header: fixed -->
   <div class="flex justify-content-between align-items-start p-3 border-bottom-1 surface-border shadow-1">
     <!-- Left: Contact Info -->
@@ -28,24 +28,27 @@
             src="../../../../../assets/Icons/Schedule/gmail.png" style="width: 18px;">
             <span>{{selectedConversation.subject}}</span>
           </div>
+          <div class="flex align-items-center gap-2">
+            <img *ngIf="selectedConversation.contact?.platform_name === 'gmessages'"
+            src="../../../../../assets/Icons/Schedule/gmessages.png" style="width: 18px;">
+          </div>
         </div>
       </div>
     </div>
     <div class="flex gap-1">
-      <!-- Info Button -->
-      <button pButton type="button" icon="pi pi-info-circle" class="p-button-outlined"
-        (click)="chatdetaildrawerVisible = true" [disabled]="!selectedConversation"></button>
-      <button pButton icon="pi pi-history" *ngIf="selectedConversation.contact.platform_name !== 'gmail'"
-        (click)="loadHistoricalConversation()" class="p-button-outlined"></button>
-      <button pButton
-        *ngIf="!isWorkedBySomeone && selectedConversation.status ==='new'"
-        icon="pi pi-play" (click)="ownThisConversation()" class="p-button-outlined"></button>
-      <button pButton
-        *ngIf="!isWorkedBySomeone && selectedConversation.status !=='new' && selectedConversation.status !== 'org_new' && selectedConversation.status !== 'closed'"
-        icon="pi pi-lock" (click)="closeConversation()" class="p-button-outlined"></button>
-      <button pButton *ngIf="selectedConversation.status === 'org_new' || selectedConversation.contact.platform_name === 'gmail'" icon="pi pi-lock-open"
-        (click)="newConversation()" class="p-button-outlined"></button>
-    </div>
+  <!-- Three Dots Menu Button -->
+  <button 
+    pButton 
+    type="button" 
+    icon="pi pi-ellipsis-v" 
+    class="p-button-outlined p-button-text"
+    (click)="menu.toggle($event)"
+    [disabled]="!selectedConversation">
+  </button>
+  
+  <!-- Menu Overlay -->
+  <p-menu #menu [model]="menuItems" [popup]="true" appendTo="body"></p-menu>
+</div>
   </div>
   <!-- Scrollable Message Content -->
   <div #scrollMe class="flex-grow-1 overflow-auto px-3 py-2 chat-window" style="min-height: 0;" (dragover)="onDragOver($event)"
@@ -170,7 +173,7 @@
 				  	</div>
           </div>
           <div *ngIf="message.type === 'org'" [ngClass]="{'template-status': message.template}">
-            <i *ngIf="message.status === 'sent_to_server'" class="pi pi-check"></i>
+            <i *ngIf="message.status === 'sent_to_server' || message.status === 'server_processing'" class="pi pi-check"></i>
             <!-- Double Tick -->
             <ng-container>
               <i *ngIf="['sent', 'delivered'].includes(message.status)"
@@ -252,6 +255,13 @@
   </div>
 </div>
 
+<ng-template #noConversation>
+  <div class="flex flex-column align-items-center justify-content-center" style="height: 80vh;">
+    <i class="pi pi-exclamation-triangle text-6xl text-color-secondary mb-3"></i>
+    <h3 class="text-xl font-semibold text-color-secondary">No Conversation Selected</h3>
+  </div>
+</ng-template>
+
 
 <!-- PrimeNG Sidebar as Drawer -->
 <p-sidebar [(visible)]="chatdetaildrawerVisible" position="right" [modal]="false" styleClass="wide-sidebar"
@@ -261,7 +271,7 @@
 </p-sidebar>
 <!-- Close conversation dialog -->
 <p-dialog header="Close Conversation" [modal]="true" [(visible)]="closeConversationVisible" [style]="{ width: '35rem' }">
-        <div class="field grid">
+        <div class="field grid my-4">
             <label for="ingredient1" class="ml-2" style="width: 100px;">Closing Reason</label>
             <div class="col">
                 <input pInputText id="username" class="flex-auto" [(ngModel)]="closedReason" autocomplete="off" />
@@ -349,46 +359,186 @@
   </div>
 </p-dialog>
 
-<!-- New Gmail Compose Dialog -->
-<p-dialog header="New Gmail" [(visible)]="openConversationGmailVisible" [modal]="true" [style]="{ width: '50rem' }" [closable]="false">
-  <div class="p-fluid grid p-3 gap-3">
-
-    <!-- Subject -->
-    <div class="col-12">
-      <label for="subject" class="block mb-2">Platform</label>
-      <p-select styleClass="w-full mr-2" [options]="registeredPlatforms" [(ngModel)]="selected_platform"
-    optionLabel="user_platform_name" [filter]="true" filterBy="name" [showClear]="true"
-    placeholder="Select platform" class="w-full md:w-56" [appendTo]="'body'">
-    </p-select>
-    </div>
+<!-- New Gmail Compose Dialog with CC Support -->
+<p-dialog 
+    header="New Gmail" 
+    [(visible)]="openConversationGmailVisible" 
+    [modal]="true" 
+    [style]="{ width: '50rem' }" 
+    [closable]="false">
     
-    
-    <!-- Subject -->
-    <div class="col-12">
-      <label for="subject" class="block mb-2">Subject</label>
-      <input type="text" pInputText id="subject" [(ngModel)]="newConversationSubjectForGmail" placeholder="Enter subject" />
+    <div class="p-fluid grid p-3 gap-3">
+        
+        <!-- Platform -->
+        <div class="col-12">
+            <label for="platform" class="block mb-2">Platform</label>
+            <p-select 
+                styleClass="w-full mr-2" 
+                [options]="registeredPlatforms" 
+                [(ngModel)]="selected_platform"
+                optionLabel="user_platform_name" 
+                [filter]="true" 
+                filterBy="name" 
+                [showClear]="true"
+                placeholder="Select platform" 
+                class="w-full md:w-56" 
+                [appendTo]="'body'">
+            </p-select>
+        </div>
+
+        <!-- To Email -->
+        <div class="col-12">
+            <label for="toEmail" class="block mb-2">To *</label>
+            <input 
+                type="email" 
+                pInputText 
+                id="toEmail" 
+                [(ngModel)]="this.selectedConversation.contact.phone" 
+                placeholder="recipient@example.com" 
+                required
+                [readonly]="true"
+                 />
+            <small class="p-error" *ngIf="!isValidEmail(this.selectedConversation.contact.phone) && this.selectedConversation.contact.phone">
+                Please enter a valid email address
+            </small>
+        </div>
+
+        <!-- ✅ NEW: CC Recipients Section -->
+        <div class="col-12">
+            <div class="surface-card border-round p-3" 
+                 style="border: 2px solid #DBEAFE; background-color: #EFF6FF;">
+                
+                <div class="flex align-items-center justify-content-between mb-3">
+                    <div class="flex align-items-center gap-2">
+                        <i class="pi pi-users" style="color: #3B82F6;"></i>
+                        <strong>CC Recipients (Optional)</strong>
+                    </div>
+                    <p-badge [value]="newConversationGmailCC.length.toString()" 
+                             severity="info" 
+                             *ngIf="newConversationGmailCC.length > 0">
+                    </p-badge>
+                </div>
+
+                <!-- Current CC List -->
+                <div class="mb-3" *ngIf="newConversationGmailCC.length > 0">
+                    <div class="flex flex-wrap gap-2">
+                        <p-chip *ngFor="let cc of newConversationGmailCC; let i = index" 
+                                [label]="cc"
+                                [removable]="true"
+                                (onRemove)="removeNewConversationCC(i)"
+                                icon="pi pi-envelope"
+                                [style]="{'background-color': '#DBEAFE', 'color': '#1E40AF'}">
+                        </p-chip>
+                    </div>
+                </div>
+
+                <!-- Add CC Input -->
+                <div class="field mb-0">
+                    <label for="addCC" class="block mb-2 text-sm font-semibold">Add CC Recipient:</label>
+                    <div class="p-inputgroup">
+                        <span class="p-inputgroup-addon">
+                            <i class="pi pi-envelope"></i>
+                        </span>
+                        <input 
+                            type="email" 
+                            pInputText 
+                            id="addCC" 
+                            [(ngModel)]="newConversationGmailCCInput"
+                            placeholder="cc@example.com"
+                            (keyup.enter)="addNewConversationCC()" />
+                        <button 
+                            pButton 
+                            type="button"
+                            icon="pi pi-plus" 
+                            label="Add"
+                            (click)="addNewConversationCC()"
+                            [disabled]="!isValidEmail(newConversationGmailCCInput)">
+                        </button>
+                    </div>
+                    <small class="text-color-secondary block mt-2">
+                        <i class="pi pi-info-circle"></i>
+                        Additional recipients who will receive a copy of this email
+                    </small>
+                </div>
+            </div>
+        </div>
+
+        <!-- Subject -->
+        <div class="col-12">
+            <label for="subject" class="block mb-2">Subject *</label>
+            <input 
+                type="text" 
+                pInputText 
+                id="subject" 
+                [(ngModel)]="newConversationSubjectForGmail" 
+                placeholder="Enter subject" 
+                required />
+        </div>
+
+        <!-- Message Body -->
+        <div class="col-12">
+            <label for="messageBody" class="block mb-2">Message *</label>
+            <textarea 
+                pInputTextarea 
+                id="messageBody" 
+                [(ngModel)]="newConversationGmailMessageBody" 
+                rows="6" 
+                placeholder="Type your message..."
+                required>
+            </textarea>
+        </div>
+
+        <!-- Attachment -->
+        <div class="col-12">
+            <label class="block mb-2">Attachment</label>
+            <p-fileUpload 
+                name="file" 
+                mode="advanced" 
+                [auto]="true" 
+                [customUpload]="true" 
+                (uploadHandler)="handleFileUploadGmail($event)" 
+                chooseLabel="Choose File" 
+                dragDropSupport="true" 
+                accept="image/*,application/pdf,.doc,.docx,.txt,.csv,.xlsx,.zip">
+            </p-fileUpload>
+            <small class="text-sm text-gray-500" *ngIf="newConversationGmailAttachment">
+                Selected: {{ newConversationGmailAttachment.name }}
+            </small>
+        </div>
+
+        <!-- ✅ NEW: Summary Section -->
+        <div class="col-12" *ngIf="newConversationGmailCC.length > 0">
+            <div class="bg-blue-50 border-round p-3" style="border-left: 4px solid #3B82F6;">
+                <div class="flex align-items-center gap-2 mb-1">
+                    <i class="pi pi-info-circle" style="color: #3B82F6;"></i>
+                    <strong class="text-sm">Email Summary:</strong>
+                </div>
+                <ul class="text-sm text-color-secondary ml-3 mb-0">
+                    <li><strong>To:</strong> {{ this.selectedConversation.contact.phone || 'Not set' }}</li>
+                    <li><strong>CC:</strong> {{ newConversationGmailCC.join(', ') }}</li>
+                    <li><strong>Total Recipients:</strong> {{ 1 + newConversationGmailCC.length }}</li>
+                </ul>
+            </div>
+        </div>
     </div>
 
-    <!-- Message Body -->
-    <div class="col-12">
-      <label for="messageBody" class="block mb-2">Message</label>
-      <textarea pInputTextarea id="messageBody" [(ngModel)]="newConversationGmailMessageBody" rows="6" placeholder="Type your message..."></textarea>
+    <!-- Action Buttons -->
+    <div class="flex justify-end gap-2 mt-4 px-3 pb-3">
+        <button 
+            pButton 
+            label="Cancel" 
+            severity="secondary" 
+            class="p-button-outlined" 
+            (click)="cancelNewGmailConversation()">
+        </button>
+        <button 
+            pButton 
+            [label]="newConversationGmailCC.length > 0 ? 'Send to ' + (1 + newConversationGmailCC.length) + ' recipients' : 'Send'" 
+            class="p-button-outlined" 
+            [disabled]="!isNewConversationValid()" 
+            (click)="startNewConversationOnGmail()">
+        </button>
     </div>
-
-    <!-- Attachment -->
-    <div class="col-12">
-      <label class="block mb-2">Attachment</label>
-      <p-fileUpload name="file" mode="advanced" [auto]="true" [customUpload]="true" (uploadHandler)="handleFileUploadGmail($event)" chooseLabel="Choose File" dragDropSupport="true" accept="image/*,application/pdf,.doc,.docx,.txt,.csv,.xlsx,.zip">
-      </p-fileUpload>
-      <small class="text-sm text-gray-500" *ngIf="newConversationGmailAttachment">Selected: {{ newConversationGmailAttachment.name }}</small>
-    </div>
-  </div>
-
-  <!-- Action Buttons -->
-  <div class="flex justify-end gap-2 mt-4 px-3 pb-3">
-    <button pButton label="Cancel" severity="secondary" class="p-button-outlined" (click)="openConversationGmailVisible = false"></button>
-    <button pButton label="Send" class="p-button-outlined" [disabled]="!newConversationGmailMessageBody || !newConversationSubjectForGmail" (click)="startNewConversationOnGmail()"></button>
-  </div>
 </p-dialog>
 
 
@@ -400,7 +550,7 @@
 
 <p-dialog
         [(visible)]="editContacDialogVisible" 
-        [style]="{ width: '450px' }" 
+        [style]="{ width: '850px' }" 
         header="Edit Contact" 
         [modal]="true" 
         styleClass="p-fluid">
@@ -418,8 +568,8 @@
                     icon="pi pi-user" 
                     styleClass="w-2 h-2 mb-3" size="large"
                 />
-                
-                <div class="flex justify-content-between align-items-center mb-3">
+
+                <div class="flex gap-7 align-items-center mb-3">
                     <label for="name">Name</label>
                     <input 
                         type="text" 
@@ -433,7 +583,7 @@
                     </small>
                 </div>
 
-                <div class="flex justify-content-between align-items-center mb-3">
+                <div class="flex gap-4 align-items-center mb-3">
                     <label for="description">Description</label>
                     <textarea
                         id="description" 
@@ -481,32 +631,33 @@
                     </div>
                 </div>
 
-                <div class="formgrid grid">
-                    <div class="field col">
-                        <label for="name">Contact</label>
-                        <input 
-                            type="text" 
-                            pInputText 
-                            id="name" 
-                            [(ngModel)]="selectedContact.phone" 
-                            required 
-                            autofocus />
-                        <small class="p-error" *ngIf="submitted && !selectedContact.phone">
-                            Contact is required.
-                        </small>
-                    </div>
-                    <div class="field col">
-                        <label for="quantity">Address</label>
-                        <textarea 
+                <div class="flex gap-4 align-items-center mb-3">
+                    <label for="name">Contact</label>
+                    <input 
+                      type="text" 
+                      pInputText 
+                      id="phone" 
+                      [(ngModel)]="selectedContact.phone" 
+                      required 
+                      autofocus />
+                    <small class="p-error" *ngIf="submitted && !selectedContact.phone">
+                        Contact is required.
+                    </small>
+                </div>
+
+                <div class="flex gap-4 align-items-center mb-3">
+                    <label for="address">Address</label>
+                    <textarea 
                             type="text" 
                             pInputTextarea
-                            id="name" 
+                            id="address" 
                             [(ngModel)]="selectedContact.address" 
                             required 
                             autofocus>
                         </textarea>
-                    </div>
                 </div>
+
+                
 
             <div class="field" *ngIf="selectedContact.custom_fields">
   <div *ngFor="let field of selectedContact.custom_fields | keyvalue" class="mb-3">
@@ -516,6 +667,156 @@
       pInputText
       [(ngModel)]="selectedContact.custom_fields[field.key]" />
   </div>
+
+
+
+  <!-- ✅ CC RECIPIENTS SECTION (Only for Gmail) -->
+            <div *ngIf="selectedConversation?.contact?.platform_name === 'gmail'">
+                <p-divider></p-divider>
+                
+                <h4 class="flex align-items-center gap-2 mb-3">
+                    <i class="pi pi-envelope" style="color: #3B82F6;"></i>
+                    CC Recipients Management
+                </h4>
+
+                <!-- 1️⃣ CUSTOMER'S CC (READ-ONLY) -->
+                <p-panel header="Customer's CC Recipients" 
+                         [toggleable]="true" 
+                         [collapsed]="false"
+                         styleClass="mb-3">
+                    <ng-template pTemplate="header">
+                        <div class="flex align-items-center gap-2">
+                            <i class="pi pi-user" style="color: #10B981;"></i>
+                            <span>Customer's CC Recipients</span>
+                            <p-badge value="Read-only" severity="info" styleClass="ml-2"></p-badge>
+                        </div>
+                    </ng-template>
+                    
+                    <div *ngIf="customerCCRecipients && customerCCRecipients.length > 0; else noCustomerCC">
+                        <div class="flex flex-wrap gap-2 mb-2">
+                            <p-chip *ngFor="let cc of customerCCRecipients" 
+                                    [label]="cc"
+                                    icon="pi pi-lock"
+                                    [style]="{'background-color': '#D1FAE5', 'color': '#065F46'}">
+                            </p-chip>
+                        </div>
+                        <p-message severity="info" 
+                                   text="These recipients were CC'd by the customer and cannot be modified. They will automatically be included in replies.">
+                        </p-message>
+                    </div>
+                    <ng-template #noCustomerCC>
+                        <p-message severity="info" 
+                                   text="Customer did not CC anyone on their email.">
+                        </p-message>
+                    </ng-template>
+                </p-panel>
+
+                <!-- 2️⃣ AGENT'S CC (EDITABLE) -->
+                <p-panel header="Your Additional CC Recipients" 
+                         [toggleable]="true" 
+                         [collapsed]="false">
+                    <ng-template pTemplate="header">
+                        <div class="flex align-items-center gap-2">
+                            <i class="pi pi-users" style="color: #3B82F6;"></i>
+                            <span>Your Additional CC Recipients</span>
+                            <p-badge value="Editable" severity="success" styleClass="ml-2"></p-badge>
+                        </div>
+                    </ng-template>
+                    
+                    <!-- Current Agent CC List -->
+                    <div class="mb-3" *ngIf="agentCCRecipients && agentCCRecipients.length > 0">
+                        <label class="block mb-2 font-semibold">Current List:</label>
+                        <div class="flex flex-wrap gap-2">
+                            <p-chip *ngFor="let cc of agentCCRecipients; let i = index" 
+                                    [label]="cc"
+                                    [removable]="true"
+                                    (onRemove)="removeAgentCC(i)"
+                                    icon="pi pi-envelope"
+                                    [style]="{'background-color': '#DBEAFE', 'color': '#1E40AF'}">
+                            </p-chip>
+                        </div>
+                    </div>
+
+                    <!-- Add New CC -->
+                    <div class="field">
+                        <label for="newAgentCC" class="font-semibold">Add Additional Recipient:</label>
+                        <div class="p-inputgroup">
+                            <span class="p-inputgroup-addon">
+                                <i class="pi pi-envelope"></i>
+                            </span>
+                            <input type="email" 
+                                   pInputText 
+                                   id="newAgentCC" 
+                                   [(ngModel)]="newAgentCCEmail"
+                                   placeholder="email@example.com"
+                                   (keyup.enter)="addAgentCC()" />
+                            <button pButton 
+                                    type="button"
+                                    icon="pi pi-plus" 
+                                    label="Add"
+                                    (click)="addAgentCC()"
+                                    [disabled]="!isValidEmail(newAgentCCEmail)">
+                            </button>
+                        </div>
+                        <small class="text-color-secondary block mt-2">
+                            <i class="pi pi-info-circle"></i>
+                            Add extra recipients you want to CC on your replies (in addition to customer's CC)
+                        </small>
+                    </div>
+
+                    <!-- Info Message -->
+                    <p-message severity="success" 
+                               styleClass="mt-3"
+                               text="When you reply, both customer's CC and your additional CC will be included.">
+                    </p-message>
+                </p-panel>
+
+                <!-- Preview: Final CC List -->
+                <p-panel header="Final CC List Preview" 
+                         [toggleable]="true" 
+                         [collapsed]="true"
+                         styleClass="mt-3">
+                    <ng-template pTemplate="header">
+                        <div class="flex align-items-center gap-2">
+                            <i class="pi pi-eye" style="color: #8B5CF6;"></i>
+                            <span>Final CC List Preview</span>
+                        </div>
+                    </ng-template>
+                    
+                    <div *ngIf="getMergedCCList().length > 0; else noFinalCC">
+                        <p class="mb-2 font-semibold">All recipients who will receive copies of your replies:</p>
+                        <div class="flex flex-wrap gap-2">
+                            <p-chip *ngFor="let cc of getMergedCCList(); let i = index" 
+                                    [label]="cc"
+                                    icon="pi pi-check-circle"
+                                    [style]="getChipStyle(cc)">
+                            </p-chip>
+                        </div>
+                        <small class="block mt-2 text-color-secondary">
+                            <span class="inline-flex align-items-center gap-1">
+                                <span class="inline-block w-1rem h-1rem border-round" 
+                                      style="background-color: #D1FAE5;"></span>
+                                = Customer's CC
+                            </span>
+                            <span class="inline-flex align-items-center gap-1 ml-3">
+                                <span class="inline-block w-1rem h-1rem border-round" 
+                                      style="background-color: #DBEAFE;"></span>
+                                = Your CC
+                            </span>
+                        </small>
+                    </div>
+                    <ng-template #noFinalCC>
+                        <p-message severity="info" 
+                                   text="No CC recipients. Replies will only go to the primary contact.">
+                        </p-message>
+                    </ng-template>
+                </p-panel>
+
+            </div>
+
+
+
+
 </div>
             </ng-template>
 
@@ -526,7 +827,7 @@
                     label="Cancel" 
                     icon="pi pi-times" 
                     [text]="true"
-                    (click)="editContacDialogVisible=false;">
+                    (click)="cancelEdit();">
                 </button>
                 <button
                     pButton
@@ -539,5 +840,83 @@
                 </button>
             </ng-template>
     </p-dialog>
+
+<!-- Reassignment Dialog -->
+<p-dialog 
+  header="Reassign Conversation" 
+  [(visible)]="isAssignmentDropdownVisible" 
+  [modal]="true" 
+  [style]="{ width: '30rem', height: '22rem' }"
+  [closable]="true"
+  (onHide)="cancelAssignment()">
+  
+  <div class="flex flex-column gap-3 p-3">
+    <div class="field">
+      <label for="userSelect" class="block mb-2 font-semibold">
+        <i class="pi pi-user mr-2"></i>Select User
+      </label>
+      <p-select 
+        id="userSelect"
+        [options]="users" 
+        [(ngModel)]="selectedUserForAssignment" 
+        optionLabel="details.username" 
+        placeholder="Select user to assign"
+        filter 
+        filterBy="details.username,details.phone"
+        styleClass="w-full"
+        appendTo="body">
+        <ng-template let-user pTemplate="item">
+          <div class="flex align-items-center gap-2">
+            <p-avatar 
+              [label]="user.details.username.charAt(0).toUpperCase()" 
+              size="normal"
+              shape="circle"
+              styleClass="mr-2">
+            </p-avatar>
+            <div class="flex flex-column">
+              <span class="font-semibold">{{ user.details.username }}</span>
+              <span class="text-sm text-color-secondary">{{ user.details.phone }}</span>
+            </div>
+          </div>
+        </ng-template>
+        
+        <ng-template let-user pTemplate="selectedItem">
+          <div class="flex align-items-center gap-2" *ngIf="user">
+            <p-avatar 
+              [label]="user.details.username.charAt(0).toUpperCase()" 
+              size="normal"
+              shape="circle">
+            </p-avatar>
+            <span>{{ user.details.username }}</span>
+          </div>
+        </ng-template>
+      </p-select>
+    </div>
+    
+    <p-message 
+      *ngIf="selectedUserForAssignment" 
+      severity="info" 
+      text="This conversation will be reassigned to {{ selectedUserForAssignment.details.username }}">
+    </p-message>
+  </div>
+  
+  <ng-template pTemplate="footer">
+    <button 
+      pButton 
+      label="Cancel" 
+      icon="pi pi-times"
+      class="p-button-outlined p-button-secondary" 
+      (click)="cancelAssignment()">
+    </button>
+    <button 
+      pButton 
+      label="Assign" 
+      icon="pi pi-check"
+      class="p-button-outlined" 
+      [disabled]="!selectedUserForAssignment" 
+      (click)="assignTask()">
+    </button>
+  </ng-template>
+</p-dialog>
 
 <p-confirmDialog [style]="{ width: '450px' }" />

@@ -1,0 +1,280 @@
+.payroll-dashboard {
+  padding: 1.5rem;
+  background: #f5f7fa;
+  min-height: 100vh;
+
+  // Header
+  .header-section {
+    margin-bottom: 2rem;
+
+    .header-title {
+      h1 {
+        font-size: 2rem;
+        font-weight: 700;
+        color: #1a202c;
+        margin: 0 0 0.5rem 0;
+      }
+
+      .subtitle {
+        font-size: 1rem;
+        color: #718096;
+        margin: 0;
+      }
+    }
+  }
+
+  // Filter Card
+  .filter-card {
+    margin-bottom: 1.5rem;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+
+    .filter-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 1rem;
+      align-items: end;
+
+      .filter-item {
+        display: flex;
+        flex-direction: column;
+
+        .filter-label {
+          font-size: 0.875rem;
+          font-weight: 600;
+          color: #4a5568;
+          margin-bottom: 0.5rem;
+        }
+
+        &.filter-actions {
+          display: flex;
+          flex-direction: row;
+          gap: 0.5rem;
+
+          button {
+            flex: 1;
+          }
+        }
+      }
+    }
+  }
+
+  // Loading State
+  .loading-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 4rem 2rem;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+
+    .loading-icon {
+      font-size: 3rem;
+      color: #3182ce;
+      margin-bottom: 1rem;
+    }
+
+    p {
+      font-size: 1.125rem;
+      color: #718096;
+    }
+  }
+
+  // Metrics Grid
+  .metrics-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 1.5rem;
+
+    .metric-card {
+      background: white;
+      border-radius: 8px;
+      padding: 1.5rem;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      transition: transform 0.2s, box-shadow 0.2s;
+
+      &:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+      }
+
+      .metric-icon {
+        width: 60px;
+        height: 60px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+
+        i {
+          font-size: 1.75rem;
+          color: white;
+        }
+
+        &.work-hours {
+          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        &.attendance {
+          background: linear-gradient(135deg, #48bb78 0%, #38a169 100%);
+        }
+
+        &.overtime {
+          background: linear-gradient(135deg, #ed8936 0%, #dd6b20 100%);
+        }
+
+        &.payroll-status {
+          background: linear-gradient(135deg, #4299e1 0%, #3182ce 100%);
+        }
+      }
+
+      .metric-content {
+        flex: 1;
+
+        .metric-value {
+          font-size: 1.875rem;
+          font-weight: 700;
+          color: #1a202c;
+          line-height: 1;
+          margin-bottom: 0.25rem;
+        }
+
+        .metric-label {
+          font-size: 0.875rem;
+          font-weight: 600;
+          color: #4a5568;
+          margin-bottom: 0.25rem;
+        }
+
+        .metric-subtitle {
+          font-size: 0.75rem;
+          color: #a0aec0;
+        }
+
+        .metric-tag {
+          margin-bottom: 0.5rem;
+          font-weight: 600;
+        }
+      }
+    }
+  }
+
+  // Tabs Card
+  .tabs-card {
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+
+    ::ng-deep {
+      .p-tablist {
+        border-bottom: 2px solid #e2e8f0;
+
+        .p-tab {
+          padding: 1rem 1.5rem;
+          font-weight: 600;
+          color: #718096;
+          transition: all 0.2s;
+
+          &:hover {
+            color: #3182ce;
+            background: #ebf8ff;
+          }
+
+          &.p-tab-active {
+            color: #3182ce;
+            border-bottom: 3px solid #3182ce;
+          }
+
+          i {
+            font-size: 1rem;
+          }
+        }
+      }
+
+      .p-tabpanels {
+        padding: 1.5rem;
+      }
+    }
+  }
+
+  // Empty State
+  .empty-state {
+    text-align: center;
+    padding: 4rem 2rem;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+
+    .empty-icon {
+      font-size: 4rem;
+      color: #cbd5e0;
+      margin-bottom: 1rem;
+    }
+
+    h3 {
+      font-size: 1.5rem;
+      color: #2d3748;
+      margin: 0 0 0.5rem 0;
+    }
+
+    p {
+      color: #718096;
+      margin: 0.5rem 0;
+    }
+
+    .empty-hint {
+      font-size: 0.875rem;
+      color: #a0aec0;
+      font-style: italic;
+    }
+  }
+
+  // Card utility
+  .card {
+    background: white;
+    border-radius: 8px;
+    padding: 1.5rem;
+
+    &.mb-4 {
+      margin-bottom: 1.5rem;
+    }
+  }
+
+  // Utility classes
+  .w-full {
+    width: 100%;
+  }
+
+  .mr-2 {
+    margin-right: 0.5rem;
+  }
+}
+
+// Responsive adjustments
+@media (max-width: 768px) {
+  .payroll-dashboard {
+    padding: 1rem;
+
+    .filter-card .filter-grid {
+      grid-template-columns: 1fr;
+
+      .filter-item.filter-actions {
+        flex-direction: column;
+
+        button {
+          width: 100%;
+        }
+      }
+    }
+
+    .metrics-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .header-section .header-title h1 {
+      font-size: 1.5rem;
+    }
+  }
+}

@@ -17,35 +17,39 @@
 
 
         <div class="flex justify-end p-4 gap-4">
-            <p-metergroup [value]="layoutService.totalActiveTime()" labelPosition="start" *ngIf="layoutService.menuItemsCache().length > 0 && profile?.user?.is_productivity_enable">
-                        <!-- Label card showing Active Time, % and duration -->
-        
-                        <ng-template #label>
-            <div class="flex flex-wrap gap-4">
-                <ng-container *ngFor="let meterItem of layoutService.totalActiveTime(); let index = index">
-                    <div class="flex-1" styleClass="border border-surface shadow-none">
-                        <div class="flex justify-between gap-8">
-                            <div class="flex align-items-center gap-1">
-                                <span class="text-surface-500 text-sm">{{ meterItem.label }}</span>
-                                <span class="font-semibold text-md">{{ meterItem.duration }}</span>
-                            </div>
+            <p-metergroup 
+    [value]="layoutService.totalProductivityTime" 
+    labelPosition="start"
+    *ngIf="layoutService.menuItemsCache().length > 0 && profile?.user?.is_productivity_enable">
+
+    <!-- Label Card -->
+    <ng-template #label>
+        <div class="flex flex-wrap gap-4">
+            <ng-container *ngFor="let meterItem of layoutService.totalProductivityTime">
+                <div class="flex-1 border border-surface shadow-none">
+                    <div class="flex justify-between gap-8">
+                        <div class="flex align-items-center gap-1">
+                            <span class="text-surface-500 text-sm">{{ meterItem.label }}</span>
+                            <span class="font-semibold text-md">{{ meterItem.duration }}</span>
                         </div>
                     </div>
-                </ng-container>
-            </div>
-        </ng-template>
+                </div>
+            </ng-container>
+        </div>
+    </ng-template>
 
-        <!-- Custom meter fill -->
-        <ng-template #meter let-value let-class="class" let-width="size">
-            <span [class]="class"
-                  [style]="{ background: 'linear-gradient(to right, ' + value.color1 + ', ' + value.color2 + ')', width: width }">
-            </span>
-        </ng-template>
+    <!-- Meter Fill -->
+    <ng-template #meter let-value let-class="class" let-width="size">
+        <span [class]="class"
+              [style]="{ 
+                background: 'linear-gradient(to right, ' + value.color1 + ', ' + value.color2 + ')',
+                width: width 
+              }">
+        </span>
+    </ng-template>
 
+</p-metergroup>
 
-
-    </p-metergroup>
-    
 
 
 

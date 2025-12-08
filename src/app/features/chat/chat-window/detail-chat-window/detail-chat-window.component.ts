@@ -1,3 +1,4 @@
+
 import { CommonModule } from '@angular/common';
 import { AfterViewInit, ChangeDetectorRef, Component, ElementRef, EventEmitter, Input, OnInit, Output, ViewChild } from '@angular/core';
 import { AvatarModule } from 'primeng/avatar';
@@ -32,6 +33,15 @@ import { TextareaModule } from 'primeng/textarea';
 import { Router } from '@angular/router';
 import { FileUploadModule } from 'primeng/fileupload';
 import { CheckboxModule } from 'primeng/checkbox';
+import { ChipModule } from 'primeng/chip';
+import { BadgeModule } from 'primeng/badge';
+import { MessageModule } from 'primeng/message';      // ✅ ADD THIS
+import { PanelModule } from 'primeng/panel';          // ✅ ADD THIS
+import { UserManagerService } from '../../../../shared/services/user-manager.service';
+import { MenuModule } from 'primeng/menu';
+import { MenuItem } from 'primeng/api';
+
+
 
 @Component({
   selector: 'app-detail-chat-window',
@@ -56,6 +66,12 @@ import { CheckboxModule } from 'primeng/checkbox';
     SafeUrlPipe,
     FileUploadModule,
     CheckboxModule,
+    ChipModule,
+    BadgeModule,
+    DividerModule,
+    MessageModule,
+    PanelModule,
+    MenuModule,
 
     AdditionalDetailChatWindowComponent,
     MessagePreviewComponent,
@@ -69,14 +85,24 @@ import { CheckboxModule } from 'primeng/checkbox';
 })
 export class DetailChatWindowComponent implements AfterViewInit {
 
-  @Input() profile;
+  // Add these properties
+  menuItems: MenuItem[] = [];
+  @ViewChild('menu') menu: any;
+
   @Output() chatDetailsPageLoaded: EventEmitter<boolean> = new EventEmitter();
   @Output() conversationClosedEvent: EventEmitter<any> = new EventEmitter();
   @Output() messageSentEvent: EventEmitter<any> = new EventEmitter();
   @Output() ownThisConversationEvent: EventEmitter<any> = new EventEmitter();
+  @Output() reassignThisConversationEvent: EventEmitter<any> = new EventEmitter();
   _selectedConversation;
   chatdetaildrawerVisible = true
+  selectedUserForAssignment = null;
+  users = []
   private destroy$ = new Subject<void>();
+
+  // ✅ NEW: Gmail CC properties
+  newConversationGmailCC: string[] = [];
+  newConversationGmailCCInput: string = '';
 
   constructor(
     private cdr: ChangeDetectorRef,
@@ -88,6 +114,7 @@ export class DetailChatWindowComponent implements AfterViewInit {
     private layoutService: LayoutService,
     private platforService: PlatformManagerService,
     private conversationService: ChatManagerService,
+    private userManagerService: UserManagerService
   ) { }
 
   ngOnDestroy(): void {
@@ -102,13 +129,154 @@ export class DetailChatWindowComponent implements AfterViewInit {
   }
 
   @Input() set selectedConversation(value) {
-    this._selectedConversation = value;
-    this.selectedContact = value?.contact;
-    this.convertTocommondatetime();
-     this.ngZone.onStable.pipe(take(1)).subscribe(() => {
+  // ✅ Guard against null/undefined
+  if (!value) {
+    console.warn('selectedConversation is null or undefined');
+    this._selectedConversation = null;
+    return;
+  }
+  
+  this._selectedConversation = value;
+  this.selectedContact = value?.contact;
+  this.convertTocommondatetime();
+
+  // ✅ Only rebuild menu if profile is available
+  if (this.profile) {
+    this.buildMenuItems();
+  }
+  else {
+    console.log("No profile available to rebuild menu");
+  }
+  
+  this.ngZone.onStable.pipe(take(1)).subscribe(() => {
     this.scrollToBottom();
+    this.loadUsers();
+  });
+}
+
+  @Input() set reassignmentProcessSuccess(value) {
+  // ✅ Guard against loading users when no conversation
+  if (value === true && this._selectedConversation) {
+    console.log("Reload users after reassignment");
+    this.loadUsers();
+  }
+}
+
+// 1. Add profile setter
+private _profile: any;
+
+@Input() 
+set profile(value: any) {
+  this._profile = value;
+  // Rebuild menu when profile is set
+  if (this._selectedConversation) {
+    this.buildMenuItems();
+  }
+}
+
+get profile() {
+  return this._profile;
+}
+
+// ✅ NEW: Build menu items dynamically based on conversation state
+buildMenuItems() {
+  // ✅ Guard against missing conversation OR profile
+  if (!this._selectedConversation || !this.profile) {
+    this.menuItems = [];
+    return;
+  }
+
+  this.menuItems = [];
+
+  // Info Button
+  this.menuItems.push({
+    label: 'Contact Info',
+    icon: 'pi pi-info-circle',
+    command: () => {
+      this.chatdetaildrawerVisible = true;
+    }
+  });
+
+  // Historical Conversation (only for non-Gmail)
+  if (this.selectedConversation.contact.platform_name !== 'gmail') {
+    this.menuItems.push({
+      label: 'View History',
+      icon: 'pi pi-history',
+      command: () => {
+        this.loadHistoricalConversation();
+      }
+    });
+  }
+  // Separator
+  this.menuItems.push({ separator: true });
+
+  // Reassign Conversation
+  if (this.selectedConversation.status !== 'org_new' && this.selectedConversation.status !== 'closed') {
+  this.menuItems.push({
+    label: 'Reassign Conversation',
+    icon: 'pi pi-pencil',
+    command: () => {
+      this.openReassignmentDialog();
+    }
   });
   }
+
+  // Close Conversation (only if active and assigned to someone)
+  if (!this.isWorkedBySomeone && 
+      this.selectedConversation.status !== 'new' && 
+      this.selectedConversation.status !== 'org_new' && 
+      this.selectedConversation.status !== 'closed') {
+    this.menuItems.push({
+      label: 'Close Conversation',
+      icon: 'pi pi-lock',
+      command: () => {
+        this.closeConversation();
+      }
+    });
+  }
+
+  // Start New Conversation (for org_new or Gmail)
+  if (this.selectedConversation.status === 'org_new' || 
+      this.selectedConversation.contact.platform_name === 'gmail') {
+    this.menuItems.push({
+      label: 'Start New Conversation',
+      icon: 'pi pi-lock-open',
+      command: () => {
+        this.newConversation();
+      }
+    });
+  }
+}
+
+// ✅ NEW: Open reassignment dialog
+openReassignmentDialog() {
+  this.isAssignmentDropdownVisible = true;
+}
+
+
+
+  loadUsers() {
+  // ✅ Guard against loading when no conversation
+  if (!this._selectedConversation) {
+    console.warn('Cannot load users: no conversation selected');
+    return;
+  }
+  
+  this.userManagerService.list_users().pipe(takeUntil(this.destroy$)).subscribe(
+    (data) => {
+      // Filter out the user who is already assigned to this conversation
+      if (this.selectedConversation?.assigned?.id) {
+        this.users = data.filter((usr) => usr.user !== this.selectedConversation.assigned.id);
+      } else {
+        this.users = data;
+      }
+    },
+    (err) => {
+      console.error("List conversation | Error getting users ", err);
+      this.users = []; // ✅ Set empty array on error
+    }
+  );
+}
 
   public getSanitizedHtml(raw: string): SafeHtml {
   return this.sanitizer.bypassSecurityTrustHtml(raw);
@@ -123,6 +291,102 @@ getMimeType(url: string): 'image' | 'video' | 'audio' | 'pdf' | 'other' {
   if (ext === 'pdf') return 'pdf';
   return 'other';
 }
+
+// ✅ NEW: Reset form
+    resetNewConversationForm() {
+        this.newConversationSubjectForGmail = '';
+        this.newConversationGmailMessageBody = '';
+        this.newConversationGmailCC = [];
+        this.newConversationGmailCCInput = '';
+        this.newConversationGmailAttachment = null;
+        this.selected_platform = null;
+    }
+
+// ✅ NEW: Open new conversation dialog
+    openNewGmailConversation() {
+        this.resetNewConversationForm();
+        this.openConversationGmailVisible = true;
+    }
+
+    // ✅ NEW: Add CC recipient
+    addNewConversationCC() {
+        const email = this.newConversationGmailCCInput.trim();
+
+        if (!this.isValidEmail(email)) {
+            this.messageService.add({
+                severity: 'warn',
+                summary: 'Invalid Email',
+                detail: 'Please enter a valid email address'
+            });
+            return;
+        }
+
+        const emailLower = email.toLowerCase();
+
+        // Check if same as "To" email
+        if (this.selectedConversation.contact.phone.toLowerCase() === emailLower) {
+            this.messageService.add({
+                severity: 'warn',
+                summary: 'Duplicate',
+                detail: 'This email is the same as the "To" recipient'
+            });
+            return;
+        }
+
+        // Check if already in CC list
+        if (this.newConversationGmailCC.some(cc => cc.toLowerCase() === emailLower)) {
+            this.messageService.add({
+                severity: 'warn',
+                summary: 'Duplicate',
+                detail: 'This email is already in the CC list'
+            });
+            return;
+        }
+
+        // Add to CC list
+        this.newConversationGmailCC.push(email);
+        this.newConversationGmailCCInput = '';
+
+        this.messageService.add({
+            severity: 'success',
+            summary: 'Added',
+            detail: 'CC recipient added successfully'
+        });
+    }
+
+    // ✅ NEW: Remove CC recipient
+    removeNewConversationCC(index: number) {
+        const removed = this.newConversationGmailCC.splice(index, 1);
+        this.messageService.add({
+            severity: 'info',
+            summary: 'Removed',
+            detail: `${removed[0]} removed from CC list`
+        });
+    }
+
+    // ✅ NEW: Form validation
+    isNewConversationValid(): boolean {
+      let response = !!(this.selected_platform &&
+            this.selectedConversation.contact.phone &&
+            this.isValidEmail(this.selectedConversation.contact.phone) &&
+            this.newConversationSubjectForGmail &&
+            this.newConversationGmailMessageBody);
+        return response;
+    }
+
+     // ✅ NEW: Cancel and reset
+    cancelNewGmailConversation() {
+        // Confirm if there's content
+        if (this.newConversationGmailMessageBody || this.newConversationGmailCC.length > 0) {
+            if (confirm('Are you sure you want to discard this email?')) {
+                this.openConversationGmailVisible = false;
+                this.resetNewConversationForm();
+            }
+        } else {
+            this.openConversationGmailVisible = false;
+            this.resetNewConversationForm();
+        }
+    }
 
 
   convertTocommondatetime() {
@@ -142,8 +406,12 @@ getMimeType(url: string): 'image' | 'video' | 'audio' | 'pdf' | 'other' {
   }
 
   get isWorkedBySomeone() {
-    return this._selectedConversation.assigned?.id && this._selectedConversation.assigned?.id >= 0 && this._selectedConversation.assigned.id !== this.profile.user.id//new status; 
-  }
+  if (!this._selectedConversation || !this.profile) return false;
+  
+  return this._selectedConversation.assigned?.id && 
+         this._selectedConversation.assigned?.id >= 0 && 
+         this._selectedConversation.assigned.id !== this.profile.user.id;
+}
 
   isOlderThan24Hours(dateString: string): boolean {
     const now = new Date();
@@ -242,6 +510,12 @@ getMimeType(url: string): 'image' | 'video' | 'audio' | 'pdf' | 'other' {
     );
   }
 
+
+  isAssignmentDropdownVisible = false;
+  toggleDropdown(): void {
+    this.isAssignmentDropdownVisible = !this.isAssignmentDropdownVisible;
+  }
+
   ownThisConversation() {
     this.conversationService.assign_conversation(
         "chat",
@@ -258,6 +532,43 @@ getMimeType(url: string): 'image' | 'video' | 'audio' | 'pdf' | 'other' {
         this.messageService.add({ severity: 'error', summary: 'Error', detail: 'An error occurred while assigning task', sticky: true });
       }
     )
+  }
+
+  // Update assignTask to rebuild menu
+assignTask(): void {
+  if (this.selectedUserForAssignment) {
+    this.conversationService.assign_conversation(
+      "chat",
+      this.selectedConversation.id,
+      this.selectedUserForAssignment.user
+    ).pipe(takeUntil(this.destroy$)).subscribe((data) => {
+      this.messageService.add({ 
+        severity: 'success', 
+        summary: 'Success', 
+        detail: 'Task assignment changed' 
+      });
+      this.refreshUnrespondedConversationNotifications();
+      this.cancelAssignment();
+      this.reassignThisConversationEvent.emit({
+        selected_conversation: this.selectedConversation, 
+        current_user_id: this.profile.user.id
+      });
+    },
+    (err) => {
+      console.error("List conversation | Error assigning task ", err);
+      this.messageService.add({ 
+        severity: 'error', 
+        summary: 'Error', 
+        detail: 'An error occurred while assigning task', 
+        sticky: true 
+      });
+    });
+  }
+}
+
+  cancelAssignment(): void {
+    this.isAssignmentDropdownVisible = false; // Close dropdown without assigning
+    this.selectedUserForAssignment = null;
   }
   
 
@@ -387,6 +698,10 @@ submitBlockContact() {
     // TODO: Handle template payload in BE
     this.openConversationGmailVisible = false;
     const newConversationPayload = new FormData();
+    // ✅ Add CC recipients
+    if (this.newConversationGmailCC.length > 0) {
+        newConversationPayload.append('cc_recipients', JSON.stringify(this.newConversationGmailCC));
+    }
     newConversationPayload.append("organization_id", this.profile.organization)
     newConversationPayload.append("platform_id", this.selected_platform.id)
     newConversationPayload.append("contact_id", this.selectedConversation.contact.id)
@@ -476,7 +791,7 @@ submitBlockContact() {
             if (_registeredPlatform.platform_name === 'whatsapp') {
               _registeredPlatform.image_type = 'svg'
             }
-            else if (['webchat', 'messenger', 'gmail'].includes(_registeredPlatform.platform_name)) {
+            else if (['webchat', 'messenger', 'gmail', 'gmessages'].includes(_registeredPlatform.platform_name)) {
               _registeredPlatform.image_type = 'png'
             }
             return _registeredPlatform;
@@ -807,32 +1122,264 @@ private reloadActiveConversation(): void {
 
   
 
-  saveContactInConversationObject() {
-  this.submitted = true;
-  // Clone to separate standard & custom fields
-  const payload = { ...this.selectedContact };
-  // Extract custom fields if present
-  if (this.selectedContact.custom_fields) {
-    payload['custom_fields'] = { ...this.selectedContact.custom_fields };
-  }
-  this.contactService.update_contact(payload)
-    .pipe(takeUntil(this.destroy$))
-    .subscribe(
-      (data) => {
-        this.selectedConversation.contact = data;
-        this.selectedContact = this.selectedConversation.contact;
+  //saveContactInConversationObject() {
+  //this.submitted = true;
+  //// Clone to separate standard & custom fields
+  //const payload = { ...this.selectedContact };
+  //// Extract custom fields if present
+  //if (this.selectedContact.custom_fields) {
+  //  payload['custom_fields'] = { ...this.selectedContact.custom_fields };
+  //}
+  //this.contactService.update_contact(payload)
+  //  .pipe(takeUntil(this.destroy$))
+  //  .subscribe(
+  //    (data) => {
+  //      this.selectedConversation.contact = data;
+  //      this.selectedContact = this.selectedConversation.contact;
+  //      this.editContacDialogVisible = false;
+  //      this.submitted = false;
+  //      this.onChangeInSelectedConversationObjectFromChildren();
+  //    },
+  //    (err) => {
+  //      console.error("Contacts | Error updating contact ", err);
+  //      this.editContacDialogVisible = false;
+  //      this.submitted = false;
+  //      this.messageService.add({ severity: 'error', summary: 'Error', detail: 'Contact not updated', sticky: true });
+  //    }
+  //  );
+  //}
+    
+    // ✅ CC Management
+    customerCCRecipients: string[] = [];  // Read-only from customer
+    agentCCRecipients: string[] = [];     // Editable by agent
+    newAgentCCEmail: string = '';
+    
+    // Original CC for reset
+    private originalAgentCC: string[] = [];
+
+    onEdit() {
+        this.selectedContact = { ...this.selectedConversation.contact };
+        
+        // Reset CC to current values
+        this.customerCCRecipients = [...(this.selectedConversation.customer_cc_recipients || [])];
+        this.agentCCRecipients = [...(this.selectedConversation.agent_cc_recipients || [])];
+        this.originalAgentCC = [...this.agentCCRecipients];
+        this.newAgentCCEmail = '';
+        
+        this.editContacDialogVisible = true;
+        this.submitted = false;
+    }
+
+    // ✅ Agent CC Management
+    addAgentCC() {
+        if (!this.isValidEmail(this.newAgentCCEmail)) {
+            this.messageService.add({
+                severity: 'warn',
+                summary: 'Invalid Email',
+                detail: 'Please enter a valid email address'
+            });
+            return;
+        }
+
+        const email = this.newAgentCCEmail.trim().toLowerCase();
+        
+        // Check if already in agent's list
+        if (this.agentCCRecipients.some(cc => cc.toLowerCase() === email)) {
+            this.messageService.add({
+                severity: 'warn',
+                summary: 'Duplicate',
+                detail: 'This email is already in your CC list'
+            });
+            return;
+        }
+        
+        // Check if already in customer's list
+        if (this.customerCCRecipients.some(cc => cc.toLowerCase() === email)) {
+            this.messageService.add({
+                severity: 'info',
+                summary: 'Already Included',
+                detail: 'This email is already in customer\'s CC list'
+            });
+            return;
+        }
+        
+        this.agentCCRecipients.push(this.newAgentCCEmail.trim());
+        this.newAgentCCEmail = '';
+        
+        this.messageService.add({
+            severity: 'success',
+            summary: 'Added',
+            detail: 'CC recipient added successfully'
+        });
+    }
+
+    removeAgentCC(index: number) {
+        const removed = this.agentCCRecipients.splice(index, 1);
+        this.messageService.add({
+            severity: 'info',
+            summary: 'Removed',
+            detail: `${removed[0]} removed from your CC list`
+        });
+    }
+
+    isValidEmail(email: string): boolean {
+        if (!email) return false;
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        return emailRegex.test(email.trim());
+    }
+
+    getMergedCCList(): string[] {
+        const merged = [...this.customerCCRecipients];
+        
+        // Add agent's CC that aren't duplicates
+        for (const email of this.agentCCRecipients) {
+            const emailLower = email.toLowerCase();
+            if (!merged.some(cc => cc.toLowerCase() === emailLower)) {
+                merged.push(email);
+            }
+        }
+        
+        return merged;
+    }
+
+    getChipStyle(email: string): any {
+        const emailLower = email.toLowerCase();
+        
+        if (this.customerCCRecipients.some(cc => cc.toLowerCase() === emailLower)) {
+            return {
+                'background-color': '#D1FAE5',
+                'color': '#065F46'
+            };
+        } else {
+            return {
+                'background-color': '#DBEAFE',
+                'color': '#1E40AF'
+            };
+        }
+    }
+
+    cancelEdit() {
+        this.editContacDialogVisible = false;
+        this.newAgentCCEmail = '';
+        this.submitted = false;
+        
+        // Reset to original values
+        this.customerCCRecipients = [...(this.selectedConversation.customer_cc_recipients || [])];
+        this.agentCCRecipients = [...this.originalAgentCC];
+    }
+
+    // ✅ MODIFIED: Save contact AND CC separately
+    saveContactInConversationObject() {
+        this.submitted = true;
+
+        // Validate
+        if (!this.selectedContact.name || !this.selectedContact.phone) {
+            return;
+        }
+
+        // 1️⃣ First, save contact information
+        const contactPayload = { ...this.selectedContact };
+        
+        // Extract custom fields if present
+        if (this.selectedContact.custom_fields) {
+            contactPayload['custom_fields'] = { ...this.selectedContact.custom_fields };
+        }
+
+        this.contactService.update_contact(contactPayload)
+            .pipe(takeUntil(this.destroy$))
+            .subscribe({
+                next: (updatedContact) => {
+                    // Update contact in conversation
+                    this.selectedConversation.contact = updatedContact;
+                    this.selectedContact = this.selectedConversation.contact;
+                    
+                    // 2️⃣ Then, save CC recipients if changed (only for Gmail)
+                    if (this.selectedConversation.contact.platform_name === 'gmail' && 
+                        this.hasAgentCCChanged()) {
+                        this.saveAgentCC();
+                    } else {
+                        // No CC changes, just close dialog
+                        this.completeEdit();
+                    }
+                },
+                error: (err) => {
+                    console.error("Error updating contact:", err);
+                    this.editContacDialogVisible = false;
+                    this.submitted = false;
+                    this.messageService.add({
+                        severity: 'error',
+                        summary: 'Error',
+                        detail: 'Contact not updated',
+                        sticky: true
+                    });
+                }
+            });
+    }
+
+    // ✅ NEW: Check if agent CC changed
+    private hasAgentCCChanged(): boolean {
+        if (this.agentCCRecipients.length !== this.originalAgentCC.length) {
+            return true;
+        }
+        
+        // Check if all emails match (case-insensitive)
+        const currentSet = new Set(this.agentCCRecipients.map(cc => cc.toLowerCase()));
+        const originalSet = new Set(this.originalAgentCC.map(cc => cc.toLowerCase()));
+        
+        if (currentSet.size !== originalSet.size) {
+            return true;
+        }
+        
+        for (const email of currentSet) {
+            if (!originalSet.has(email)) {
+                return true;
+            }
+        }
+        
+        return false;
+    }
+
+    // ✅ NEW: Save agent CC separately
+    private saveAgentCC() {
+        const ccPayload = {
+            conversation_id: this.selectedConversation.id,
+            agent_cc_recipients: this.agentCCRecipients
+        };
+
+        this.conversationService.updateConversationCC(ccPayload)
+            .pipe(takeUntil(this.destroy$))
+            .subscribe({
+                next: (response) => {
+                    // Update conversation with new CC
+                    this.selectedConversation.agent_cc_recipients = this.agentCCRecipients;
+                    this.originalAgentCC = [...this.agentCCRecipients];
+                    
+                    this.messageService.add({
+                        severity: 'success',
+                        summary: 'Success',
+                        detail: 'Contact and CC recipients updated successfully'
+                    });
+                    
+                    this.completeEdit();
+                },
+                error: (err) => {
+                    console.error("Error updating CC recipients:", err);
+                    
+                    // Contact was saved, but CC failed
+                    this.messageService.add({
+                        severity: 'warn',
+                        summary: 'Partial Success',
+                        detail: 'Contact updated, but CC recipients failed to save'
+                    });
+                    
+                    this.completeEdit();
+                }
+            });
+    }
+
+    // ✅ NEW: Complete edit and emit changes
+    private completeEdit() {
         this.editContacDialogVisible = false;
         this.submitted = false;
-        this.onChangeInSelectedConversationObjectFromChildren();
-      },
-      (err) => {
-        console.error("Contacts | Error updating contact ", err);
-        this.editContacDialogVisible = false;
-        this.submitted = false;
-        this.messageService.add({ severity: 'error', summary: 'Error', detail: 'Contact not updated', sticky: true });
-      }
-    );
-}
-
-
+    }
 }

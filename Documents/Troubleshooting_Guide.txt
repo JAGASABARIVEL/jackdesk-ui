@@ -1,0 +1,14 @@
+
+Space Reclaim
+-------------
+1. To find the largest directory in the mount since '/' is our main mount
+sudo du -h --max-depth=1 / | sort -hr | head -20
+
+2. To find and sort the files by size in a specific directory
+sudo du -h --max-depth=1 /tmp | sort -hr
+
+3. To find and delete the unwanted files oocupying the space
+sudo find . -type f ! -newermt "2025-09-05" -delete
+
+4. To truncate the contents of the file without deleting the file
+sudo truncate -s 0M messages

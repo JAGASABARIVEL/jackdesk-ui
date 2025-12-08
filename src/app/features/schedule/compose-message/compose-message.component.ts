@@ -250,6 +250,7 @@ export class ComposeMessageComponent implements OnInit, OnDestroy {
   }
 
   onPlatformSelected () {
+    console.log("selected_platform ", this.selected_platform);
     if (!this.selected_platform) {
       this.selected_platform = undefined;
       this.selected_datasource = undefined;

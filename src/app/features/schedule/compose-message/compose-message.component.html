@@ -144,7 +144,7 @@
 </div>
 
 
-<app-message-templates *ngIf="selected_platform != undefined" class="col-4" [selectedPlatform]="selected_platform" (selectTemplate)="onTemplateSelected($event)"></app-message-templates>
+<app-message-templates *ngIf="['whatsapp'].includes(selected_platform?.platform_name)" class="col-4" [selectedPlatform]="selected_platform" (selectTemplate)="onTemplateSelected($event)"></app-message-templates>
 
 <div *ngIf="selected_platform != undefined"  class="col-8">
         

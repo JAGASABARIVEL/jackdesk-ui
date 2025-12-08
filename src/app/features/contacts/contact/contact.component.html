@@ -243,6 +243,12 @@
         />
         <small class="p-error" *ngIf="submitted && !product.phone">Contact is required.</small>
       </div>
+
+      <div class="field col">
+        <label for="platform" class="font-semibold">Platform</label>
+        <p-select class="w-full" [options]="supported_platforms" [(ngModel)]="product.platform_name" optionValue="name" optionLabel="name" [filter]="true" filterBy="name" appendTo="body" [showClear]="true" placeholder="Select a platform"></p-select>
+      </div>
+
       <div class="field col">
         <label for="address">Address</label>
         <textarea

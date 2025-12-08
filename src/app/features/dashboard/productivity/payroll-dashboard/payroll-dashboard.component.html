@@ -1,0 +1,244 @@
+<div class="payroll-dashboard">
+  
+  <!-- HEADER -->
+  <div class="header-section">
+    <div class="header-title">
+      <h1>Payroll Productivity Dashboard</h1>
+      <p class="subtitle">Work hours tracking for salary calculations</p>
+    </div>
+  </div>
+
+  <!-- FILTERS -->
+  <div class="card filter-card">
+    <div class="filter-grid">
+      
+      <!-- Employee Selection -->
+      <div class="filter-item">
+        <label class="filter-label">Employee</label>
+        <p-select
+          [(ngModel)]="selectedUser"
+          [options]="registeredUsers"
+          optionLabel="details.email"
+          optionValue="details.id"
+          placeholder="Select Employee (or leave blank for team view)"
+          [filter]="true"
+          [showClear]="true"
+          appendTo="body"
+          styleClass="w-full"
+          (onChange)="onUserChange()">
+        </p-select>
+      </div>
+
+      <!-- From Date -->
+      <div class="filter-item">
+        <label class="filter-label">From Date</label>
+        <p-datepicker
+          [(ngModel)]="fromDate"
+          [showIcon]="true"
+          dateFormat="yy-mm-dd"
+          placeholder="Start Date"
+          styleClass="w-full">
+        </p-datepicker>
+      </div>
+
+      <!-- To Date -->
+      <div class="filter-item">
+        <label class="filter-label">To Date</label>
+        <p-datepicker
+          [(ngModel)]="toDate"
+          [showIcon]="true"
+          dateFormat="yy-mm-dd"
+          placeholder="End Date"
+          styleClass="w-full">
+        </p-datepicker>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="filter-item filter-actions">
+        <button
+          pButton
+          label="Generate Report"
+          icon="pi pi-search"
+          class="p-button-primary w-full"
+          [disabled]="!fromDate || !toDate || loading"
+          (click)="generateReport()">
+        </button>
+        <!--button
+          pButton
+          label="Export PDF"
+          icon="pi pi-file-pdf"
+          class="p-button-success w-full"
+          [disabled]="!attendanceData && !teamData"
+          (click)="exportToPDF()">
+        </button-->
+      </div>
+    </div>
+  </div>
+
+  <!-- LOADING STATE -->
+  <div *ngIf="loading" class="loading-container">
+    <i class="pi pi-spin pi-spinner loading-icon"></i>
+    <p>Loading payroll data...</p>
+  </div>
+
+  <!-- INDIVIDUAL EMPLOYEE VIEW -->
+  <div *ngIf="!loading && selectedUser && attendanceData">
+    
+    <!-- KEY METRICS CARDS -->
+    <div class="metrics-grid">
+      <!-- Total Work Hours -->
+      <div class="metric-card">
+        <div class="metric-icon work-hours">
+          <i class="pi pi-clock"></i>
+        </div>
+        <div class="metric-content">
+          <div class="metric-value">{{ payrollSummary?.totalWorkHours || 0 }}h</div>
+          <div class="metric-label">Total Work Hours</div>
+          <div class="metric-subtitle">Avg: {{ payrollSummary?.avgWorkHours || 0 }}h/day</div>
+        </div>
+      </div>
+
+      <!-- Attendance -->
+      <div class="metric-card">
+        <div class="metric-icon attendance">
+          <i class="pi pi-check-circle"></i>
+        </div>
+        <div class="metric-content">
+          <div class="metric-value">{{ payrollSummary?.presentDays || 0 }}/{{ payrollSummary?.workingDays || 0 }}</div>
+          <div class="metric-label">Attendance</div>
+          <div class="metric-subtitle">{{ payrollSummary?.attendanceRate || 0 }}% attendance rate</div>
+        </div>
+      </div>
+
+      <!-- Overtime -->
+      <div class="metric-card">
+        <div class="metric-icon overtime">
+          <i class="pi pi-chart-line"></i>
+        </div>
+        <div class="metric-content">
+          <div class="metric-value">{{ payrollSummary?.overtimeHours || 0 }}h</div>
+          <div class="metric-label">Overtime Hours</div>
+          <div class="metric-subtitle">Beyond 9h/day standard</div>
+        </div>
+      </div>
+
+      <!-- Payroll Status -->
+      <div class="metric-card">
+        <div class="metric-icon payroll-status">
+          <i class="pi pi-dollar"></i>
+        </div>
+        <div class="metric-content">
+          <p-tag
+            [value]="payrollSummary?.payrollStatus"
+            [severity]="payrollSummary?.payrollStatus === 'FULL_PAY' ? 'success' : 'warn'"
+            styleClass="metric-tag">
+          </p-tag>
+          <div class="metric-label">Payroll Status</div>
+          <div class="metric-subtitle">Based on work hours</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TABBED CONTENT -->
+    <div class="card tabs-card">
+      <p-tabs [(value)]="activeTab">
+        <p-tablist>
+          <p-tab [value]="0">
+            <i class="pi pi-calendar mr-2"></i>
+            <span>Attendance</span>
+          </p-tab>
+          <p-tab [value]="1">
+            <i class="pi pi-clock mr-2"></i>
+            <span>Login/Logout Times</span>
+          </p-tab>
+          <p-tab [value]="2">
+            <i class="pi pi-chart-bar mr-2"></i>
+            <span>Weekly Trends</span>
+          </p-tab>
+          <p-tab [value]="3">
+            <i class="pi pi-desktop mr-2"></i>
+            <span>App Usage</span>
+          </p-tab>
+          <p-tab [value]="4">
+            <i class="pi pi-pause-circle mr-2"></i>
+            <span>Idle Analysis</span>
+          </p-tab>
+        </p-tablist>
+
+        <p-tabpanels>
+          <!-- Attendance Tab -->
+          <p-tabpanel [value]="0">
+            <app-attendance-table
+              *ngIf="attendanceData"
+              [attendanceData]="attendanceData">
+            </app-attendance-table>
+          </p-tabpanel>
+
+          <!-- Login/Logout Tab -->
+          <p-tabpanel [value]="1">
+            <app-login-logout-stats
+              *ngIf="loginLogoutData"
+              [loginLogoutData]="loginLogoutData">
+            </app-login-logout-stats>
+          </p-tabpanel>
+
+          <!-- Weekly Trends Tab -->
+          <p-tabpanel [value]="2">
+            <app-weekly-trends
+              *ngIf="weeklyData"
+              [weeklyData]="weeklyData">
+            </app-weekly-trends>
+          </p-tabpanel>
+
+          <!-- App Usage Tab -->
+          <p-tabpanel [value]="3">
+            <app-usage-analytics
+              *ngIf="appUsageData"
+              [appUsageData]="appUsageData">
+            </app-usage-analytics>
+          </p-tabpanel>
+
+          <!-- Idle Analysis Tab -->
+          <p-tabpanel [value]="4">
+            <app-idle-time-analysis
+              *ngIf="idleAnalysisData"
+              [idleData]="idleAnalysisData"
+              [heatmapData]="heatmapData">
+            </app-idle-time-analysis>
+          </p-tabpanel>
+        </p-tabpanels>
+      </p-tabs>
+    </div>
+
+  </div>
+
+  <!-- TEAM VIEW -->
+  <div *ngIf="!loading && !selectedUser && teamData">
+    
+    <!-- Real-time Status -->
+    <div class="card mb-4">
+      <app-realtime-status
+        *ngIf="realtimeStatusData"
+        [statusData]="realtimeStatusData"
+        (refresh)="refreshRealtimeStatus()">
+      </app-realtime-status>
+    </div>
+
+    <!-- Team Comparison -->
+    <div class="card">
+      <app-team-comparison
+        [teamData]="teamData">
+      </app-team-comparison>
+    </div>
+
+  </div>
+
+  <!-- EMPTY STATE -->
+  <div *ngIf="!loading && !attendanceData && !teamData" class="empty-state card">
+    <i class="pi pi-chart-line empty-icon"></i>
+    <h3>No Data Available</h3>
+    <p>Select date range and click "Generate Report" to view productivity analytics</p>
+    <p class="empty-hint">Leave employee field blank to view team overview</p>
+  </div>
+
+</div>

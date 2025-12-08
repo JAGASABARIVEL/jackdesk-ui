@@ -4,7 +4,7 @@ export const WEBSITE_OWNING_ORG = 5;
 /** Service URIs */
 export let HOST = 'https://api.jackdesk.com'
 export let WEBSOCKET_HOST = 'https://websocket.jackdesk.com'
-//export let HOST = 'http://127.0.0.1:8002'
+//export let HOST = 'http://127.0.0.1:8001'
 //export let WEBSOCKET_HOST = 'http://localhost:5001'
 /** Google client */
 export const environment = {

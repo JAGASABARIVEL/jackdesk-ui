@@ -8,5 +8,6 @@ export interface ContactModel {
     category: string,
     organization: number,
     created_by: number,
+    platform_name: string,
     custom_fields: {}
 }

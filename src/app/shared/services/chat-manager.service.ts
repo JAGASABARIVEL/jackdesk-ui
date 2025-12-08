@@ -3,6 +3,12 @@ import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import { HOST } from '../../../environment'
 
+// ✅ NEW: Interface for updating conversation CC
+export interface UpdateConversationCCPayload {
+    conversation_id: number;
+    agent_cc_recipients: string[];
+}
+
 @Injectable({
   providedIn: 'root'
 })
@@ -42,6 +48,14 @@ export class ChatManagerService {
     const headers = new HttpHeaders().set('Authorization', `Bearer ${this.auth_token}`);
     return this.http.get(`${this.conversations_url}${this.notification_uri}`, { headers });
   }
+
+  // ✅ NEW: Update agent's CC recipients for a conversation
+    updateConversationCC(payload: UpdateConversationCCPayload): Observable<any> {
+        return this.http.patch(
+            `${this.conversations_url}${this.non_chat_conversations_uri}${payload.conversation_id}/update_cc/`,
+            { agent_cc_recipients: payload.agent_cc_recipients }
+        );
+    }
 
   list_all_conversations(
   base_url_type="chat",

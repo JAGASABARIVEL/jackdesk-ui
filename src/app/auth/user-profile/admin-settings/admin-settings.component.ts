@@ -12,6 +12,7 @@ import { ConfirmationService, MessageService } from 'primeng/api';
 import { ToastModule } from 'primeng/toast';
 import { InputGroup } from 'primeng/inputgroup';
 import { InputGroupAddonModule } from 'primeng/inputgroupaddon';
+import { DomSanitizer, SafeUrl } from '@angular/platform-browser';
 import { TooltipModule } from 'primeng/tooltip';
 import { Subject, takeUntil } from 'rxjs';
 import { ContactManagerService } from '../../../shared/services/contact-manager.service';
@@ -66,9 +67,20 @@ export class AdminSettingsComponent implements OnInit, OnDestroy {
   supported_platforms = supported_platforms;
   profile !: any;
 
+  // GMessage Integration Variables
+  gmessageStatus: any = null;
+  gmessageError: string = '';
+  gmessageQRLoading = false;
+  gmessageQRCode: SafeUrl | null = null;
+  checkingAuthStatus = false;
+  gmessageDialogVisible = false;
+  private gmessagePlatformId: number | null = null;
+  private gmessageAuthInterval: any = null;
+
   constructor(
     private router: Router,
     private formBuilder: FormBuilder,
+    private sanitizer: DomSanitizer,
 
     private messageService: MessageService,
 
@@ -545,4 +557,125 @@ deleteField(field: any) {
         }
       );
   }
+
+  // Gmessages
+  /** Open GMessage QR Dialog */
+openGMessageDialog(platformId: number) {
+  this.gmessageDialogVisible = true;
+  this.gmessagePlatformId = platformId;
+  this.resetGMessageState();
+  this.generateGMessageQR();
+}
+
+/** Close Dialog and Clear State */
+closeGMessageDialog() {
+  this.gmessageDialogVisible = false;
+  this.clearGMessagePolling();
+  this.resetGMessageState();
+}
+
+/** Generate GMessage QR Code from backend */
+generateGMessageQR() {
+  if (!this.gmessagePlatformId) return;
+
+  this.gmessageError = '';
+  this.gmessageQRLoading = true;
+  this.gmessageQRCode = '';
+  this.gmessageStatus = null;
+
+  this.platformManagerService.getGMessageQR(this.gmessagePlatformId)
+    .pipe(takeUntil(this.destroy$))
+    .subscribe({
+      next: (res: any) => {
+
+        let base64Data = res.qr_code;
+
+        /// Ensure prefix exists
+      if (!base64Data.startsWith('data:image/png;base64,')) {
+        base64Data = 'data:image/png;base64,' + base64Data;
+      }
+
+      // Sanitize the URL to safely display
+      this.gmessageQRCode = this.sanitizer.bypassSecurityTrustUrl(base64Data);
+      this.gmessageQRLoading = false;
+
+        // Start polling for authentication
+        //this.pollAuthStatus();
+      },
+      error: (err) => {
+        this.gmessageQRLoading = false;
+        this.gmessageError = err?.error?.message || 'Failed to generate QR code';
+      }
+    });
+}
+
+/** Start polling backend for authentication status */
+pollAuthStatus() {
+  this.clearGMessagePolling();
+  this.checkingAuthStatus = true;
+  this.gmessageAuthInterval = setInterval(() => {
+    if (this.gmessagePlatformId)
+      this.platformManagerService.getGMessageStatus(this.gmessagePlatformId)
+        .subscribe({
+          next: (res: any) => {
+            this.gmessageStatus = res;
+            if (res.is_authenticated) {
+              this.checkingAuthStatus = false;
+              this.clearGMessagePolling();
+              this.showSuccess('Google Messages connected successfully!');
+            }
+          },
+          error: (err) => console.warn('Auth check failed', err)
+        });
+  }, 5000); // every 5s
+}
+
+/** Sync messages manually */
+syncGMessage() {
+  if (!this.gmessagePlatformId) return;
+
+  this.platformManagerService.syncGMessage(this.gmessagePlatformId)
+    .subscribe({
+      next: () => this.showSuccess('Messages synced successfully!'),
+      error: () => this.showError('Failed to sync Google Messages')
+    });
+}
+
+/** Disconnect GMessage session */
+disconnectGMessage() {
+  if (!this.gmessagePlatformId) return;
+
+  this.confirmationService.confirm({
+    message: 'Are you sure you want to disconnect Google Messages?',
+    header: 'Confirm Disconnect',
+    icon: 'pi pi-exclamation-triangle',
+    accept: () => {
+      this.platformManagerService.disconnectGMessage(this.gmessagePlatformId)
+        .subscribe({
+          next: () => {
+            this.showSuccess('Disconnected from Google Messages');
+            this.closeGMessageDialog();
+          },
+          error: () => this.showError('Failed to disconnect')
+        });
+    }
+  });
+}
+
+/** Helpers */
+resetGMessageState() {
+  this.gmessageStatus = null;
+  this.gmessageError = '';
+  this.gmessageQRLoading = false;
+  this.gmessageQRCode = '';
+  this.checkingAuthStatus = false;
+}
+
+clearGMessagePolling() {
+  if (this.gmessageAuthInterval) {
+    clearInterval(this.gmessageAuthInterval);
+    this.gmessageAuthInterval = null;
+  }
+}
+
 }

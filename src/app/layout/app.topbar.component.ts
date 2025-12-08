@@ -139,7 +139,10 @@ export class AppTopBarComponent implements OnInit, OnDestroy {
         if (this.layoutService.isLoggedIn()) {
             this.fetchActiveTimeSubscription = this.productivityService.my_summary(this.start, this.end).subscribe(
                 {
-                    next: (data: any) => this.layoutService.activeSeconds.set(data?.productive_time_seconds),
+                    next: (data: any) => {
+                        this.layoutService.activehours.set(data?.work_hours);
+                        this.layoutService.idlehours.set(data?.idle_hours);
+                    },
                     error: (err) => console.error("Topbar => Could not load my activity data")
                 }
             )

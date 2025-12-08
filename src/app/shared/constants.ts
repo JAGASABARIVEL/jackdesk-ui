@@ -269,6 +269,7 @@ export const supported_platforms = [
     {"name": "messenger"},
     {"name": "webchat"},
     {"name": "gmail"},
+    {"name": "gmessages"}
 ]
 
 export const supported_contact_types = [

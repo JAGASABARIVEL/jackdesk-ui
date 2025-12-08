@@ -25,6 +25,8 @@ import { InputGroupAddonModule } from 'primeng/inputgroupaddon';
 import { ContactManagerService } from '../../../shared/services/contact-manager.service';
 import { LayoutService } from '../../../layout/service/app.layout.service';
 import { Subject, takeUntil } from 'rxjs';
+import { supported_platforms } from '../../../shared/constants';
+import { SelectModule } from 'primeng/select';
 
 @Component({
   selector: 'app-contact',
@@ -46,6 +48,7 @@ import { Subject, takeUntil } from 'rxjs';
     RadioButtonModule,
     InputTextModule,
     AvatarModule,
+    SelectModule,
 
     InputGroupModule,
     InputGroupAddonModule
@@ -62,6 +65,7 @@ export class ContactComponent implements OnInit, OnDestroy {
   dialogProgress = false;
   productDialog: boolean = false;
   products!: ContactModel[];
+  supported_platforms = supported_platforms;
   product!: any;
   selectedProducts!: any[] | null;
   submitted: boolean = false;
@@ -138,6 +142,7 @@ export class ContactComponent implements OnInit, OnDestroy {
       description: '',
       address: '',
       category: '',
+      platform_name: '',
       image: '',
       custom_fields: {}
     };

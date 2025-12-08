@@ -75,4 +75,22 @@ export class PlatformManagerService {
     );
   }
 
+  // Gmessages service
+  getGMessageQR(platformId: number) {
+  return this.http.post(`${this.list_platforms_url}${platformId}/gmessages/qr/`, {});
+}
+
+getGMessageStatus(platformId: number) {
+  return this.http.get(`${this.list_platforms_url}${platformId}/gmessages/status/`);
+}
+
+syncGMessage(platformId: number) {
+  return this.http.post(`${this.list_platforms_url}${platformId}/gmessages/sync/`, {});
+}
+
+disconnectGMessage(platformId: number) {
+  return this.http.post(`${this.list_platforms_url}${platformId}/gmessages/disconnect/`, {});
+}
+
+
 }
