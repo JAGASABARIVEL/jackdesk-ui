@@ -1,24 +1,31 @@
-<div class="card" *ngIf="profile.user.role !== 'individual'">
-    <p-tabs value="0" styleClass="tabview-custom">
+<div class="schedule-container" *ngIf="profile?.user?.role !== 'individual'">
+    <div class="schedule-header">
+        <div class="header-content">
+            <h1 class="page-title">Campaign Manager</h1>
+            <p class="page-subtitle">Create, manage, and track your messaging campaigns</p>
+        </div>
+    </div>
+
+    <p-tabs value="0" styleClass="modern-tabs">
         <p-tablist>
-            <p-tab value="0" class="flex items-center !gap-2">
-                <i class="pi pi-whatsapp"></i>
-                <span class="font-bold whitespace-nowrap">Compose</span>
-            </p-tab>
-            <p-tab value="1" class="flex items-center !gap-2">
-                <i class="pi pi-calendar-clock"></i>
-                <span class="font-bold whitespace-nowrap">Schedules</span>
-                <div class="flex align-items-center gap-2">
-                    <p-badge *ngIf="total_schedules > 0" [value]="total_schedules" />
-                    <p-badge *ngIf="total_schedules == 0" [value]="total_schedules" />
+            <p-tab value="0" class="modern-tab">
+                <div class="tab-content">
+                    <i class="pi pi-send tab-icon"></i>
+                    <span class="tab-label">Compose</span>
                 </div>
             </p-tab>
-            <p-tab value="2" class="flex items-center !gap-2">
-                <i class="pi pi-history"></i>
-                <span class="font-bold whitespace-nowrap">History</span>
-                <div class="flex align-items-center gap-2">
+            <p-tab value="1" class="modern-tab">
+                <div class="tab-content">
+                    <i class="pi pi-calendar-clock tab-icon"></i>
+                    <span class="tab-label">Schedules</span>
+                    <p-badge *ngIf="total_schedules > 0" [value]="total_schedules" severity="info" />
+                </div>
+            </p-tab>
+            <p-tab value="2" class="modern-tab">
+                <div class="tab-content">
+                    <i class="pi pi-history tab-icon"></i>
+                    <span class="tab-label">History</span>
                     <p-badge *ngIf="failedMessageCounts > 0" [value]="failedMessageCounts" severity="danger" />
-                    <p-badge *ngIf="failedMessageCounts == 0" [value]="failedMessageCounts" />
                 </div>
             </p-tab>
         </p-tablist>

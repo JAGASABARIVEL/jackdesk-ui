@@ -1,334 +1,180 @@
-<div class="card">
+<div class="modern-contact-card">
     <p-toast />
-    <p-toolbar styleClass="mb-4 gap-2">
-        <ng-template pTemplate="left">
-            <button
-                pButton
-                severity="success" 
-                label="New" 
-                icon="pi pi-plus" 
-                class="mr-2 p-button-outlined" 
-                (click)="openNew()">
-            </button>
-            <button
-                *ngIf="profile?.user.role === 'owner'"
-                pButton
-                class="p-button-outlined"
-                severity="danger" 
-                label="Delete" 
-                icon="pi pi-trash" 
-                (click)="deleteSelectedProducts()" 
-                [disabled]="!selectedProducts || !selectedProducts.length">
-            </button>
-        </ng-template>
+    
+    <!-- Modern Action Bar -->
+    <div class="action-bar">
+        <div class="action-left">
+            <button pButton class="modern-btn modern-btn-primary" label="New Contact" icon="pi pi-plus" (click)="openNew()"></button>
+            <button *ngIf="profile?.user.role === 'owner'" pButton class="modern-btn modern-btn-danger" label="Delete Selected" icon="pi pi-trash" (click)="deleteSelectedProducts()" [disabled]="!selectedProducts || !selectedProducts.length"></button>
+        </div>
+        <div class="action-right">
+            <button pButton class="modern-btn modern-btn-secondary" label="Reload" icon="pi pi-replay" (click)="loadContacts()"></button>
+            <p-fileUpload #fileUpload mode="basic" accept=".xls,.xlsx" [maxFileSize]="1000000" chooseLabel="Import" class="modern-file-upload" fileLimit="1" (onSelect)="onBulkUpload($event, fileUpload)" />
+        </div>
+    </div>
 
-        <ng-template pTemplate="right">
-            <button
-                pButton
-                label="Reload"
-                class="mr-2 p-button-outlined"
-                icon="pi pi-replay"
-                (click)="loadContacts()">
-            </button>
-            <p-fileUpload
-                #fileUpload
-                mode="basic" 
-                accept=".xls,.xlsx"
-                [maxFileSize]="1000000" 
-                label="Import" 
-                chooseLabel="Import" 
-                class="mr-2 inline-block"
-                fileLimit="1"
-                (onSelect)="onBulkUpload($event, fileUpload)" />
-            
-        </ng-template>
-    </p-toolbar>
+    <!-- Search Bar -->
+    <div class="search-container">
+        <span class="p-input-icon-left search-wrapper">
+            <i class="pi pi-search search-icon"></i>
+            <input pInputText type="text" #searchInput (input)="onSearchInput($event, dt)" placeholder="Search contacts by name, phone, or category..." class="search-input" />
+        </span>
+    </div>
 
-    <p-table
-        #dt
-        [value]="products"
-        [rows]="10"
-        [paginator]="true"
-        [globalFilterFields]="['_search_blob']"
-        [tableStyle]="{ 'min-width': '75rem' }"
-        [(selection)]="selectedProducts"
-        [rowHover]="true"
-        dataKey="id"
-        [loading]="loading"
+    <!-- Modern Table -->
+    <p-table #dt [value]="products" [rows]="10" [paginator]="true" [globalFilterFields]="['_search_blob']" [tableStyle]="{ 'min-width': '75rem' }" [(selection)]="selectedProducts" [rowHover]="true" dataKey="id" [loading]="loading" currentPageReportTemplate="Showing {first} to {last} of {totalRecords} contacts" [showCurrentPageReport]="true" styleClass="modern-table">
         
-        currentPageReportTemplate="Showing {first} to {last} of {totalRecords} entries"
-        [showCurrentPageReport]="true"
-    >
-        <ng-template pTemplate="caption">
-            <div class="flex align-items-center justify-content-between">
-                <h5 class="m-0">Manage Contacts</h5>
-                <span>
-                    <p-inputgroup>
-                        <p-inputgroup-addon>
-                            <i class="pi pi-search"></i>
-                        </p-inputgroup-addon>
-                        <input 
-                            styleClass="w-10"
-                            pInputText 
-                            type="text" 
-                            #searchInput 
-                            (input)="onSearchInput($event, dt)"
-                            placeholder="Search..."
-                        />
-                    </p-inputgroup>
-                </span>
-                
-            </div>
-        </ng-template>
         <ng-template pTemplate="header">
             <tr>
-                <th style="width: 4rem">
+                <th style="width: 3rem">
                     <p-tableHeaderCheckbox />
                 </th>
-                
-                <th>
-                </th>
-                <th pSortableColumn="name">
-                    Name <p-sortIcon field="name" />
-                </th>
-                <th pSortableColumn="price">
-                    Phone <p-sortIcon field="phone" />
-                </th>
-                <th pSortableColumn="category">
-                    Category <p-sortIcon field="category" />
-                </th>
-                <th pSortableColumn="description">
-                    Description <p-sortIcon field="description" />
-                </th>
-                <th></th>
+                <th style="width: 4rem"></th>
+                <th pSortableColumn="name">Name <p-sortIcon field="name" /></th>
+                <th pSortableColumn="phone">Phone <p-sortIcon field="phone" /></th>
+                <th pSortableColumn="category">Category <p-sortIcon field="category" /></th>
+                <th pSortableColumn="description">Description <p-sortIcon field="description" /></th>
+                <th style="width: 10rem">Actions</th>
             </tr>
         </ng-template>
+        
         <ng-template pTemplate="body" let-product>
-            <tr>
+            <tr class="table-row">
                 <td>
                     <p-tableCheckbox [value]="product" />
                 </td>
-                
                 <td>
-                <!--img 
-                    [src]="'https://primefaces.org/cdn/primeng/images/demo/product/' + product.image" 
-                    [alt]="product.name" 
-                    width="50" 
-                    class="shadow-4" /-->
-                <img *ngIf="product?.image" [src]="product.image" alt="avatar"
-                    class="border-round mr-2 ml-2" style="width: 48px; height: 48px;"/>
-                <p-avatar 
-                    *ngIf="!product?.image"
-                    icon="pi pi-user" 
-                    styleClass="mr-2" size="xlarge" />
+                    <div class="avatar-container">
+                        <img *ngIf="product?.image" [src]="product.image" alt="avatar" class="contact-avatar"/>
+                        <p-avatar *ngIf="!product?.image" icon="pi pi-user" styleClass="contact-avatar-icon" size="large" />
+                    </div>
                 </td>
                 <td>
-                    {{ product.name }}
+                    <span class="contact-name">{{ product.name }}</span>
                 </td>
                 <td>
-                    {{ product.phone }}
+                    <span class="contact-phone">{{ product.phone }}</span>
                 </td>
                 <td>
-                    <p-tag 
-                        [value]="product.category || 'N/A'" 
-                        [severity]="getSeverity(product.category)" />
+                    <p-tag [value]="product.category || 'N/A'" [severity]="getSeverity(product.category)" styleClass="modern-tag" />
                 </td>
                 <td>
-                    {{ product.description }}
+                    <span class="contact-description">{{ product.description }}</span>
                 </td>
-
-                <td>
-                    <button 
-                        pButton
-                        icon="pi pi-pencil" 
-                        class="mr-2 p-button-outlined" 
-                        [rounded]="true" 
-                        [outlined]="true" 
-                        severity="success" 
-                        (click)="editProduct(product)">
-                    </button>
-                    <button 
-                        pButton
-                        class="p-button-outlined" 
-                        icon="pi pi-trash" 
-                        severity="danger" 
-                        [rounded]="true" 
-                        [outlined]="true" 
-                        (click)="deleteProduct(product)">
-                    </button>
+                <td class="actions-cell">
+                    <div class="action-buttons">
+                      <button 
+                          pButton
+                          icon="pi pi-user-edit" 
+                          class="action-btn action-btn-edit"
+                          [rounded]="true" (click)="editProduct(product)" pTooltip="Edit" tooltipPosition="top">
+                      </button>
+                      <button 
+                          pButton 
+                          icon="pi pi-trash" 
+                          class="action-btn close-btn"
+                          tooltipPosition="top"
+                          [rounded]="true" (click)="deleteProduct(product)" pTooltip="Delete">
+                      </button>
+                    </div>
                 </td>
             </tr>
         </ng-template>
+        
+        <ng-template pTemplate="emptymessage">
+            <tr>
+                <td colspan="7" class="empty-message">
+                    <div class="empty-state">
+                        <i class="pi pi-inbox empty-icon"></i>
+                        <p class="empty-text">No contacts found</p>
+                        <p class="empty-subtext">Create your first contact to get started</p>
+                    </div>
+                </td>
+            </tr>
+        </ng-template>
+        
         <ng-template pTemplate="summary">
-            <div class="flex align-items-center justify-content-between">
-                In total there are {{ products ? products.length : 0 }} contacts.
+            <div class="table-summary">
+                <i class="pi pi-users summary-icon"></i>
+                <span class="summary-text">Total: <strong>{{ products ? products.length : 0 }}</strong> contacts</span>
             </div>
         </ng-template>
     </p-table>
 
-    <p-dialog
-  [(visible)]="productDialog"
-  [style]="{ width: '450px' }"
-  header="Contact Details"
-  [modal]="true"
-  styleClass="p-fluid"
->
-  <ng-template pTemplate="content">
-    <!-- Avatar -->
-    <img
-      *ngIf="product?.image"
-      [src]="product.image"
-      alt="avatar"
-      class="border-round mr-2 ml-2"
-      style="width: 48px; height: 48px;"
-    />
-    <p-avatar
-      *ngIf="!product?.image"
-      icon="pi pi-user"
-      styleClass="w-2 h-2 mb-3"
-      size="large"
-    />
+    <!-- Modern Dialog -->
+    <p-dialog [(visible)]="productDialog" [style]="{ width: '550px' }" header="Contact Details" [modal]="true" styleClass="modern-dialog">
+        <ng-template pTemplate="content">
+            <div class="dialog-content">
+                <!-- Avatar Section -->
+                <div class="avatar-section">
+                    <img *ngIf="product?.image" [src]="product.image" alt="avatar" class="dialog-avatar"/>
+                    <p-avatar *ngIf="!product?.image" icon="pi pi-user" styleClass="dialog-avatar-placeholder" size="xlarge" />
+                </div>
 
-    <!-- Name -->
-    <div class="flex justify-content-between align-items-center mb-3">
-      <label for="name">Name</label>
-      <input
-        type="text"
-        pInputText
-        id="name"
-        [(ngModel)]="product.name"
-        required
-        autofocus
-      />
-      <small class="p-error" *ngIf="submitted && !product.name">Name is required.</small>
-    </div>
+                <!-- Form Fields -->
+                <div class="form-group">
+                    <label for="name" class="form-label">Name <span class="required">*</span></label>
+                    <input type="text" pInputText id="name" [(ngModel)]="product.name" required autofocus class="form-input" placeholder="Enter contact name"/>
+                    <small class="error-message" *ngIf="submitted && !product.name">Name is required</small>
+                </div>
 
-    <!-- Description -->
-    <div class="flex justify-content-between align-items-center mb-3">
-      <label for="description">Description</label>
-      <textarea
-        id="description"
-        pInputTextarea
-        [(ngModel)]="product.description"
-        required
-      ></textarea>
-    </div>
+                <div class="form-group">
+                    <label for="description" class="form-label">Description</label>
+                    <textarea id="description" pInputTextarea [(ngModel)]="product.description" rows="3" class="form-input" placeholder="Enter description"></textarea>
+                </div>
 
-    <!-- Category Radio Group -->
-    <div class="field">
-      <label class="mb-3">Category</label>
-      <div class="formgrid grid">
-        <div class="field-radiobutton col-6" *ngFor="let cat of ['Individual', 'Micro Enterprise', 'Small Enterprise', 'Medium Enterprise']; let i = index">
-          <p-radioButton
-            [inputId]="'category' + i"
-            name="category"
-            [value]="cat"
-            [(ngModel)]="product.category"
-          />
-          <label [for]="'category' + i">{{ cat }}</label>
-        </div>
-      </div>
-    </div>
+                <div class="form-group">
+                    <label class="form-label">Category</label>
+                    <div class="radio-grid">
+                        <div class="radio-item" *ngFor="let cat of ['Individual', 'Micro Enterprise', 'Small Enterprise', 'Medium Enterprise']; let i = index">
+                            <p-radioButton [inputId]="'category' + i" name="category" [value]="cat" [(ngModel)]="product.category" />
+                            <label [for]="'category' + i" class="radio-label">{{ cat }}</label>
+                        </div>
+                    </div>
+                </div>
 
-    <!-- Phone and Address -->
-    <div class="formgrid grid">
-      <div class="field col">
-        <label for="phone">Contact</label>
-        <input
-          type="text"
-          pInputText
-          id="phone"
-          [(ngModel)]="product.phone"
-          required
-        />
-        <small class="p-error" *ngIf="submitted && !product.phone">Contact is required.</small>
-      </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="phone" class="form-label">Contact <span class="required">*</span></label>
+                        <input type="text" pInputText id="phone" [(ngModel)]="product.phone" required class="form-input" placeholder="Phone number"/>
+                        <small class="error-message" *ngIf="submitted && !product.phone">Contact is required</small>
+                    </div>
 
-      <div class="field col">
-        <label for="platform" class="font-semibold">Platform</label>
-        <p-select class="w-full" [options]="supported_platforms" [(ngModel)]="product.platform_name" optionValue="name" optionLabel="name" [filter]="true" filterBy="name" appendTo="body" [showClear]="true" placeholder="Select a platform"></p-select>
-      </div>
+                    <div class="form-group">
+                        <label for="platform" class="form-label">Platform</label>
+                        <p-select class="form-input" [options]="supported_platforms" [(ngModel)]="product.platform_name" optionValue="name" optionLabel="name" [filter]="true" filterBy="name" appendTo="body" [showClear]="true" placeholder="Select platform"></p-select>
+                    </div>
+                </div>
 
-      <div class="field col">
-        <label for="address">Address</label>
-        <textarea
-          id="address"
-          pInputTextarea
-          [(ngModel)]="product.address"
-          required
-        ></textarea>
-      </div>
-    </div>
+                <div class="form-group">
+                    <label for="address" class="form-label">Address</label>
+                    <textarea id="address" pInputTextarea [(ngModel)]="product.address" rows="2" class="form-input" placeholder="Enter address"></textarea>
+                </div>
 
-    <!-- Dynamic Custom Fields -->
-    <div class="formgrid grid" *ngIf="customFieldDefs?.length > 0">
-      <div class="field col-12" *ngFor="let field of customFieldDefs">
-        <label>{{ field.name }}</label>
+                <!-- Dynamic Custom Fields -->
+                <div class="custom-fields" *ngIf="customFieldDefs?.length > 0">
+                    <h4 class="custom-fields-title">Custom Fields</h4>
+                    <div class="form-group" *ngFor="let field of customFieldDefs">
+                        <label class="form-label">{{ field.name }}</label>
+                        <input *ngIf="field.field_type === 'text'" type="text" pInputText [(ngModel)]="product.custom_fields[field.key]" class="form-input"/>
+                        <input *ngIf="field.field_type === 'number'" type="number" pInputText [(ngModel)]="product.custom_fields[field.key]" class="form-input"/>
+                        <p-calendar *ngIf="field.field_type === 'date'" [(ngModel)]="product.custom_fields[field.key]" dateFormat="yy-mm-dd" [showIcon]="true" class="form-input"></p-calendar>
+                        <p-dropdown *ngIf="field.field_type === 'select'" [options]="field.options" optionLabel="label" optionValue="value" placeholder="Select {{ field.name }}" [(ngModel)]="product.custom_fields[field.key]" class="form-input"></p-dropdown>
+                        <div *ngIf="field.field_type === 'boolean'" class="switch-container">
+                            <p-inputSwitch [(ngModel)]="product.custom_fields[field.key]"></p-inputSwitch>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </ng-template>
 
-        <!-- Text -->
-        <input
-          *ngIf="field.field_type === 'text'"
-          type="text"
-          pInputText
-          [(ngModel)]="product.custom_fields[field.key]"
-        />
+        <ng-template pTemplate="footer">
+            <div class="dialog-footer">
+                <button pButton label="Cancel" icon="pi pi-times" class="modern-btn modern-btn-secondary" (click)="hideDialog()"></button>
+                <button pButton label="Save Contact" icon="pi pi-check" class="modern-btn modern-btn-primary" [disabled]="!product.name || !product.phone" (click)="saveProduct()"></button>
+            </div>
+        </ng-template>
+    </p-dialog>
 
-        <!-- Number -->
-        <input
-          *ngIf="field.field_type === 'number'"
-          type="number"
-          pInputText
-          [(ngModel)]="product.custom_fields[field.key]"
-        />
-
-        <!-- Date -->
-        <p-calendar
-          *ngIf="field.field_type === 'date'"
-          [(ngModel)]="product.custom_fields[field.key]"
-          dateFormat="yy-mm-dd"
-          showIcon="true"
-        ></p-calendar>
-
-        <!-- Select -->
-        <p-dropdown
-          *ngIf="field.field_type === 'select'"
-          [options]="field.options"
-          optionLabel="label"
-          optionValue="value"
-          placeholder="Select {{ field.name }}"
-          [(ngModel)]="product.custom_fields[field.key]"
-        ></p-dropdown>
-
-        <!-- Boolean -->
-        <div *ngIf="field.field_type === 'boolean'" class="mt-2">
-          <p-inputSwitch [(ngModel)]="product.custom_fields[field.key]"></p-inputSwitch>
-        </div>
-      </div>
-    </div>
-  </ng-template>
-
-  <!-- Footer -->
-  <ng-template pTemplate="footer">
-    <button
-      pButton
-      class="mr-2 p-button-outlined"
-      label="Cancel"
-      icon="pi pi-times"
-      [text]="true"
-      (click)="hideDialog()"
-    ></button>
-    <button
-      pButton
-      class="mr-2 p-button-outlined"
-      label="Save"
-      icon="pi pi-check"
-      [text]="true"
-      [disabled]="!product.name || !product.phone"
-      (click)="saveProduct()"
-    ></button>
-  </ng-template>
-</p-dialog>
-
-
-    <p-confirmDialog [style]="{ width: '450px' }" />
+    <p-confirmDialog styleClass="modern-confirm-dialog" />
 </div>

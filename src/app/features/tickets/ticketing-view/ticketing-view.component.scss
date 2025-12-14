@@ -1,0 +1,29 @@
+// ticketing-view.component.scss
+
+:host ::ng-deep {
+  .p-datatable {
+    .p-datatable-thead > tr > th {
+      background: #f8fafc;
+      font-weight: 600;
+      border-color: #e2e8f0;
+    }
+    
+    .p-datatable-tbody > tr {
+      transition: all 0.2s;
+      
+      &:hover {
+        background: #f8fafc;
+      }
+      
+      &.bg-red-50 {
+        background: #fef2f2 !important;
+      }
+    }
+  }
+  
+  .p-progressbar {
+    .p-progressbar-value {
+      transition: width 0.3s ease-in-out;
+    }
+  }
+}

@@ -17,6 +17,7 @@ export class ChatManagerService {
 
   conversations_url = `${HOST}/conversations/`;
   non_chat_conversations_uri = `conversation/`;
+  chat_uri = `chat/`;
 
   new_conversation_uri = "?status=new"
   active_conversation_uri = "?status=active"
@@ -83,7 +84,7 @@ export class ChatManagerService {
     return this.http.get(`${this.conversations_url}${this.non_chat_conversations_uri}`, { headers, params });
   }
 
-  return this.http.get(`${this.conversations_url}`, { headers, params });
+  return this.http.get(`${this.conversations_url}${this.chat_uri}`, { headers, params });
 }
 
 
@@ -93,7 +94,7 @@ export class ChatManagerService {
       return this.http.get(`${this.conversations_url}${this.non_chat_conversations_uri}${conversationId}/`, { headers });      
     
   }
-    return this.http.get(`${this.conversations_url}${conversationId}/`, { headers });
+    return this.http.get(`${this.conversations_url}${this.chat_uri}${conversationId}/`, { headers });
   }
 
   list_new_conversations(base_url_type="chat", page: number = 1,
@@ -109,7 +110,7 @@ export class ChatManagerService {
     return this.http.get(`${this.conversations_url}${this.non_chat_conversations_uri}${this.new_conversation_uri}`, { headers, params });
     
   }
-    return this.http.get(`${this.conversations_url}${this.new_conversation_uri}`, { headers, params });
+    return this.http.get(`${this.conversations_url}${this.chat_uri}${this.new_conversation_uri}`, { headers, params });
   }
 
   list_active_conversations(base_url_type="chat", is_user_specific:boolean=false,
@@ -126,7 +127,7 @@ export class ChatManagerService {
     return this.http.get(`${this.conversations_url}${this.non_chat_conversations_uri}${this.active_conversation_uri}`, { headers, params });
     
   }
-    return this.http.get(`${this.conversations_url}${this.active_conversation_uri}`, { headers, params });
+    return this.http.get(`${this.conversations_url}${this.chat_uri}${this.active_conversation_uri}`, { headers, params });
   }
 
   list_new_active_conversations(base_url_type="chat"): Observable<any> {
@@ -135,7 +136,7 @@ export class ChatManagerService {
       return this.http.get(`${this.conversations_url}${this.non_chat_conversations_uri}${this.active_conversation_for_org_uri}`, { headers });
     
   }
-    return this.http.get(`${this.conversations_url}${this.active_conversation_for_org_uri}`, { headers });
+    return this.http.get(`${this.conversations_url}${this.chat_uri}${this.active_conversation_for_org_uri}`, { headers });
   }
 
   list_active_coversations_for_user(base_url_type="chat"): Observable<any> {
@@ -144,7 +145,7 @@ export class ChatManagerService {
       return this.http.get(`${this.conversations_url}${this.non_chat_conversations_uri}${this.active_conversation_for_user_uri}`, { headers });
     
   }
-    return this.http.get(`${this.conversations_url}${this.active_conversation_for_user_uri}`, { headers });
+    return this.http.get(`${this.conversations_url}${this.chat_uri}${this.active_conversation_for_user_uri}`, { headers });
   }
 
   list_all_coversations_for_user(base_url_type="chat"): Observable<any> {
@@ -153,7 +154,7 @@ export class ChatManagerService {
       return this.http.get(`${this.conversations_url}${this.non_chat_conversations_uri}${this.all_conversation_for_user_uri}`, { headers });
     
   }
-    return this.http.get(`${this.conversations_url}${this.all_conversation_for_user_uri}`, { headers });
+    return this.http.get(`${this.conversations_url}${this.chat_uri}${this.all_conversation_for_user_uri}`, { headers });
   }
 
   list_historical_conversations_for_contact(base_url_type="chat", contactId): Observable<any> {
@@ -162,7 +163,7 @@ export class ChatManagerService {
       return this.http.get(`${this.conversations_url}${this.non_chat_conversations_uri}${this.history_by_contact_uri}?contact_id=${contactId}`, { headers });
     
   }
-    return this.http.get(`${this.conversations_url}${this.history_by_contact_uri}?contact_id=${contactId}`, { headers });
+    return this.http.get(`${this.conversations_url}${this.chat_uri}${this.history_by_contact_uri}?contact_id=${contactId}`, { headers });
   }
 
   assign_conversation(base_url_type="chat", conversationId, assigneeId): Observable<any> {
@@ -172,7 +173,7 @@ export class ChatManagerService {
       return this.http.post(`${this.conversations_url}${this.non_chat_conversations_uri}${conversationId}${this.assign_conversation_uri}`, payload=payload, { headers });
     
   }
-    return this.http.post(`${this.conversations_url}${conversationId}${this.assign_conversation_uri}`, payload=payload, { headers });
+    return this.http.post(`${this.conversations_url}${this.chat_uri}${conversationId}${this.assign_conversation_uri}`, payload=payload, { headers });
   }
 
   close_conversation(base_url_type="chat", conversationId, payload): Observable<any> {
@@ -181,11 +182,11 @@ export class ChatManagerService {
       return this.http.post(`${this.conversations_url}${this.non_chat_conversations_uri}${conversationId}${this.close_conversation_uri}`, payload=payload, { headers });
     
   }
-    return this.http.post(`${this.conversations_url}${conversationId}${this.close_conversation_uri}`, payload=payload, { headers });
+    return this.http.post(`${this.conversations_url}${this.chat_uri}${conversationId}${this.close_conversation_uri}`, payload=payload, { headers });
   }
 
   respond_to_message(base_url_type="chat", conversationId: number, payload: any): Observable<any> {
-    const url = `${this.conversations_url}${conversationId}${this.respond_to_message_uri}`;
+    const url = `${this.conversations_url}${this.chat_uri}${conversationId}${this.respond_to_message_uri}`;
     const headers = new HttpHeaders().set('Authorization', `Bearer ${this.auth_token}`);
   
     if (payload.message_type === 'media') {
@@ -209,7 +210,7 @@ export class ChatManagerService {
       return this.http.post(`${this.conversations_url}${this.non_chat_conversations_uri}${this.start_new_conversation_uri}`, payload=payload, { headers });
     
   }
-    return this.http.post(`${this.conversations_url}${this.start_new_conversation_uri}`, payload=payload, { headers });
+    return this.http.post(`${this.conversations_url}${this.chat_uri}${this.start_new_conversation_uri}`, payload=payload, { headers });
   }
 
   // +++++++++++++++ Metrics +++++++++++++++++
@@ -244,5 +245,276 @@ export class ChatManagerService {
     const headers = new HttpHeaders({'Authorization': `Bearer ${this.auth_token}`});
     const params = new HttpParams().set('from_date', from_date).set('to_date', to_date);
     return this.http.get(`${this.conversations_url}${this.usage_cost_uri}`, { headers, params });
+  }
+
+
+  // NEW ENDPOINTS
+  tickets_url = `${HOST}/conversations/tickets/`;
+
+
+  // ✅ IMPROVED: Better conversation list with enhanced data
+  list_conversations_enhanced(
+    base_url_type = "chat",
+    filters?: {
+      status?: string;
+      priority?: string;
+      assigned_to_me?: boolean;
+      date_range?: string;
+      search?: string;
+      page?: number;
+      page_size?: number;
+    }
+  ): Observable<any> {
+    const headers = new HttpHeaders().set('Authorization', `Bearer ${this.auth_token}`);
+    let params = new HttpParams();
+    
+    if (filters) {
+      if (filters.status) params = params.set('status', filters.status);
+      if (filters.priority) params = params.set('priority', filters.priority);
+      if (filters.assigned_to_me) params = params.set('assigned_to_me', 'true');
+      if (filters.date_range) params = params.set('date_range', filters.date_range);
+      if (filters.search) params = params.set('search', filters.search);
+      if (filters.page) params = params.set('page', filters.page.toString());
+      if (filters.page_size) params = params.set('page_size', filters.page_size.toString());
+    }
+    
+    if (base_url_type !== "chat") {
+      return this.http.get(
+        `${this.conversations_url}${this.non_chat_conversations_uri}`,
+        { headers, params }
+      );
+    }
+    
+    return this.http.get(`${this.conversations_url}${this.chat_uri}`, { headers, params });
+  }
+
+  /**
+   * Enhanced Ticketing Methods
+   */
+  
+  // List tickets with advanced filtering
+  list_tickets(params: any = {}): Observable<any> {
+    let httpParams = new HttpParams();
+    Object.keys(params).forEach(key => {
+      if (params[key]) {
+        httpParams = httpParams.set(key, params[key]);
+      }
+    });
+    
+    return this.http.get<any>(`${this.tickets_url}`, { params: httpParams });
+  }
+
+  // Get single ticket detail with messages
+  get_ticket_detail(ticketId: number): Observable<any> {
+    return this.http.get<any>(`${this.tickets_url}${ticketId}/`);
+  }
+  
+  // Get ticket summary statistics
+  get_ticket_summary(): Observable<any> {
+    return this.http.get<any>(`${this.tickets_url}ticket_summary/`);
+  }
+  
+  // Update ticket priority
+  update_ticket_priority(ticketId: number, priority: string): Observable<any> {
+    return this.http.patch<any>(
+      `${this.tickets_url}${ticketId}/update_priority/`,
+      { priority }
+    );
+  }
+  
+  // Add internal note to ticket
+  add_internal_note(ticketId: number, note: string): Observable<any> {
+    return this.http.post<any>(
+      `${this.tickets_url}${ticketId}/add_internal_note/`,
+      { note }
+    );
+  }
+  
+  // Assign ticket to agent
+  assign_ticket(ticketId: number, userId: number): Observable<any> {
+    return this.http.patch<any>(
+      `${this.tickets_url}${ticketId}/`,
+      { assigned_user: userId }
+    );
+  }
+  
+  // Update ticket status
+  update_ticket_status(ticketId: number, status: string): Observable<any> {
+    return this.http.patch<any>(
+      `${this.tickets_url}${ticketId}/`,
+      { status }
+    );
+  }
+  
+  /**
+   * Enhanced Metrics Methods
+   */
+  
+  enhanced_metrics_url = `${HOST}/conversations/metrics/enhanced`;
+  customer_effort_url = `${HOST}/conversations/metrics/customer-effort`;
+  // Get comprehensive enhanced metrics
+  getEnhancedMetrics(startDate: string, endDate: string): Observable<any> {
+    const headers = new HttpHeaders().set('Authorization', `Bearer ${this.auth_token}`);
+    let params = new HttpParams();
+    
+    if (startDate) params = params.set('start_date', startDate);
+    if (endDate) params = params.set('end_date', endDate);
+    
+    return this.http.get(this.enhanced_metrics_url, { headers, params });
+  }
+  
+  // Get customer effort score
+  getCustomerEffortScore(): Observable<any> {
+    const headers = new HttpHeaders().set('Authorization', `Bearer ${this.auth_token}`);
+    return this.http.get(this.customer_effort_url, { headers });
+  }
+
+  
+
+  
+  // Get real-time dashboard metrics (with caching)
+  getDashboardMetrics(dateRange?: string): Observable<any> {
+    let params = new HttpParams();
+    if (dateRange) {
+      params = params.set('date_range', dateRange);
+    }
+    
+    return this.http.get<any>(`${this.conversations_url}${this.non_chat_conversations_uri}dashboard/metrics`, { params });
+  }
+  
+  /**
+   * Agent Performance Methods
+   */
+  
+  // Get detailed agent performance
+  getAgentPerformance(agentId: number, startDate: string, endDate: string): Observable<any> {
+    const params = new HttpParams()
+      .set('start_date', startDate)
+      .set('end_date', endDate);
+    
+    return this.http.get<any>(
+      `${this.conversations_url}${this.non_chat_conversations_uri}metrics/agent/${agentId}/performance`,
+      { params }
+    );
+  }
+  
+  // Get agent leaderboard
+  getAgentLeaderboard(metric: string = 'close_rate'): Observable<any> {
+    const params = new HttpParams().set('metric', metric);
+    return this.http.get<any>(`${this.conversations_url}${this.non_chat_conversations_uri}metrics/leaderboard`, { params });
+  }
+  
+  /**
+   * Ticket Operations
+   */
+  
+  // Bulk assign tickets
+  bulkAssignTickets(ticketIds: number[], userId: number): Observable<any> {
+    return this.http.post<any>(`${this.tickets_url}bulk_assign/`, {
+      ticket_ids: ticketIds,
+      user_id: userId
+    });
+  }
+  
+  // Bulk update ticket status
+  bulkUpdateStatus(ticketIds: number[], status: string): Observable<any> {
+    return this.http.post<any>(`${this.tickets_url}bulk_update_status/`, {
+      ticket_ids: ticketIds,
+      status: status
+    });
+  }
+  
+  // Bulk update ticket priority
+  bulkUpdatePriority(ticketIds: number[], priority: string): Observable<any> {
+    return this.http.post<any>(`${this.tickets_url}bulk_update_priority/`, {
+      ticket_ids: ticketIds,
+      priority: priority
+    });
+  }
+  
+  /**
+   * Export Methods
+   */
+  
+  // Export tickets to CSV
+  exportTickets(params: any = {}): Observable<Blob> {
+    let httpParams = new HttpParams();
+    Object.keys(params).forEach(key => {
+      if (params[key]) {
+        httpParams = httpParams.set(key, params[key]);
+      }
+    });
+    
+    return this.http.get(`${this.tickets_url}export/`, {
+      params: httpParams,
+      responseType: 'blob'
+    });
+  }
+  
+  // Export metrics report
+  exportMetricsReport(startDate: string, endDate: string, format: string = 'pdf'): Observable<Blob> {
+    const params = new HttpParams()
+      .set('start_date', startDate)
+      .set('end_date', endDate)
+      .set('format', format);
+    
+    return this.http.get(`${this.conversations_url}${this.non_chat_conversations_uri}metrics/export`, {
+      params: params,
+      responseType: 'blob'
+    });
+  }
+  
+  /**
+   * SLA and Compliance Methods
+   */
+  
+  // Get SLA compliance report
+  getSLACompliance(startDate: string, endDate: string): Observable<any> {
+    const params = new HttpParams()
+      .set('start_date', startDate)
+      .set('end_date', endDate);
+    
+    return this.http.get<any>(`${this.conversations_url}${this.non_chat_conversations_uri}metrics/sla-compliance`, { params });
+  }
+  
+  // Get overdue tickets
+  getOverdueTickets(): Observable<any> {
+    return this.http.get<any>(`${this.tickets_url}overdue/`);
+  }
+  
+  /**
+   * Search and Filter Methods
+   */
+  
+  // Advanced ticket search
+  searchTickets(query: string, filters: any = {}): Observable<any> {
+    let params = new HttpParams().set('q', query);
+    Object.keys(filters).forEach(key => {
+      if (filters[key]) {
+        params = params.set(key, filters[key]);
+      }
+    });
+    
+    return this.http.get<any>(`${this.tickets_url}search/`, { params });
+  }
+  
+  // Get ticket tags/categories
+  getTicketTags(): Observable<any> {
+    return this.http.get<any>(`${this.tickets_url}tags/`);
+  }
+  
+  /**
+   * Real-time Updates Methods
+   */
+  
+  // Get recent activity feed
+  getActivityFeed(limit: number = 10): Observable<any> {
+    const params = new HttpParams().set('limit', limit.toString());
+    return this.http.get<any>(`${this.conversations_url}${this.non_chat_conversations_uri}activity/feed`, { params });
+  }
+  
+  // Get unread ticket count
+  getUnreadTicketCount(): Observable<any> {
+    return this.http.get<any>(`${this.tickets_url}unread-count/`);
   }
 }

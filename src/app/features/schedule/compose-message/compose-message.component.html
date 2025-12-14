@@ -1,26 +1,82 @@
 <p-toast />
 
-<div class="grid">
-    <div class="col-12 lg:col-6 xl:col-4">
-        <div class="card">
+<div class="compose-container">
+    <!-- Progress Stepper -->
+    <div class="stepper-container" *ngIf="schedule_name">
+        <div class="stepper">
+            <div class="step" [class.active]="schedule_name" [class.completed]="selected_contact_type">
+                <div class="step-icon">
+                    <i class="pi pi-check" *ngIf="selected_contact_type"></i>
+                    <span *ngIf="!selected_contact_type">1</span>
+                </div>
+                <span class="step-label">Campaign Name</span>
+            </div>
+            <div class="step-line" [class.completed]="selected_contact_type"></div>
+            <div class="step" [class.active]="selected_contact_type" [class.completed]="selected_contacts">
+                <div class="step-icon">
+                    <i class="pi pi-check" *ngIf="selected_contacts"></i>
+                    <span *ngIf="!selected_contacts">2</span>
+                </div>
+                <span class="step-label">Recipients</span>
+            </div>
+            <div class="step-line" [class.completed]="selected_contacts"></div>
+            <div class="step" [class.active]="selected_contacts" [class.completed]="selected_date_time">
+                <div class="step-icon">
+                    <i class="pi pi-check" *ngIf="selected_date_time"></i>
+                    <span *ngIf="!selected_date_time">3</span>
+                </div>
+                <span class="step-label">Schedule</span>
+            </div>
+            <div class="step-line" [class.completed]="selected_date_time"></div>
+            <div class="step" [class.active]="selected_date_time" [class.completed]="selected_platform">
+                <div class="step-icon">
+                    <i class="pi pi-check" *ngIf="selected_platform"></i>
+                    <span *ngIf="!selected_platform">4</span>
+                </div>
+                <span class="step-label">Platform</span>
+            </div>
+            <div class="step-line" [class.completed]="selected_platform"></div>
+            <div class="step" [class.active]="selected_platform" [class.completed]="selected_datasource">
+                <div class="step-icon">
+                    <i class="pi pi-check" *ngIf="selected_datasource && files?.length > 0"></i>
+                    <span *ngIf="!selected_datasource || files?.length === 0">5</span>
+                </div>
+                <span class="step-label">Content</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="form-grid">
+        <!-- Step 1: Campaign Name -->
+        <div class="form-card animate-in">
+            <div class="card-header">
+                <i class="pi pi-bookmark header-icon"></i>
+                <h3>Campaign Name</h3>
+            </div>
             <p-floatLabel>
                 <input
                     id="sname"
                     type="text"
                     pInputText
                     [(ngModel)]="schedule_name"
-                    class="w-full p-3"
+                    class="modern-input"
                     placeholder=""
                     (blur)="onScheduleNameSelected()"
                 />
-                 <label *ngIf="schedule_name == undefined" for="sname">Schedule Name</label>
+                <label *ngIf="schedule_name == undefined" for="sname">Enter a unique campaign name</label>
             </p-floatLabel>
         </div>
-        <div *ngIf="schedule_name != undefined" class="card">
+
+        <!-- Step 2: Recipient Type -->
+        <div *ngIf="schedule_name != undefined" class="form-card animate-in">
+            <div class="card-header">
+                <i class="pi pi-users header-icon"></i>
+                <h3>Recipient Type</h3>
+            </div>
             <p-floatLabel>
                 <p-select
                     id="contact_type"
-                    styleClass="w-full p-2"
+                    styleClass="modern-select"
                     [options]="contact_types"
                     [(ngModel)]="selected_contact_type"
                     optionLabel="name"
@@ -28,72 +84,86 @@
                     filterBy="name"
                     [showClear]="true"
                     (onChange)="onContactTypeSelected()"
-                    />
-                <label for="contact_type">Recipient Type</label>
+                />
+                <label for="contact_type">Select recipient type</label>
             </p-floatLabel>
         </div>
-        <div *ngIf="selected_contact_type?.value === 'individual'" class="card">
-                <p-floatLabel>
+
+        <!-- Step 3: Select Recipients -->
+        <div *ngIf="selected_contact_type?.value === 'individual'" class="form-card animate-in">
+            <div class="card-header">
+                <i class="pi pi-user header-icon"></i>
+                <h3>Select User</h3>
+            </div>
+            <p-floatLabel>
                 <p-select
-                id="user_contact_list"
-                styleClass="w-full p-2"
-                [options]="contacts"
-                [(ngModel)]="selected_contacts"
-                optionLabel="name"
-                [filter]="true"
-                filterBy="name"
-                [showClear]="true"
-                [virtualScroll]="true" [virtualScrollItemSize]="10"
+                    id="user_contact_list"
+                    styleClass="modern-select"
+                    [options]="contacts"
+                    [(ngModel)]="selected_contacts"
+                    optionLabel="name"
+                    [filter]="true"
+                    filterBy="name"
+                    [showClear]="true"
+                    [virtualScroll]="true" 
+                    [virtualScrollItemSize]="10"
                 />
-                <label for="user_contact_list">Select User</label>
-                </p-floatLabel>
+                <label for="user_contact_list">Choose a user</label>
+            </p-floatLabel>
         </div>
 
-        <div *ngIf="selected_contact_type?.value === 'group'" class="card">
-                <p-floatLabel>
-                    <p-select
+        <div *ngIf="selected_contact_type?.value === 'group'" class="form-card animate-in">
+            <div class="card-header">
+                <i class="pi pi-users header-icon"></i>
+                <h3>Select Group</h3>
+            </div>
+            <p-floatLabel>
+                <p-select
                     id="contact_list"
-                    styleClass="w-full p-2"
+                    styleClass="modern-select"
                     [options]="contacts" 
                     [(ngModel)]="selected_contacts" 
                     optionLabel="name" 
                     [filter]="true" 
                     filterBy="name" 
                     [showClear]="true" 
-                    [virtualScroll]="true" [virtualScrollItemSize]="10" 
+                    [virtualScroll]="true" 
+                    [virtualScrollItemSize]="10" 
                     (onChange)="onContactSelected()"
-                    />
-                    <label for="contact_list">Select Group</label>
-                </p-floatLabel>
+                />
+                <label for="contact_list">Choose a group</label>
+            </p-floatLabel>
         </div>
 
-        
-
-    </div>
-    
-
-    <div *ngIf="selected_contacts != undefined" class="col-12 lg:col-6 xl:col-4">
-        <div class="card">
+        <!-- Step 4: Schedule Date & Frequency -->
+        <div *ngIf="selected_contacts != undefined" class="form-card animate-in">
+            <div class="card-header">
+                <i class="pi pi-calendar header-icon"></i>
+                <h3>Schedule Date & Time</h3>
+            </div>
             <p-floatLabel>            
-            <p-datepicker
-              styleClass="w-full p-1"
-              [(ngModel)]="selected_date_time"
-              inputId="schedule_date"
-              showIcon
-              [showTime]="true"
-              iconDisplay="input"
-              (onSelect)="onScheduleDateTimeSelected()"
-            />
-
-            <label for="schedule_date">Schedule Date</label>
-        </p-floatLabel>
+                <p-datepicker
+                    styleClass="modern-datepicker"
+                    [(ngModel)]="selected_date_time"
+                    inputId="schedule_date"
+                    showIcon
+                    [showTime]="true"
+                    iconDisplay="input"
+                    (onSelect)="onScheduleDateTimeSelected()"
+                />
+                <label for="schedule_date">When to send?</label>
+            </p-floatLabel>
         </div>
-    
-        <div *ngIf="selected_date_time != undefined" class="card">
+
+        <div *ngIf="selected_date_time != undefined" class="form-card animate-in">
+            <div class="card-header">
+                <i class="pi pi-refresh header-icon"></i>
+                <h3>Frequency</h3>
+            </div>
             <p-floatLabel>
                 <p-select
                     id="frequency"
-                    styleClass="w-full p-2"
+                    styleClass="modern-select"
                     [options]="frequency" 
                     [(ngModel)]="selected_frequency"
                     [filter]="true"
@@ -102,94 +172,151 @@
                     optionLabel="label" 
                     (onChange)="onFrequencySelected()"
                 />
-                <label for="frequency">Frequency</label>
+                <label for="frequency">How often to repeat?</label>
             </p-floatLabel>
         </div>
 
-        <div *ngIf="selected_date_time != undefined" class="card">
+        <!-- Step 5: Platform -->
+        <div *ngIf="selected_date_time != undefined" class="form-card animate-in">
+            <div class="card-header">
+                <i class="pi pi-send header-icon"></i>
+                <h3>Platform</h3>
+            </div>
             <p-floatLabel>
                 <p-select
-            id="platform"
-            styleClass="w-full p-2"
-            [options]="platform" 
-            [(ngModel)]="selected_platform"
-            [filter]="true"
-            filterBy="platform_name"
-            [showClear]="true"
-            optionLabel="platform_name" 
-            (onChange)="onPlatformSelected()"
-            />
-                <label for="platform">Platform</label>
+                    id="platform"
+                    styleClass="modern-select"
+                    [options]="platform" 
+                    [(ngModel)]="selected_platform"
+                    [filter]="true"
+                    filterBy="platform_name"
+                    [showClear]="true"
+                    optionLabel="platform_name" 
+                    (onChange)="onPlatformSelected()"
+                />
+                <label for="platform">Select messaging platform</label>
             </p-floatLabel>
         </div>
-    </div>
 
-    <div *ngIf="selected_platform != undefined" class="col-12 lg:col-6 xl:col-4">
-    <div class="card">
-        <p-floatLabel>
-        <p-select
-            id="datasource"
-            styleClass="w-full p-2"
-            [options]="datasource" 
-            [(ngModel)]="selected_datasource"
-            [filter]="true"
-            filterBy="name"
-            [showClear]="true"
-            optionLabel="name" 
-            (onChange)="onDatasourceSelected()"
-            />
-            <label for="datasource">Data Source</label>
-        </p-floatLabel>
-    </div>
-</div>
-
-
-<app-message-templates *ngIf="['whatsapp'].includes(selected_platform?.platform_name)" class="col-4" [selectedPlatform]="selected_platform" (selectTemplate)="onTemplateSelected($event)"></app-message-templates>
-
-<div *ngIf="selected_platform != undefined"  class="col-8">
-        
-    <p-fileUpload name="myfile[]" [multiple]="false" accept=".xls,.xlsx" maxFileSize="1000000000" (onUpload)="onTemplatedUpload()" (onSelect)="onSelectedFiles($event)">
-        <ng-template pTemplate="header" let-files let-chooseCallback="chooseCallback" let-clearCallback="clearCallback" let-uploadCallback="uploadCallback">
-            <div class="flex flex-wrap justify-content-between align-items-center flex-1 gap-2">
-                <div class="flex gap-2">
-                    <button pButton (click)="choose($event, chooseCallback)" icon="pi pi-images" [rounded]="true" [outlined]="true" class="p-button-outlined"></button>
-                    <button pButton (click)="clearCallback()" icon="pi pi-times" [rounded]="true" [outlined]="true" severity="danger" [disabled]="!files || files.length === 0" class="p-button-outlined"></button>
-                </div>
+        <!-- Step 6: Data Source -->
+        <div *ngIf="selected_platform != undefined" class="form-card animate-in">
+            <div class="card-header">
+                <i class="pi pi-database header-icon"></i>
+                <h3>Data Source</h3>
             </div>
-        </ng-template>
-        <ng-template pTemplate="content" let-files let-uploadedFiles="uploadedFiles" let-removeFileCallback="removeFileCallback" let-removeUploadedFileCallback="removeUploadedFileCallback">
-            <div *ngIf="files?.length > 0">
-                <h5>Files Selected</h5>
-                <div class="flex flex-wrap p-0 sm:p-5 gap-5">
-                    <div *ngFor="let file of files; let i = index" class="card m-0 px-6 flex flex-column border-1 surface-border align-items-center gap-3">
-                        <div>
-                            <img role="presentation" [alt]="file.name" [src]="excel_icon" width="100" height="50" />
-                        </div>
-                        <span class="font-semibold">{{ file.name }}</span>
-                        <div>{{ formatSize(file.size) }}</div>
-                        <p-badge value="selected" severity="warn" />
-                        <button pButton icon="pi pi-times" class="p-button-outlined" (click)="onRemoveTemplatingFile($event, file, removeFileCallback, i)" [outlined]="true" [rounded]="true" severity="danger"></button>
+            <p-floatLabel>
+                <p-select
+                    id="datasource"
+                    styleClass="modern-select"
+                    [options]="datasource" 
+                    [(ngModel)]="selected_datasource"
+                    [filter]="true"
+                    filterBy="name"
+                    [showClear]="true"
+                    optionLabel="name" 
+                    (onChange)="onDatasourceSelected()"
+                />
+                <label for="datasource">Choose data source</label>
+            </p-floatLabel>
+        </div>
+
+        <!-- Templates for WhatsApp -->
+        <app-message-templates 
+            *ngIf="['whatsapp'].includes(selected_platform?.platform_name)" 
+            class="form-card-full animate-in" 
+            [selectedPlatform]="selected_platform" 
+            (selectTemplate)="onTemplateSelected($event)">
+        </app-message-templates>
+
+        <!-- File Upload -->
+        <div *ngIf="selected_platform != undefined" class="form-card-full animate-in">
+            <div class="card-header">
+                <i class="pi pi-file-excel header-icon"></i>
+                <h3>Upload Data File</h3>
+            </div>
+            <p-fileUpload 
+                name="myfile[]" 
+                [multiple]="false" 
+                accept=".xls,.xlsx" 
+                maxFileSize="1000000000" 
+                (onUpload)="onTemplatedUpload()" 
+                (onSelect)="onSelectedFiles($event)"
+                styleClass="modern-upload">
+                <ng-template pTemplate="header" let-files let-chooseCallback="chooseCallback" let-clearCallback="clearCallback">
+                    <div class="upload-header">
+                        <button 
+                            pButton 
+                            type="button"
+                            (click)="choose($event, chooseCallback)" 
+                            icon="pi pi-file-excel" 
+                            label="Choose File"
+                            class="p-button-outlined p-button-success">
+                        </button>
+                        <button 
+                            pButton 
+                            type="button"
+                            (click)="clearCallback()" 
+                            icon="pi pi-times" 
+                            label="Clear"
+                            class="p-button-outlined p-button-danger" 
+                            [disabled]="!files || files.length === 0">
+                        </button>
                     </div>
-                </div>
+                </ng-template>
+                <ng-template pTemplate="content" let-files let-removeFileCallback="removeFileCallback">
+                    <div *ngIf="files?.length > 0" class="files-container">
+                        <div *ngFor="let file of files; let i = index" class="file-item">
+                            <img [src]="excel_icon" alt="Excel" class="file-icon" />
+                            <div class="file-info">
+                                <span class="file-name">{{ file.name }}</span>
+                                <span class="file-size">{{ formatSize(file.size) }}</span>
+                            </div>
+                            <p-badge value="Ready" severity="success" />
+                            <button 
+                                pButton 
+                                type="button"
+                                icon="pi pi-times" 
+                                class="p-button-rounded p-button-text p-button-danger" 
+                                (click)="onRemoveTemplatingFile($event, file, removeFileCallback, i)">
+                            </button>
+                        </div>
+                    </div>
+                </ng-template>
+                <ng-template pTemplate="empty">
+                    <div class="upload-empty">
+                        <i class="pi pi-cloud-upload"></i>
+                        <p class="empty-title">Drop your Excel file here</p>
+                        <p class="empty-subtitle">or click to browse</p>
+                    </div>
+                </ng-template>
+            </p-fileUpload>
+        </div>
+
+        <!-- Message Editor -->
+        <div *ngIf="selected_datasource != undefined && selected_template === undefined" class="form-card-full animate-in">
+            <div class="card-header">
+                <i class="pi pi-comments header-icon"></i>
+                <h3>Message Content</h3>
             </div>
-        </ng-template>
-        <ng-template pTemplate="file"> </ng-template>
-        <ng-template pTemplate="empty">
-            <div class="flex align-items-center justify-content-center flex-column">
-                <i class="pi pi-cloud-upload border-2 border-circle p-5 text-8xl text-400 border-400"></i>
-                <p class="mt-4 mb-0">Drag and drop files here to upload.</p>
-            </div>
-        </ng-template>
-    </p-fileUpload>
-</div>
+            <p-editor (onTextChange)="onMessageText($event)" [style]="{ height: '320px' }" />
+        </div>
 
-    <div *ngIf="selected_datasource != undefined && selected_template === undefined" class="col-12">
-        <p-editor (onTextChange)="onMessageText($event)" [style]="{ height: '320px' }" />
+        <!-- Action Buttons -->
+        <div *ngIf="selected_datasource != undefined && this.files?.length > 0" class="action-buttons">
+            <p-button 
+                (click)="onReset()" 
+                label="Reset" 
+                icon="pi pi-refresh"
+                severity="secondary" 
+                [outlined]="true"
+                styleClass="action-btn"
+            />
+            <p-button 
+                label="Start Campaign" 
+                icon="pi pi-play"
+                (click)="onSchedule()"
+                styleClass="action-btn primary-btn"
+            />
+        </div>
     </div>
-
-    <div *ngIf="selected_datasource != undefined && this.files?.length > 0" class="col-12 flex justify-content-end gap-2">
-        <p-button (click)="onReset()" label="Reset" severity="secondary" />
-        <p-button label="Start Campaign" (click)="onSchedule()"/>
-    </div>
-
 </div>

@@ -25,6 +25,7 @@ import { supported_contact_types, supported_frequencies, supported_datasource } 
 import { CampaignManagerService } from '../../../shared/services/campaign-manager.service';
 import { LayoutService } from '../../../layout/service/app.layout.service';
 import { Subject, takeUntil } from 'rxjs';
+import { InputTextModule } from 'primeng/inputtext';
 
 
 @Component({
@@ -34,6 +35,7 @@ import { Subject, takeUntil } from 'rxjs';
     CommonModule,
     FormsModule,
 
+    InputTextModule,
     SelectModule,
     SelectModule,
     MultiSelectModule,
@@ -250,7 +252,6 @@ export class ComposeMessageComponent implements OnInit, OnDestroy {
   }
 
   onPlatformSelected () {
-    console.log("selected_platform ", this.selected_platform);
     if (!this.selected_platform) {
       this.selected_platform = undefined;
       this.selected_datasource = undefined;

@@ -17,10 +17,8 @@ import { AppConfigComponent } from './app.config.component';
         InputSwitchModule
     ],
     declarations: [
-        AppConfigComponent
     ],
     exports: [
-        AppConfigComponent
     ]
 })
 export class AppConfigModule { }

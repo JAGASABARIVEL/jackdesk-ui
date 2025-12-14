@@ -1,80 +1,116 @@
-<div class="card">
+<div class="schedules-container">
     <p-toast />
-    <p-toolbar styleClass="mb-4 gap-2">
-        <ng-template pTemplate="left">
-            <button *ngIf="profile?.user.role === 'owner'" pButton class="p-button-outlined" severity="danger" label="Remove" icon="pi pi-power-off"
-                (click)="cancelSelectedSchedules()" [disabled]="!selectedSchedules || !selectedSchedules.length">
+    
+    <!-- Header Section -->
+    <div class="schedules-header">
+        <div class="header-left">
+            <h2 class="section-title">Active Campaigns</h2>
+            <p class="section-subtitle">Manage and monitor your scheduled campaigns</p>
+        </div>
+        <div class="header-actions">
+            <button 
+                *ngIf="profile?.user.role === 'owner'" 
+                pButton 
+                class="btn-danger" 
+                label="Cancel Selected" 
+                icon="pi pi-ban"
+                (click)="cancelSelectedSchedules()" 
+                [disabled]="!selectedSchedules || !selectedSchedules.length">
             </button>
-        </ng-template>
-        <ng-template pTemplate="right">
-            <button severity="success" icon="pi pi-replay" pButton class="mr-2 p-button-outlined"
+            <button 
+                pButton 
+                class="btn-refresh" 
+                icon="pi pi-refresh" 
+                label="Refresh"
                 (click)="loadSchedules()">
             </button>
-        </ng-template>
-    </p-toolbar>
+        </div>
+    </div>
 
-    <p-table #dt [value]="schedules" [rows]="10" [paginator]="true"
-        [globalFilterFields]="['name', 'recipient_name', 'recipient_type', 'status', 'created_by', 'created_at', 'frequency', 'platform_name']"
-        [tableStyle]="{ 'min-width': '75rem' }" [(selection)]="selectedSchedules" [rowHover]="true" dataKey="id"
-        [loading]="loading" currentPageReportTemplate="Showing {first} to {last} of {totalRecords} entries"
-        [showCurrentPageReport]="true">
-        <ng-template pTemplate="caption">
-            <div class="flex align-items-center justify-content-between">
-                <h5 class="m-0"></h5>
-                <span>
-                    <p-inputgroup>
-                        <p-inputgroup-addon>
-                            <i class="pi pi-search"></i>
-                        </p-inputgroup-addon>
-                        <input pInputText type="text" #searchInput (input)="onSearchInput($event, dt)"
-                            placeholder="Search..." />
-                    </p-inputgroup>
-
-                </span>
+    <!-- Search Bar -->
+    <div class="search-container">
+        <span class="search-wrapper">
+            <i class="pi pi-search search-icon"></i>
+            <input 
+                pInputText 
+                type="text" 
+                #searchInput 
+                (input)="onSearchInput($event, dt)"
+                placeholder="Search campaigns by name, recipient, platform..." 
+                class="search-input"
+            />
+        </span>
+        <div class="stats-chips">
+            <div class="stat-chip">
+                <i class="pi pi-calendar-clock"></i>
+                <span>{{ schedules?.length || 0 }} Campaigns</span>
             </div>
-        </ng-template>
-        <ng-template pTemplate="header">
-            <tr>
-                <th style="width: 4rem">
-                    <p-tableHeaderCheckbox />
-                </th>
-                <th pSortableColumn="name">
-                    <div class="flex justify-content-between align-items-center">
-                        Schedule Name
-                        <p-sortIcon field="name" />
-                    </div>
-                </th>
-                <th pSortableColumn="recipient_name">
-                    <div class="flex justify-content-between align-items-center">
-                        Recipient
-                        <p-sortIcon field="recipient_name" />
-                    </div>
-                </th>
-                <th pSortableColumn="platform_name">
-                    <div class="flex justify-content-between align-items-center">
-                        Platform
-                        <p-sortIcon field="platform_name" />
-                    </div>
-                </th>
-                <th pSortableColumn="frequency">
-                    <div class="flex justify-content-between align-items-center">
-                        Frequency
-                        <p-sortIcon field="platform_name" />
-                    </div>
-                </th>
-                <th pSortableColumn="status" style="min-width: 18rem">
-                    <div class="flex justify-content-between align-items-center">
-                        Status
-                        <p-sortIcon field="status" />
-                    </div>
-                </th>
-                <th style="min-width: 18rem">
-                    Action
-                </th>
-            </tr>
-            <tr>
-                <th></th>
-                <th>
+            <div class="stat-chip active" *ngIf="selectedSchedules?.length > 0">
+                <i class="pi pi-check-circle"></i>
+                <span>{{ selectedSchedules.length }} Selected</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Table -->
+    <div class="table-wrapper">
+        <p-table 
+            #dt 
+            [value]="schedules" 
+            [rows]="10" 
+            [paginator]="true"
+            [globalFilterFields]="['name', 'recipient_name', 'recipient_type', 'status', 'created_by', 'created_at', 'frequency', 'platform_name']"
+            [tableStyle]="{ 'min-width': '75rem' }" 
+            [(selection)]="selectedSchedules" 
+            [rowHover]="true" 
+            dataKey="id"
+            [loading]="loading" 
+            currentPageReportTemplate="Showing {first} to {last} of {totalRecords} entries"
+            [showCurrentPageReport]="true"
+            styleClass="modern-table">
+            
+            <ng-template pTemplate="header">
+                <tr>
+                    <th style="width: 4rem">
+                        <p-tableHeaderCheckbox />
+                    </th>
+                    <th pSortableColumn="name">
+                        <div class="header-cell">
+                            <span>Campaign</span>
+                            <p-sortIcon field="name" />
+                        </div>
+                    </th>
+                    <th pSortableColumn="recipient_name">
+                        <div class="header-cell">
+                            <span>Recipient</span>
+                            <p-sortIcon field="recipient_name" />
+                        </div>
+                    </th>
+                    <th pSortableColumn="platform_name">
+                        <div class="header-cell">
+                            <span>Platform</span>
+                            <p-sortIcon field="platform_name" />
+                        </div>
+                    </th>
+                    <th pSortableColumn="frequency">
+                        <div class="header-cell">
+                            <span>Frequency</span>
+                            <p-sortIcon field="frequency" />
+                        </div>
+                    </th>
+                    <th pSortableColumn="status">
+                        <div class="header-cell">
+                            <span>Status</span>
+                            <p-sortIcon field="status" />
+                        </div>
+                    </th>
+                    <th style="min-width: 12rem">
+                        <span>Actions</span>
+                    </th>
+                </tr>
+                <tr class="filter-row">
+                    <th></th>
+                    <th>
                     <p-columnFilter field="name" matchMode="equals" [showMenu]="false">
                         <ng-template pTemplate="filter" let-value let-filter="filterCallback">
                             <p-select [ngModel]="value" [options]="schedule_names" (onChange)="filter($event.value)"
@@ -113,160 +149,209 @@
                         </ng-template>
                     </p-columnFilter>
                 </th>
-                <th>
-                    <p-columnFilter field="frequency" matchMode="equals" [showMenu]="false">
-                        <ng-template pTemplate="filter" let-value let-filter="filterCallback">
-                            <p-select [ngModel]="value" [options]="frequencies" (onChange)="filter($event.value)"
-                                placeholder="Select One" [filter]="true" filterBy="label" appendTo="body"
-                                [showClear]="true">
-                                <ng-template let-option pTemplate="item">
-                                    <p-tag [value]="option.label" [severity]="getSeverity(option.label)" />
-                                </ng-template>
-                            </p-select>
-                        </ng-template>
-                    </p-columnFilter>
-                </th>
-                <th>
-                    <p-columnFilter field="status" matchMode="equals" [showMenu]="false">
-                        <ng-template pTemplate="filter" let-value let-filter="filterCallback">
-                            <p-select [ngModel]="value" [options]="statuses" (onChange)="filter($event.value)"
-                                placeholder="Select One" [filter]="true" filterBy="value" [showClear]="true"
-                                appendTo="body">
-                                <ng-template let-option pTemplate="item">
-                                    <p-tag [value]="option.label" [severity]="getSeverity(option.value)" />
-                                </ng-template>
-                            </p-select>
-                        </ng-template>
-                    </p-columnFilter>
-                </th>
-                <th></th>
-            </tr>
-        </ng-template>
-        <ng-template pTemplate="body" let-schedule>
-            <tr>
-                <td>
-                    <p-tableCheckbox [value]="schedule" />
-                </td>
-                <td>
-                    {{ schedule.name }}
-                </td>
-                <td>
-                    {{ schedule.recipient_name }}
-                </td>
-                <td>
-                    {{ schedule.platform_name }}
-                </td>
-                <td>
-                    <p-tag [value]="getFrequencyByName(schedule.frequency)"
-                        [severity]="getSeverity(schedule.frequency)" />
-                </td>
-                <td>
-                    <p-tag [value]="schedule.status | complete_status" [severity]="getSeverity(schedule.status)" />
-                </td>
-                <td>
-                    <button pButton class="mr-2 p-button-outlined" icon="pi pi-eye" [rounded]="true" [outlined]="true"
-                        severity="success" (click)="viewSchedule(schedule)">
-                    </button>
-                    <button pButton class="mr-2 p-button-outlined"
-                        *ngIf="profile?.user.role === 'owner' && ['scheduled', 'scheduled_warning', 'completed', 'cancelled', 'failed', 'warning'].includes(schedule.status)"
-                        icon="pi pi-power-off" severity="danger" [rounded]="true" [outlined]="true"
-                        (click)="cancelSelectedSchedule(schedule)">
-                    </button>
-                    <button pButton class="p-button-outlined"
-                        *ngIf="profile?.user.role === 'owner' && ['cancelled', 'failed', 'completed', 'warning'].includes(schedule.status)"
-                        icon="pi pi-play" severity="danger" [rounded]="true" [outlined]="true"
-                        (click)="restartSchedule(schedule)">
-                    </button>
-                </td>
-            </tr>
-        </ng-template>
-        <ng-template pTemplate="summary">
-            <div class="flex align-items-center justify-content-between">
-                In total there are {{ schedules ? schedules.length : 0 }} schedules.
-            </div>
-        </ng-template>
-    </p-table>
+                    <th>
+                        <p-columnFilter field="frequency" matchMode="equals" [showMenu]="false">
+                            <ng-template pTemplate="filter" let-value let-filter="filterCallback">
+                                <p-select 
+                                    [ngModel]="value" 
+                                    [options]="frequencies" 
+                                    (onChange)="filter($event.value)"
+                                    placeholder="All" 
+                                    [filter]="true" 
+                                    filterBy="label" 
+                                    appendTo="body"
+                                    [showClear]="true"
+                                    styleClass="filter-select">
+                                </p-select>
+                            </ng-template>
+                        </p-columnFilter>
+                    </th>
+                    <th>
+                        <p-columnFilter field="status" matchMode="equals" [showMenu]="false">
+                            <ng-template pTemplate="filter" let-value let-filter="filterCallback">
+                                <p-select 
+                                    [ngModel]="value" 
+                                    [options]="statuses" 
+                                    (onChange)="filter($event.value)"
+                                    placeholder="All" 
+                                    [filter]="true" 
+                                    filterBy="value" 
+                                    [showClear]="true"
+                                    appendTo="body"
+                                    styleClass="filter-select">
+                                </p-select>
+                            </ng-template>
+                        </p-columnFilter>
+                    </th>
+                    <th></th>
+                </tr>
+            </ng-template>
+            
+            <ng-template pTemplate="body" let-schedule>
+                <tr class="table-row">
+                    <td>
+                        <p-tableCheckbox [value]="schedule" />
+                    </td>
+                    <td>
+                        <div class="campaign-cell">
+                            <div class="campaign-icon">
+                                <i class="pi pi-bookmark"></i>
+                            </div>
+                            <span class="campaign-name">{{ schedule.name }}</span>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="recipient-cell">
+                            <i class="pi pi-user"></i>
+                            <span>{{ schedule.recipient_name }}</span>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="platform-badge" [class]="'platform-' + schedule.platform_name?.toLowerCase()">
+                            <i class="pi" [ngClass]="getPlatformIcon(schedule.platform_name)"></i>
+                            <span>{{ schedule.platform_name }}</span>
+                        </div>
+                    </td>
+                    <td>
+                        <p-tag 
+                            [value]="getFrequencyByName(schedule.frequency)"
+                            [severity]="getFrequencySeverity(schedule.frequency)" 
+                            styleClass="frequency-tag"
+                        />
+                    </td>
+                    <td>
+                        <div class="status-container">
+                            <div class="status-badge" [class]="'status-' + schedule.status">
+                                <span class="status-dot"></span>
+                                <span class="status-text">{{ schedule.status | complete_status }}</span>
+                            </div>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="action-buttons">
+                            <button 
+                                pButton 
+                                icon="pi pi-eye" 
+                                class="p-button-rounded p-button-text action-btn view-btn"
+                                pTooltip="View Details"
+                                tooltipPosition="top"
+                                (click)="viewSchedule(schedule)">
+                            </button>
+                            <button 
+                                pButton
+                                *ngIf="profile?.user.role === 'owner' && ['scheduled', 'scheduled_warning', 'completed', 'cancelled', 'failed', 'warning'].includes(schedule.status)"
+                                icon="pi pi-ban" 
+                                class="p-button-rounded p-button-text action-btn cancel-btn"
+                                pTooltip="Cancel Campaign"
+                                tooltipPosition="top"
+                                (click)="cancelSelectedSchedule(schedule)">
+                            </button>
+                            <button 
+                                pButton
+                                *ngIf="profile?.user.role === 'owner' && ['cancelled', 'failed', 'completed', 'warning'].includes(schedule.status)"
+                                icon="pi pi-play" 
+                                class="p-button-rounded p-button-text action-btn restart-btn"
+                                pTooltip="Restart Campaign"
+                                tooltipPosition="top"
+                                (click)="restartSchedule(schedule)">
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+            </ng-template>
+            
+            <ng-template pTemplate="emptymessage">
+                <tr>
+                    <td colspan="7" class="empty-state">
+                        <div class="empty-content">
+                            <i class="pi pi-inbox"></i>
+                            <h3>No campaigns found</h3>
+                            <p>Start by creating your first campaign</p>
+                        </div>
+                    </td>
+                </tr>
+            </ng-template>
+        </p-table>
+    </div>
 
-    <p-dialog [(visible)]="scheduleDialog" [style]="{ width: '450px' }" header="Schedule Details" [modal]="true"
-        styleClass="p-fluid">
-
+    <!-- Details Dialog -->
+    <p-dialog 
+        [(visible)]="scheduleDialog" 
+        [style]="{ width: '600px' }" 
+        header="Campaign Details" 
+        [modal]="true"
+        styleClass="modern-dialog">
         <ng-template pTemplate="content">
-            <div class="flex justify-content-between mb-4">
-                <label for="name">Name</label>
-                <input type="text" pInputText id="name" [(ngModel)]="schedule.name" disabled />
-            </div>
-
-            <div class="flex justify-content-between mb-4">
-                <label for="name">Status</label>
-                <input type="text" pInputText id="name" [(ngModel)]="schedule.status" disabled />
-            </div>
-
-
-            <div class="flex justify-content-between mb-4 align-items-center">
-                <label>Recipient</label>
-                <div class="flex flex-column">
-                    <div class="mb-2">
-                        <input type="text" pInputText id="rname" [(ngModel)]="schedule.recipient_name" disabled />
-                    </div>
-                    <div>
-                        <input type="text" pInputText id="rtype" [(ngModel)]="schedule.recipient_type" disabled />
+            <div class="dialog-content">
+                <div class="detail-group">
+                    <label>Campaign Name</label>
+                    <div class="detail-value">
+                        <i class="pi pi-bookmark"></i>
+                        <span>{{ schedule.name }}</span>
                     </div>
                 </div>
-            </div>
 
-
-            <div class="flex justify-content-between mb-4 align-items-center">
-                <label>Platform</label>
-
-                <div class="flex flex-column">
-                    <div class="mb-2">
-                        <p-radioButton id="platform1" name="platform1" value="whatsapp"
-                            [(ngModel)]="schedule.platform_name" disabled />
-                        <label for="platform1" class="ml-2">Whatsapp</label>
-                    </div>
-                    <div class="mb-2">
-                        <p-radioButton id="platform2" name="platform2" value="telegram"
-                            [(ngModel)]="schedule.platform_name" disabled />
-                        <label for="platform2" class="ml-2">Telegram</label>
-                    </div>
-                    <div class="mb-2">
-                        <p-radioButton id="platform3" name="platform3" value="messanger"
-                            [(ngModel)]="schedule.platform_name" disabled />
-                        <label for="platform3" class="ml-2">Messanger</label>
-                    </div>
-                    <div class=" mb-2">
-                        <p-radioButton id="platform4" name="platform4" value="insta"
-                            [(ngModel)]="schedule.platform_name" disabled />
-                        <label for="platform4" class="ml-2">Instagram</label>
+                <div class="detail-group">
+                    <label>Status</label>
+                    <div class="status-badge" [class]="'status-' + schedule.status">
+                        <span class="status-dot"></span>
+                        <span class="status-text">{{ schedule.status | complete_status }}</span>
                     </div>
                 </div>
-            </div>
 
-            <div class="flex justify-content-between mb-4">
-                <label for="name">Created On</label>
-                <input type="text" pInputText id="name" [(ngModel)]="schedule.created_at" disabled />
-            </div>
+                <div class="detail-group">
+                    <label>Recipient</label>
+                    <div class="detail-value">
+                        <i class="pi pi-user"></i>
+                        <div class="stacked-info">
+                            <span class="primary">{{ schedule.recipient_name }}</span>
+                            <span class="secondary">{{ schedule.recipient_type }}</span>
+                        </div>
+                    </div>
+                </div>
 
-            <div class="flex justify-content-between mb-4">
-                <label for="name">Next Schedule</label>
-                <input type="text" pInputText id="name" [(ngModel)]="schedule.scheduled_time" disabled />
-            </div>
+                <div class="detail-group">
+                    <label>Platform</label>
+                    <div class="platform-badge" [class]="'platform-' + schedule.platform_name?.toLowerCase()">
+                        <i class="pi" [ngClass]="getPlatformIcon(schedule.platform_name)"></i>
+                        <span>{{ schedule.platform_name }}</span>
+                    </div>
+                </div>
 
-            <div class="flex justify-content-between mb-4">
-                <label for="name">Frequency</label>
-                <input type="text" pInputText id="name" [(ngModel)]="schedule.frequency" disabled />
-            </div>
+                <div class="detail-group">
+                    <label>Schedule</label>
+                    <div class="detail-value">
+                        <i class="pi pi-calendar"></i>
+                        <div class="stacked-info">
+                            <span class="primary">{{ schedule.scheduled_time | date:'medium' }}</span>
+                            <span class="secondary">{{ getFrequencyByName(schedule.frequency) }}</span>
+                        </div>
+                    </div>
+                </div>
 
-            <div class="flex justify-content-between mb-4">
-                <label for="name">Created By</label>
-                <input type="text" pInputText id="name" [(ngModel)]="schedule.created_by" disabled />
+                <div class="detail-group">
+                    <label>Created</label>
+                    <div class="detail-value">
+                        <i class="pi pi-clock"></i>
+                        <div class="stacked-info">
+                            <span class="primary">{{ schedule.created_at | date:'medium' }}</span>
+                            <span class="secondary">by {{ schedule.created_by }}</span>
+                        </div>
+                    </div>
+                </div>
             </div>
         </ng-template>
 
         <ng-template pTemplate="footer">
-            <button pButton class="p-button-outlined" label="Close" icon="pi pi-times" [text]="true" (click)="hideDialog()"></button>
+            <button 
+                pButton 
+                label="Close" 
+                icon="pi pi-times" 
+                class="p-button-text" 
+                (click)="hideDialog()">
+            </button>
         </ng-template>
     </p-dialog>
 
-    <p-confirmDialog [style]="{ width: '450px' }" />
+    <p-confirmDialog [style]="{ width: '450px' }" styleClass="modern-confirm" />
 </div>

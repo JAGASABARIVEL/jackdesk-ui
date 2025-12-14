@@ -157,7 +157,6 @@ export class DetailChatWindowComponent implements AfterViewInit {
   @Input() set reassignmentProcessSuccess(value) {
   // ✅ Guard against loading users when no conversation
   if (value === true && this._selectedConversation) {
-    console.log("Reload users after reassignment");
     this.loadUsers();
   }
 }
@@ -188,6 +187,19 @@ buildMenuItems() {
 
   this.menuItems = [];
 
+  // Send Template Message (only for WhatsApp active conversations)
+  if (this.selectedConversation.contact.platform_name === 'whatsapp' &&
+      this.selectedConversation.status === 'active' &&
+      this.selectedConversation.assigned?.id === this.profile.user.id) {
+    this.menuItems.push({
+      label: 'Send Template',
+      icon: 'pi pi-file',
+      command: () => {
+        this.openSendTemplateDialog();
+      }
+    });
+  }
+  
   // Info Button
   this.menuItems.push({
     label: 'Contact Info',
@@ -1382,4 +1394,242 @@ private reloadActiveConversation(): void {
         this.editContacDialogVisible = false;
         this.submitted = false;
     }
+
+    // ============================================================================
+    // STEP 1: Add New Properties to DetailChatWindowComponent
+    // ============================================================================
+    
+    // Template messaging in active conversation
+    sendTemplateDialogVisible = false;
+    activeConvSelectedTemplate = null;
+    activeConvDynamicFields: string[] = [];
+    activeConvFieldValues: { [key: string]: string } = {};
+    activeConvAttachedFile: File | null = null;
+    activeConvPdfPreviewUrl: string | null = null;
+
+    // ============================================================================
+    // STEP 2: Add Method to Open Template Dialog for Active Conversation
+    // ============================================================================
+    
+    openSendTemplateDialog() {
+      // Load available templates for the current platform
+      if (this.selectedConversation?.contact?.platform_id) {
+        this.platforService.get_templates(this.selectedConversation.contact.platform_id)
+          .pipe(takeUntil(this.destroy$))
+          .subscribe({
+            next: (templates_list) => {
+              this.avaliable_templates = templates_list["whatsapp"] || [];
+              this.sendTemplateDialogVisible = true;
+            },
+            error: (err) => {
+              let error_detail = err?.error;
+              console.error("Could not get templates", error_detail);
+              
+              this.messageService.add({
+                severity: 'error',
+                summary: 'Error',
+                detail: `Could not load templates ${error_detail}`
+              });
+            }
+          });
+      } else {
+        this.messageService.add({
+          severity: 'warn',
+          summary: 'No Platform',
+          detail: 'Platform information not available'
+        });
+      }
+    }
+
+    // ============================================================================
+    // STEP 3: Handle Template Selection for Active Conversation
+    // ============================================================================
+    
+    onActiveConvTemplateSelect() {
+      if (this.activeConvSelectedTemplate) {
+        this.extractActiveConvTemplateFields();
+      } else {
+        this.clearActiveConvTemplateData();
+      }
+    }
+
+    extractActiveConvTemplateFields() {
+      this.activeConvDynamicFields = [];
+      this.activeConvFieldValues = {};
+      let parameterVariables = [];
+      
+      for (let section of this.activeConvSelectedTemplate.components) {
+        if (section.text) {
+          parameterVariables.push(...this.extractParameterVariables(section.text));
+        }
+      }
+      
+      if (parameterVariables.length > 0) {
+        for (let param of parameterVariables) {
+          this.activeConvDynamicFields.push(param);
+          this.activeConvFieldValues[param] = '';
+        }
+      }
+    }
+
+    // ============================================================================
+    // STEP 4: Handle File Upload for Active Conversation Template
+    // ============================================================================
+    
+    onActiveConvFileSelected(event: Event): void {
+      const fileInput = event.target as HTMLInputElement;
+    
+      if (fileInput.files && fileInput.files.length > 0) {
+        const file = fileInput.files[0];
+    
+        if (file.type === 'application/pdf') {
+          this.activeConvAttachedFile = file;
+          this.activeConvPdfPreviewUrl = URL.createObjectURL(file);
+        } else {
+          this.messageService.add({
+            severity: 'warn',
+            summary: 'Invalid File',
+            detail: 'Only PDF files are allowed for document templates'
+          });
+        }
+      }
+    }
+
+    onActiveConvDragOver(event: DragEvent): void {
+      event.preventDefault();
+      event.stopPropagation();
+    }
+
+    onActiveConvDrop(event: DragEvent): void {
+      event.preventDefault();
+      if (event.dataTransfer?.files?.length) {
+        const file = event.dataTransfer.files[0];
+        if (file.type === 'application/pdf') {
+          this.activeConvAttachedFile = file;
+          this.activeConvPdfPreviewUrl = URL.createObjectURL(file);
+        } else {
+          this.messageService.add({
+            severity: 'warn',
+            summary: 'Invalid File',
+            detail: 'Only PDF files are allowed'
+          });
+        }
+      }
+    }
+
+    removeActiveConvFile(): void {
+      this.activeConvAttachedFile = null;
+      this.activeConvPdfPreviewUrl = null;
+    }
+
+    // ============================================================================
+    // STEP 5: Check if Template has Document Header
+    // ============================================================================
+    
+    isActiveConvDocumentHeader(): boolean {
+      return this.activeConvSelectedTemplate?.components?.some(
+        c => c.type === 'HEADER' && c.format === 'DOCUMENT'
+      );
+    }
+
+    // ============================================================================
+    // STEP 6: Validate Active Conversation Template Form
+    // ============================================================================
+    
+    get isActiveConvTemplateValid(): boolean {
+      // Check if template is selected
+      if (!this.activeConvSelectedTemplate) return false;
+      
+      // Check if all dynamic fields are filled
+      const allFieldsFilled = !Object.values(this.activeConvFieldValues)
+        .some(value => value === '');
+      
+      // Check if document header requires file
+      if (this.isActiveConvDocumentHeader() && !this.activeConvAttachedFile) {
+        return false;
+      }
+      
+      return allFieldsFilled;
+    }
+
+     // ============================================================================
+     // STEP 7: Send Template Message in Active Conversation
+     // ============================================================================
+     
+     sendTemplateMessageInActiveConversation() {
+       if (!this.isActiveConvTemplateValid) {
+         this.messageService.add({
+           severity: 'warn',
+           summary: 'Incomplete',
+           detail: 'Please fill all required fields'
+         });
+         return;
+       }
+     
+       const messagePayload = new FormData();
+       messagePayload.append("conversation_id", this.selectedConversation.id);
+       messagePayload.append("user_id", this.profile.user.id);
+       messagePayload.append("message_type", "template");
+       messagePayload.append("template", JSON.stringify(this.activeConvSelectedTemplate));
+       messagePayload.append("template_parameters", JSON.stringify(this.activeConvFieldValues));
+       
+       if (this.activeConvAttachedFile) {
+         messagePayload.append('file', this.activeConvAttachedFile);
+       }
+     
+       // Add optimistic message to UI
+       this.selectedConversation.messages.push({
+         message_body: '',
+         message_type: 'template',
+         template: this.activeConvSelectedTemplate,
+         media_url: this.activeConvPdfPreviewUrl,
+         sender: this.profile.user.id,
+         sent_time: new Date(),
+         status: 'sending',
+         type: 'org'
+       });
+     
+       this.conversationService.respond_to_message(
+         "chat",
+         this.selectedConversation.id,
+         messagePayload
+       ).pipe(takeUntil(this.destroy$)).subscribe({
+         next: (response) => {
+           this.messageService.add({
+             severity: 'success',
+             summary: 'Success',
+             detail: 'Template message sent successfully'
+           });
+           this.closeSendTemplateDialog();
+           this.reloadActiveConversation();
+         },
+         error: (err) => {
+           console.error("Template message failed", err);
+           this.messageService.add({
+             severity: 'error',
+             summary: 'Failed',
+             detail: 'Could not send template message'
+           });
+           this.reloadActiveConversation();
+         }
+       });
+     }
+     
+     // ============================================================================
+     // STEP 8: Clear and Close Template Dialog
+     // ============================================================================
+     
+     clearActiveConvTemplateData() {
+       this.activeConvSelectedTemplate = null;
+       this.activeConvDynamicFields = [];
+       this.activeConvFieldValues = {};
+       this.activeConvAttachedFile = null;
+       this.activeConvPdfPreviewUrl = null;
+     }
+     
+    closeSendTemplateDialog() {
+      this.sendTemplateDialogVisible = false;
+      this.clearActiveConvTemplateData();
+    }
+
 }

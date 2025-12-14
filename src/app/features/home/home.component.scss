@@ -1,7 +1,43 @@
+app-banner {
+  display: block;
+}
+
 app-menu {
   position: sticky;
   top: 0;
   z-index: 1000;
-  background-color: white; /* or your menu background */
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05); /* optional for elevation */
+  display: block;
+}
+
+// Add spacing for sections
+app-hero {
+  display: block;
+}
+
+// Smooth scroll behavior
+:host {
+  scroll-behavior: smooth;
+}
+
+// Global modern styles
+::ng-deep {
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  }
+
+  // Ensure proper spacing between sections
+  section, 
+  [id] {
+    scroll-margin-top: 5rem;
+  }
+  
+  // Remove default margins
+  app-hero,
+  app-solutions,
+  app-screenshots,
+  app-roadmap,
+  app-subscriptions,
+  app-contact-address {
+    display: block;
+  }
 }

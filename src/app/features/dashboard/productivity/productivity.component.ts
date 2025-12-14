@@ -14,6 +14,7 @@ import { PayrollDashboardComponent } from './payroll-dashboard/payroll-dashboard
 import { RealtimeStatusComponent } from './realtime-status/realtime-status.component';
 import { EnhancedProductivityService } from '../../../shared/services/enhanced-productivity.service';
 import { TeamComparisonComponent } from './team-comparison/team-comparison.component';
+import { LayoutService } from '../../../layout/service/app.layout.service';
 
 @Component({
   selector: 'app-productivity',
@@ -371,7 +372,8 @@ export class ProductivityComponent implements OnInit, OnDestroy {
   constructor(
     private router: Router,
     private userManagerService: UserManagerService,
-    private payrollService: EnhancedProductivityService
+    private payrollService: EnhancedProductivityService,
+    private layoutService: LayoutService
   ) {}
 
   ngOnInit(): void {
@@ -382,6 +384,7 @@ export class ProductivityComponent implements OnInit, OnDestroy {
     }
     this.loadEmployees();
     this.setDefaultDateRange();
+    this.layoutService.state.staticMenuDesktopInactive = true;
   }
 
   ngOnDestroy(): void {

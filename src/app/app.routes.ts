@@ -5,6 +5,8 @@ import { HomeComponent } from './features/home/home.component';
 import { SubscriptionAndPaymentComponent } from './auth/subscription/subscription.component';
 import { ErrorPagesComponent } from './auth/pages/unautorized/pages.component';
 import { NotFoundPageComponent } from './auth/pages/not-found-page/not-found-page.component';
+import { EnhancedConversationDashboardComponent } from './features/dashboard/enhanced-conversation-dashboard/enhanced-conversation-dashboard.component';
+import { TicketingViewComponent } from './features/tickets/ticketing-view/ticketing-view.component';
 
 export const routes: Routes = [
   { path: 'apps', component: AppLayoutComponent,
@@ -13,6 +15,8 @@ export const routes: Routes = [
 
         /** Dashboard */
         { path: '', loadComponent: () => import('./features/dashboard/dashboard.component').then(m => m.DashboardComponent) },
+        { path: 'analytics', component: EnhancedConversationDashboardComponent, data: { breadcrumb: 'Analytics' } },
+        { path: 'ticketing', loadComponent: () => import('./features/tickets/ticketing-view/ticketing-view.component').then(m => m.TicketingViewComponent) },
         { path: 'productivity', loadComponent: () => import('./features/dashboard/productivity/productivity.component').then(m => m.ProductivityComponent) },
 
         /** Contacts and groups */
@@ -31,9 +35,9 @@ export const routes: Routes = [
         { path: 'chat-usage-cost',  loadComponent: () => import('./features/chat/cost-analysis/cost-analysis.component').then(m => m.CostAnalysisComponentChat) },
 
         /** Tickets */
-        { path: 'tickets',  loadComponent: () => import('./features/tickets/lists/lists.component').then(m => m.ListsComponent) },
-        { path: 'tickets/view',  loadComponent: () => import('./features/tickets/details/details.component').then(m => m.DetailsComponent) },
-        { path: 'tickets/create',  loadComponent: () => import('./features/tickets/create/create.component').then(m => m.CreateComponent) },
+        //{ path: 'tickets',  loadComponent: () => import('./features/tickets/lists/lists.component').then(m => m.ListsComponent) },
+        //{ path: 'tickets/view',  loadComponent: () => import('./features/tickets/details/details.component').then(m => m.DetailsComponent) },
+        //{ path: 'tickets/create',  loadComponent: () => import('./features/tickets/create/create.component').then(m => m.CreateComponent) },
 
         /** Cloud storage */
         { path: 'fmanager', loadComponent: () => import('./features/filemanager/file-explorer/explorer.component').then(m => m.FileExplorerComponent) },

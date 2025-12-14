@@ -36,7 +36,8 @@ import { Subject, takeUntil } from 'rxjs';
     TableModule,
     ConfirmDialogModule,
     InputGroupModule,
-    InputGroupAddonModule
+    InputGroupAddonModule,
+    InputTextModule
   ],
   providers: [
     MessageService, ConfirmationService

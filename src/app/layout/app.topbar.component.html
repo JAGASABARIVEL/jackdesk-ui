@@ -1,198 +1,233 @@
 <div class="layout-topbar">
     <a class="layout-topbar-logo" [routerLink]="'../'">
-        <!--img src="assets/layout/images/{{layoutService.config().colorScheme === 'light' ? 'logo-dark' : 'logo-white'}}.svg" alt="logo"-->
-        <img src="assets/Icons/Schedule/jackdesk_logo.jpg" style="margin-top: 10px; width: 170px; height: 61px;"
+        <img src="assets/Icons/Schedule/logo.png" style="margin-top: 10px; width: 4rem; height: 4rem;"
             alt="logo">
-        <!--span>BCAST</span-->
     </a>
 
     <button #menubutton class="p-link layout-menu-button layout-topbar-button" (click)="layoutService.onMenuToggle()">
         <i class="pi pi-bars"></i>
     </button>
 
-
-
     <div #topbarmenu class="layout-topbar-menu"
         [ngClass]="{'layout-topbar-menu-mobile-active': layoutService.state.profileSidebarVisible}">
 
-
-        <div class="flex justify-end p-4 gap-4">
+        <div class="flex justify-end p-4 gap-4 align-items-center">
+            <!-- Productivity Meter -->
             <p-metergroup 
-    [value]="layoutService.totalProductivityTime" 
-    labelPosition="start"
-    *ngIf="layoutService.menuItemsCache().length > 0 && profile?.user?.is_productivity_enable">
+                [value]="layoutService.totalProductivityTime" 
+                labelPosition="start"
+                *ngIf="layoutService.menuItemsCache().length > 0 && profile?.user?.is_productivity_enable">
 
-    <!-- Label Card -->
-    <ng-template #label>
-        <div class="flex flex-wrap gap-4">
-            <ng-container *ngFor="let meterItem of layoutService.totalProductivityTime">
-                <div class="flex-1 border border-surface shadow-none">
-                    <div class="flex justify-between gap-8">
-                        <div class="flex align-items-center gap-1">
-                            <span class="text-surface-500 text-sm">{{ meterItem.label }}</span>
-                            <span class="font-semibold text-md">{{ meterItem.duration }}</span>
+                <ng-template #label>
+                    <div class="flex flex-wrap gap-4">
+                        <ng-container *ngFor="let meterItem of layoutService.totalProductivityTime">
+                            <div class="flex-1 border border-surface shadow-none">
+                                <div class="flex justify-between gap-8">
+                                    <div class="flex align-items-center gap-1">
+                                        <span class="text-surface-500 text-sm">{{ meterItem.label }}</span>
+                                        <span class="font-semibold text-md">{{ meterItem.duration }}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </ng-container>
+                    </div>
+                </ng-template>
+
+                <ng-template #meter let-value let-class="class" let-width="size">
+                    <span [class]="class"
+                          [style]="{ 
+                            background: 'linear-gradient(to right, ' + value.color1 + ', ' + value.color2 + ')',
+                            width: width 
+                          }">
+                    </span>
+                </ng-template>
+            </p-metergroup>
+
+            <!-- New Tasks (Unassigned Conversations) Notification -->
+            <div class="relative inline-block" *ngIf="layoutService.menuItemsCache().length > 0" #newTasksDropdown>
+                <button 
+                    class="notification-icon-btn"
+                    [class.has-notifications]="layoutService.newTaskmessages().length > 0"
+                    (click)="toggleNewTasks($event)"
+                    pTooltip="New Conversations" 
+                    tooltipPosition="bottom">
+                    <i class="pi pi-briefcase text-2xl"></i>
+                    <span class="notification-badge" *ngIf="layoutService.newTaskmessages().length > 0">
+                        {{ layoutService.newTaskmessages().length > 99 ? '99+' : layoutService.newTaskmessages().length }}
+                    </span>
+                </button>
+
+                <!-- New Tasks Dropdown -->
+                <div *ngIf="showNewTasks" 
+                    class="notification-dropdown"
+                    (click)="$event.stopPropagation()">
+                    <div class="notification-header">
+                        <h3 class="notification-title">
+                            <i class="pi pi-briefcase mr-2"></i>
+                            New Conversations
+                        </h3>
+                        <span class="notification-count">{{ layoutService.newTaskmessages().length }}</span>
+                    </div>
+
+                    <div class="notification-content">
+                        <div *ngIf="layoutService.newTaskmessages().length === 0" 
+                            class="notification-empty">
+                            <i class="pi pi-inbox text-4xl mb-3 text-gray-400"></i>
+                            <p class="text-gray-500">No new conversations</p>
+                            <span class="text-sm text-gray-400">All conversations are assigned</span>
+                        </div>
+
+                        <div *ngFor="let task of layoutService.newTaskmessages(); let i = index"
+                            class="notification-item"
+                            [class.notification-item-last]="i === layoutService.newTaskmessages().length - 1"
+                            (click)="navigateToConversation(task.conversationId, task.contactId)">
+                            <div class="notification-item-avatar">
+                                <i class="pi pi-user text-xl"></i>
+                            </div>
+                            <div class="notification-item-content">
+                                <div class="notification-item-header">
+                                    <span class="notification-item-name">{{ task.customerName }}</span>
+                                    <span class="notification-item-badge new-badge">New</span>
+                                </div>
+                                <p class="notification-item-message">{{ task.text }}</p>
+                                <div class="notification-item-action">
+                                    <span class="gradient-text">Click to view conversation →</span>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
-            </ng-container>
+            </div>
+
+            <!-- Unresponded Messages Notification -->
+            <div class="relative inline-block" *ngIf="layoutService.menuItemsCache().length > 0" #unrespondedDropdown>
+                <button 
+                    class="notification-icon-btn"
+                    [class.has-notifications]="layoutService.unrespondedConversationNotification().conversation_count > 0"
+                    (click)="toggleUnrespondedMessages($event)"
+                    pTooltip="Unresponded Messages" 
+                    tooltipPosition="bottom">
+                    <i class="pi pi-comment text-2xl"></i>
+                    <span class="notification-badge" 
+                        *ngIf="layoutService.unrespondedConversationNotification().conversation_count > 0">
+                        {{ layoutService.unrespondedConversationNotification().conversation_count > 99 ? '99+' : layoutService.unrespondedConversationNotification().conversation_count }}
+                    </span>
+                </button>
+
+                <!-- Unresponded Messages Dropdown -->
+                <div *ngIf="showUnrespondedMessages" 
+                    class="notification-dropdown"
+                    (click)="$event.stopPropagation()">
+                    <div class="notification-header">
+                        <h3 class="notification-title">
+                            <i class="pi pi-comment mr-2"></i>
+                            Pending Responses
+                        </h3>
+                        <span class="notification-count">
+                            {{ layoutService.unrespondedConversationNotification().conversation_count }}
+                        </span>
+                    </div>
+
+                    <div class="notification-content">
+                        <div *ngIf="layoutService.unrespondedConversationNotification().conversation_count === 0" 
+                            class="notification-empty">
+                            <i class="pi pi-check-circle text-4xl mb-3 text-green-400"></i>
+                            <p class="text-gray-500">All caught up!</p>
+                            <span class="text-sm text-gray-400">No messages waiting for response</span>
+                        </div>
+
+                        <div *ngFor="let msg of layoutService.unrespondedConversationNotification().notifications; let i = index"
+                            class="notification-item"
+                            [class.notification-item-last]="i === layoutService.unrespondedConversationNotification().notifications.length - 1"
+                            (click)="navigateToConversation(msg.conversation_id, msg.contact_id)">
+                            <div class="notification-item-avatar">
+                                <i class="pi pi-user text-xl"></i>
+                            </div>
+                            <div class="notification-item-content">
+                                <div class="notification-item-header">
+                                    <span class="notification-item-name">{{ msg.contact_name }}</span>
+                                    <span class="notification-item-time">
+                                        {{ getTimeAgo(msg.last_message.received_time) }}
+                                    </span>
+                                </div>
+                                <p class="notification-item-message">{{ msg.last_message.message_body }}</p>
+                                <div class="notification-item-status">
+                                    <span class="status-badge status-{{ msg.last_message.status }}">
+                                        {{ msg.last_message.status }}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- System Notifications -->
+            <div class="relative inline-block" #systemNotificationDropdown>
+                <button 
+                    class="notification-icon-btn"
+                    [class.has-notifications]="layoutService.notifications().length > 0"
+                    (click)="toggleSystemNotifications($event)"
+                    pTooltip="System Notifications" 
+                    tooltipPosition="bottom">
+                    <i class="pi pi-bell text-2xl"></i>
+                    <span class="notification-badge" *ngIf="layoutService.notifications().length > 0">
+                        {{ layoutService.notifications().length > 99 ? '99+' : layoutService.notifications().length }}
+                    </span>
+                </button>
+
+                <!-- System Notifications Dropdown -->
+                <div *ngIf="showSystemNotifications" 
+                    class="notification-dropdown"
+                    (click)="$event.stopPropagation()">
+                    <div class="notification-header">
+                        <h3 class="notification-title">
+                            <i class="pi pi-bell mr-2"></i>
+                            System Alerts
+                        </h3>
+                        <button 
+                            *ngIf="layoutService.notifications().length > 0"
+                            class="clear-all-btn"
+                            (click)="layoutService.clearNotifications(); $event.stopPropagation()">
+                            Clear All
+                        </button>
+                    </div>
+
+                    <div class="notification-content">
+                        <div *ngIf="layoutService.notifications().length === 0" 
+                            class="notification-empty">
+                            <i class="pi pi-check-circle text-4xl mb-3 text-green-400"></i>
+                            <p class="text-gray-500">No system alerts</p>
+                            <span class="text-sm text-gray-400">Everything is running smoothly</span>
+                        </div>
+
+                        <div *ngFor="let note of layoutService.notifications(); let i = index"
+                            class="notification-item notification-item-system"
+                            [class.notification-item-last]="i === layoutService.notifications().length - 1">
+                            <div class="notification-item-icon" [ngClass]="getSeverityColor(note.severity)">
+                                <i [class]="getSeverityIcon(note.severity) + ' text-xl'"></i>
+                            </div>
+                            <div class="notification-item-content">
+                                <div class="notification-item-header">
+                                    <span class="notification-item-name">{{ note.app }}</span>
+                                    <span class="severity-badge severity-{{ note.severity }}">
+                                        {{ note.severity }}
+                                    </span>
+                                </div>
+                                <p class="notification-item-message">{{ note.text }}</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Profile Menu -->
+            <p-splitButton 
+                *ngIf="layoutService.menuItemsCache().length > 0" 
+                icon="pi pi-spin pi-cog" 
+                [outlined]="true"
+                [model]="items" 
+                (click)="profileViewButton()" />
         </div>
-    </ng-template>
-
-    <!-- Meter Fill -->
-    <ng-template #meter let-value let-class="class" let-width="size">
-        <span [class]="class"
-              [style]="{ 
-                background: 'linear-gradient(to right, ' + value.color1 + ', ' + value.color2 + ')',
-                width: width 
-              }">
-        </span>
-    </ng-template>
-
-</p-metergroup>
-
-
-
-
-
-
-
-
-
-
-            <!-- Unresponded Conversation Notification Icon with Badge -->
-            <div class="relative inline-block" *ngIf="layoutService.menuItemsCache().length > 0">
-                <p-overlayBadge *ngIf="layoutService.unrespondedConversationNotification().conversation_count === 0">
-                    <i class="pi pi-comment cursor-pointer text-2xl" (click)="toggleUnrespondedConversationMessages()">
-                    </i>
-                </p-overlayBadge>
-                <p-overlayBadge *ngIf="layoutService.unrespondedConversationNotification().conversation_count > 0"
-                    [value]="layoutService.unrespondedConversationNotification().conversation_count" severity="danger">
-                    <i class="pi pi-comment cursor-pointer text-2xl" (click)="toggleUnrespondedConversationMessages()">
-                    </i>
-                </p-overlayBadge>
-
-                <!-- Dropdown Panel -->
-                <div *ngIf="showUnrespondedConversationMessages"
-                    class="absolute z-50 mt-2 right-0 w-80 bg-white surface-card shadow-4 border rounded-md h-20rem overflow-y-auto">
-
-                    <div *ngIf="layoutService.unrespondedConversationNotification().conversation_count === 0"
-                        class="w-18rem p-4 text-gray-500">
-                        No unread messages
-                    </div>
-
-                    <div *ngFor="let msg of layoutService.unrespondedConversationNotification().notifications"
-                        class="w-18rem p-3 border-b surface-card shadow-4 last:border-b-0 hover:bg-gray-100 transition-all cursor-pointer">
-                        <div class="flex align-items-center gap-2">
-                            <p-avatar icon="pi pi-user" class="mr-2" size="large" shape="circle" />
-                            <div class="flex flex-column gap-2">
-                                <div class="font-semibold">{{ msg.contact_name }}</div>
-                                <div class="text-sm text-gray-600">{{ msg.last_message.message_body }}</div>
-                                <div class="text-green-500">{{ msg.last_message.received_time | date }}</div>
-                            </div>
-
-                        </div>
-
-
-                    </div>
-                </div>
-            </div>
-            <!-- Message Notification Icon with Badge -->
-            <div class="relative inline-block" *ngIf="layoutService.menuItemsCache().length > 0">
-                <p-overlayBadge *ngIf="layoutService.newTaskmessages().length === 0">
-                    <i class="pi pi-briefcase cursor-pointer text-2xl" (click)="toggleMessages()">
-                    </i>
-                </p-overlayBadge>
-
-                <p-overlayBadge *ngIf="layoutService.newTaskmessages().length > 0" [value]="layoutService.newTaskmessages()[0]?.total_count"
-                    severity="danger">
-                    <i class="pi pi-briefcase cursor-pointer text-2xl" (click)="toggleMessages()">
-                    </i>
-                </p-overlayBadge>
-
-                <!-- Dropdown Panel -->
-                <div *ngIf="showMessages"
-                    class="absolute z-50 mt-2 right-0 w-80 bg-white surface-card shadow-4 border rounded-md h-20rem overflow-y-auto">
-
-                    <div *ngIf="layoutService.newTaskmessages().length === 0" class="p-4 w-18rem text-gray-500">
-                        No new tasks
-                    </div>
-
-                    <div *ngFor="let msg of layoutService.newTaskmessages()"
-                        class="w-18rem p-3 border-b surface-card shadow-4 last:border-b-0 hover:bg-gray-100 transition-all cursor-pointer">
-                        <div class="flex align-items-center gap-2">
-                            <p-avatar icon="pi pi-user" class="mr-2" size="large" shape="circle" />
-                            <div class="flex flex-column gap-2">
-                                <div class="text-sm text-gray-600">New message from </div>
-                                <div class="font-semibold">{{ msg.customerName }}</div>
-                                <div class="text-sm text-gray-600">{{ msg.text }}</div>
-                            </div>
-
-                        </div>
-
-
-                    </div>
-                </div>
-            </div>
-
-            <!-- Notification Icon with Badge -->
-            <div class="relative inline-block">
-                <p-overlayBadge *ngIf="layoutService.notifications().length === 0">
-                    <i class="pi pi-bell cursor-pointer text-2xl" (click)="toggleNotificationMessages()"></i>
-                </p-overlayBadge>
-
-                <p-overlayBadge *ngIf="layoutService.notifications().length > 0"
-                    [value]="layoutService.notifications().length" severity="danger">
-                    <i class="pi pi-bell cursor-pointer text-2xl" (click)="toggleNotificationMessages()"></i>
-                </p-overlayBadge>
-
-                <!-- Dropdown Panel -->
-                <div *ngIf="showNotificationMessages"
-                    class="absolute z-50 mt-2 right-0 w-80 bg-white surface-card shadow-4 border rounded-md h-20rem overflow-y-auto">
-
-                    <!-- Sticky Header with Clear Button -->
-                    <div class="flex justify-content-end items-center px-4 py-2 border-b bg-white sticky top-0 z-10">
-                        <span class="font-medium"></span>
-                        <button pButton *ngIf="layoutService.notifications().length > 0"
-                            class="text-sm bg-primary p-button-outlined hover:underline"
-                            (click)="layoutService.clearNotifications()">Clear All</button>
-                    </div>
-
-                    <!-- Empty State -->
-                    <div *ngIf="layoutService.notifications().length === 0" class="p-4 text-gray-500 w-18rem">
-                        No new notifications
-                    </div>
-
-                    <!-- Notification List -->
-                    <div *ngFor="let note of layoutService.notifications()"
-                        class="w-18rem p-3 border-b surface-card shadow-4 last:border-b-0 hover:bg-gray-100 transition-all cursor-pointer">
-                        <div class="flex items-start gap-3">
-                            <i *ngIf="note.severity === 'info'" class="pi pi-info-circle text-green-500 text-lg"></i>
-                            <i *ngIf="note.severity === 'warn'"
-                                class="pi pi-exclamation-circle text-yellow-500 text-lg"></i>
-                            <i *ngIf="note.severity === 'error'"
-                                class="pi pi-exclamation-triangle text-red-500 text-lg"></i>
-                            <div>
-                                <div class="font-semibold">{{ note.app }}</div>
-                                <div class="text-sm text-gray-600">{{ note.text }}</div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-
-            <p-splitButton *ngIf="layoutService.menuItemsCache().length > 0" icon="pi pi-spin pi-cog" [outlined]="true"
-                [model]="items" (click)="profileViewButton()" />
-        </div>
-
-
     </div>
 </div>
-
-<!--p-dialog header="New Conversations"
-    [(visible)]="newConversationDialogVisible" [modal]="true" [breakpoints]="{ '1199px': '75vw', '575px': '90vw' }"
-    [style]="{ width: '80vw' }" [draggable]="true" [resizable]="true">
-    <div class="col-12">
-            <app-list-conversations [heading]="'New'"></app-list-conversations>
-        </div>
-</p-dialog-->

@@ -1,0 +1,303 @@
+<!-- enhanced-conversation-dashboard.component.html -->
+<div class="px-4 py-5 md:px-6 lg:px-8">
+  
+  <!-- Header with Date Range Selector -->
+  <div class="flex flex-wrap justify-content-between align-items-center mb-5 gap-3">
+    <div>
+      <h1 class="text-4xl font-bold text-900 m-0 mb-2">Analytics Dashboard</h1>
+      <p class="text-600 text-lg m-0">Monitor team performance and customer satisfaction metrics</p>
+    </div>
+    <div class="flex gap-2 align-items-center">
+      <p-datepicker 
+        [(ngModel)]="dateRange" 
+        selectionMode="range"
+        (onClose)="onDateRangeChange()"
+        [showIcon]="true"
+        dateFormat="yy-mm-dd"
+        placeholder="Select Date Range"
+        [style]="{'min-width': '300px'}">
+      </p-datepicker>
+      <p-button 
+        icon="pi pi-download" 
+        label="Export"
+        (onClick)="exportReport()"
+        [outlined]="true"
+        severity="secondary">
+      </p-button>
+      <p-button 
+        icon="pi pi-refresh" 
+        (onClick)="loadAllMetrics()"
+        [outlined]="true"
+        [loading]="loading"
+        severity="secondary">
+      </p-button>
+    </div>
+  </div>
+
+  <!-- Metric Cards -->
+  <div class="grid mb-4">
+    <div *ngFor="let card of metricCards" class="col-12 md:col-6 lg:col-3">
+      <div class="surface-card shadow-3 p-4 border-round hover:shadow-5 transition-duration-200 cursor-pointer"
+           [style.border-left]="'4px solid ' + card.color">
+        <div class="flex justify-content-between align-items-start mb-3">
+          <div class="flex flex-column flex-1">
+            <span class="text-600 font-medium mb-2">{{ card.title }}</span>
+            <span class="text-900 font-bold text-4xl mb-2">{{ card.value }}</span>
+            <span class="text-500 text-sm">{{ card.subtitle }}</span>
+          </div>
+          <div class="flex align-items-center justify-content-center border-round"
+               [style.background-color]="card.bgColor"
+               [style.color]="card.color"
+               style="width: 3.5rem; height: 3.5rem;">
+            <i [class]="'pi ' + card.icon + ' text-2xl'"></i>
+          </div>
+        </div>
+        <div *ngIf="card.trend !== undefined" class="flex align-items-center gap-2">
+          <i [class]="'pi ' + (card.trendDirection === 'up' ? 'pi-arrow-up' : 'pi-arrow-down')"
+             [style.color]="card.trendDirection === 'up' ? '#10B981' : '#EF4444'">
+          </i>
+          <span [style.color]="card.trendDirection === 'up' ? '#10B981' : '#EF4444'" class="font-semibold">
+            {{ Math.abs(card.trend) }}%
+          </span>
+          <span class="text-500 text-sm">vs last period</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Charts Row 1 -->
+  <div class="grid mb-4">
+    <!-- Volume Trend Chart -->
+    <div class="col-12 lg:col-8">
+      <div class="surface-card shadow-2 p-4 border-round">
+        <div class="flex justify-content-between align-items-center mb-4">
+          <div>
+            <h3 class="text-xl font-bold text-900 m-0 mb-2">Ticket Volume Trend</h3>
+            <p class="text-600 m-0">Daily ticket creation and resolution over time</p>
+          </div>
+          <p-button 
+            icon="pi pi-external-link" 
+            [text]="true"
+            severity="secondary"
+            (onClick)="navigateToTickets()">
+          </p-button>
+        </div>
+        <div>
+          <p-chart 
+            type="line" 
+            [data]="volumeChartData" 
+            [options]="volumeChartOptions"
+            class="h-[30rem]">
+          </p-chart>
+        </div>
+        
+      </div>
+    </div>
+
+    <!-- Channel Distribution -->
+    <div class="col-12 lg:col-4">
+      <div class="surface-card shadow-2 p-4 border-round">
+        <div class="mb-4">
+          <h3 class="text-xl font-bold text-900 m-0 mb-2">Channel Distribution</h3>
+          <p class="text-600 m-0">Tickets by communication channel</p>
+        </div>
+        <div style="height: 300px;">
+          <p-chart 
+            type="doughnut" 
+            [data]="channelChartData" 
+            [options]="channelChartOptions"
+            [style]="{'height': '100%'}">
+          </p-chart>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Charts Row 2 -->
+  <div class="grid mb-4">
+    <!-- Hourly Distribution -->
+    <div class="col-12 lg:col-6">
+      <div class="surface-card shadow-2 p-4 border-round">
+        <div class="mb-4">
+          <h3 class="text-xl font-bold text-900 m-0 mb-2">Peak Hours Analysis</h3>
+          <p class="text-600 m-0">Ticket volume by hour of day</p>
+        </div>
+        <div>
+          <p-chart 
+            type="bar" 
+            [data]="hourlyChartData" 
+            [options]="hourlyChartOptions"
+            [style]="{'height': '100%'}">
+          </p-chart>
+        </div>
+      </div>
+    </div>
+
+    <!-- Customer Effort Score -->
+    <div class="col-12 lg:col-6">
+      <div class="surface-card shadow-2 p-4 border-round">
+        <div class="mb-4">
+          <h3 class="text-xl font-bold text-900 m-0 mb-2">Customer Effort Score</h3>
+          <p class="text-600 m-0">Message exchanges needed to resolve tickets</p>
+        </div>
+        <div *ngIf="customerEffortScore" class="mb-3">
+          <div class="flex justify-content-between align-items-center mb-2">
+            <span class="text-900 font-semibold">Avg Customer Messages</span>
+            <span class="text-2xl font-bold text-primary">
+              {{ customerEffortScore.avg_customer_messages }}
+            </span>
+          </div>
+          <div class="flex justify-content-between align-items-center">
+            <span class="text-900 font-semibold">Avg Total Messages</span>
+            <span class="text-2xl font-bold text-900">
+              {{ customerEffortScore.avg_total_messages }}
+            </span>
+          </div>
+        </div>
+        <div>
+          <p-chart 
+            type="pie" 
+            [data]="effortChartData" 
+            [options]="effortChartOptions"
+            [style]="{'height': '100%'}">
+          </p-chart>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Agent Performance Table -->
+  <div class="surface-card shadow-2 p-4 border-round mb-4">
+    <div class="flex justify-content-between align-items-center mb-4">
+      <div>
+        <h3 class="text-xl font-bold text-900 m-0 mb-2">Agent Performance</h3>
+        <p class="text-600 m-0">Individual agent metrics and productivity</p>
+      </div>
+    </div>
+
+    <p-table 
+      [value]="agentPerformance" 
+      [paginator]="true" 
+      [rows]="10"
+      [showCurrentPageReport]="true"
+      currentPageReportTemplate="Showing {first} to {last} of {totalRecords} agents"
+      responsiveLayout="scroll"
+      styleClass="p-datatable-gridlines">
+      
+      <ng-template #header>
+        <tr>
+          <th style="min-width: 200px;">Agent</th>
+          <th style="min-width: 120px;">Assigned</th>
+          <th style="min-width: 120px;">Resolved</th>
+          <th style="min-width: 150px;">Resolution Rate</th>
+          <th style="min-width: 150px;">Avg Response Time</th>
+          <th style="min-width: 150px;">Avg Resolution Time</th>
+          <th style="min-width: 120px;">Performance</th>
+        </tr>
+      </ng-template>
+      
+      <ng-template #body let-agent>
+        <tr>
+          <td>
+            <div class="flex align-items-center gap-3">
+              <p-avatar 
+                [label]="agent.agent.agent_name?.charAt(0).toUpperCase()"
+                size="large"
+                shape="circle"
+                [style]="{'background-color': '#3B82F6', 'color': '#ffffff'}">
+              </p-avatar>
+              <div class="flex flex-column">
+                <span class="font-semibold text-900">{{ agent.agent.agent_name }}</span>
+                <span class="text-600 text-sm">ID: {{ agent.agent.agent_id }}</span>
+              </div>
+            </div>
+          </td>
+          <td>
+            <span class="text-900 font-semibold">{{ agent.total_assigned }}</span>
+          </td>
+          <td>
+            <span class="text-900 font-semibold">{{ agent.total_closed }}</span>
+          </td>
+          <td>
+            <div class="flex flex-column gap-2">
+              <div class="flex align-items-center gap-2">
+                <p-progressBar 
+                  [value]="agent.close_rate" 
+                  [showValue]="false"
+                  [style]="{'height': '8px', 'min-width': '100px'}">
+                </p-progressBar>
+                <span class="font-semibold" [style.color]="getPerformanceColor(agent.close_rate)">
+                  {{ agent.close_rate }}%
+                </span>
+              </div>
+            </div>
+          </td>
+          <td>
+            <div class="flex align-items-center gap-2">
+              <i class="pi pi-clock text-500"></i>
+              <span class="text-900">{{ agent.avg_response_time | number:'1.1-1' }}h</span>
+            </div>
+          </td>
+          <td>
+            <div class="flex align-items-center gap-2">
+              <i class="pi pi-hourglass text-500"></i>
+              <span class="text-900">{{ agent.avg_resolution_time | number:'1.1-1' }}h</span>
+            </div>
+          </td>
+          <td>
+            <p-tag 
+              [value]="agent.close_rate >= 90 ? 'Excellent' : agent.close_rate >= 70 ? 'Good' : 'Needs Improvement'"
+              [severity]="getPerformanceSeverity(agent.close_rate)"
+              [rounded]="true">
+            </p-tag>
+          </td>
+        </tr>
+      </ng-template>
+      
+      <ng-template #emptymessage>
+        <tr>
+          <td colspan="7" class="text-center p-5">
+            <div class="flex flex-column align-items-center gap-3">
+              <i class="pi pi-users text-6xl text-400"></i>
+              <span class="text-900 text-xl font-semibold">No agent data available</span>
+            </div>
+          </td>
+        </tr>
+      </ng-template>
+    </p-table>
+  </div>
+
+  <!-- Top Performers Highlight -->
+  <div class="grid">
+    <div class="col-12">
+      <div class="surface-card shadow-2 p-4 border-round">
+        <h3 class="text-xl font-bold text-900 m-0 mb-4">🏆 Top Performers</h3>
+        <div class="grid">
+          <div *ngFor="let performer of topPerformers; let i = index" class="col-12 md:col-6 lg:col-4">
+            <div class="surface-100 p-3 border-round">
+              <div class="flex align-items-center gap-3 mb-3">
+                <div class="flex align-items-center justify-content-center border-round"
+                     [style.background-color]="i === 0 ? '#FFD700' : i === 1 ? '#C0C0C0' : '#CD7F32'"
+                     style="width: 2.5rem; height: 2.5rem; color: white; font-weight: bold;">
+                  {{ i + 1 }}
+                </div>
+                <div class="flex flex-column flex-1">
+                  <span class="font-semibold text-900">{{ performer.agent.agent_name }}</span>
+                  <span class="text-600 text-sm">{{ performer.total_closed }} resolved</span>
+                </div>
+                <span class="text-2xl font-bold" [style.color]="getPerformanceColor(performer.close_rate)">
+                  {{ performer.close_rate }}%
+                </span>
+              </div>
+              <div class="flex justify-content-between text-sm">
+                <span class="text-600">Response: {{ performer.avg_response_time | number:'1.1-1' }}h</span>
+                <span class="text-600">Resolution: {{ performer.avg_resolution_time | number:'1.1-1' }}h</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>

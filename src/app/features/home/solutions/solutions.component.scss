@@ -1,0 +1,232 @@
+.features-section {
+  background: white;
+  margin-top: 2rem;
+  padding-top: 1rem;
+  padding-bottom: 1rem;
+}
+
+.gradient-text {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.feature-card {
+  padding: 2rem;
+  background: white;
+  border-radius: 1rem;
+  border: 2px solid #f3f4f6;
+  transition: all 0.3s ease;
+  height: 100%;
+
+  &:hover {
+    border-color: rgba(102, 126, 234, 0.3);
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+    transform: translateY(-8px);
+  }
+}
+
+.feature-icon {
+  width: 4rem;
+  height: 4rem;
+  background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
+  border-radius: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 1.5rem;
+  transition: all 0.3s ease;
+
+  i {
+    font-size: 2rem;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+}
+
+.feature-card:hover .feature-icon {
+  transform: scale(1.1);
+}
+
+.product-showcase {
+  background: linear-gradient(to bottom, rgba(102, 126, 234, 0.05), white);
+}
+
+/* Update your product-tabs CSS */
+.product-tabs {
+  background: white;
+  border-radius: 9999px;
+  padding: 0.25rem;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+  display: inline-flex; /* This is key */
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  margin: 0 auto; /* Center horizontally */
+}
+
+/* Ensure the wrapper div centers properly */
+.flex.w-full.justify-center.mb-8 {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+}
+
+/* OR make it even more specific */
+div[max-w-7xl] > div.flex.w-full.justify-center.mb-8 {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+}
+
+.tab-button {
+  padding: 0.75rem 1.5rem;
+  border-radius: 9999px;
+  font-weight: 600;
+  transition: all 0.3s ease;
+  border: none;
+  background: transparent;
+  color: #6b7280;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  white-space: nowrap;
+
+  &:hover {
+    color: #374151;
+  }
+
+  &.active {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+  }
+
+  @media (max-width: 640px) {
+    padding: 0.75rem 1rem;
+    font-size: 0.875rem;
+  }
+}
+
+.tab-content {
+  animation: fadeIn 0.5s ease;
+}
+
+.tabs-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 3rem;
+  align-items: center;
+
+  @media (min-width: 768px) {
+    grid-template-columns: 1fr 1fr;
+    gap: 4rem;
+  }
+}
+
+.product-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 3rem;
+  align-items: center;
+
+  @media (min-width: 768px) {
+    grid-template-columns: 1fr 1fr;
+    gap: 4rem;
+  }
+}
+
+.product-content {
+  display: flex;
+  flex-direction: column;
+  
+  &.order-2 {
+    @media (min-width: 768px) {
+      order: 2;
+    }
+  }
+}
+
+.product-image {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  
+  &.order-1 {
+    @media (min-width: 768px) {
+      order: 1;
+    }
+  }
+
+  img {
+    width: 100%;
+    max-width: 600px;
+    height: auto;
+    border-radius: 1rem;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+    transition: transform 0.3s ease;
+
+    &:hover {
+      transform: scale(1.02);
+    }
+  }
+}
+
+.feature-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+
+  li {
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+
+    i {
+      color: #10b981;
+      font-size: 1.25rem;
+      flex-shrink: 0;
+      margin-top: 0.25rem;
+    }
+
+    span {
+      color: #374151;
+      line-height: 1.6;
+      font-size: 1rem;
+
+      strong {
+        color: #1f2937;
+      }
+    }
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (max-width: 768px) {
+  .feature-card {
+    padding: 1.5rem;
+  }
+
+  .feature-icon {
+    width: 3rem;
+    height: 3rem;
+
+    i {
+      font-size: 1.5rem;
+    }
+  }
+}

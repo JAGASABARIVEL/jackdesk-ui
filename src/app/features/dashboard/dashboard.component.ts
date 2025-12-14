@@ -1,12 +1,12 @@
 import { CommonModule } from '@angular/common';
 import { Component, OnDestroy, OnInit } from '@angular/core';
 import { ConversationDashboardComponent } from './conversation-dashboard/conversation-dashboard.component';
-import { KeyloggerDashboardComponent } from './keylogger-dashboard/keylogger-dashboard.component';
 import { Router } from '@angular/router';
 import { TabsModule } from 'primeng/tabs';
 import { ChatManagerService } from '../../shared/services/chat-manager.service';
 import { ConversationNotificationTemplate, LayoutService } from '../../layout/service/app.layout.service';
 import { Subject, takeUntil } from 'rxjs';
+import { EnhancedConversationDashboardComponent } from './enhanced-conversation-dashboard/enhanced-conversation-dashboard.component';
 
 
 @Component({
@@ -15,6 +15,7 @@ import { Subject, takeUntil } from 'rxjs';
   imports: [
     CommonModule,
     ConversationDashboardComponent,
+    EnhancedConversationDashboardComponent,
 
     TabsModule
   ],

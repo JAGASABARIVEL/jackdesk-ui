@@ -1,0 +1,103 @@
+.contacts-wrapper {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    min-height: 100vh;
+    padding: 2rem;
+}
+
+.contacts-header {
+    margin-bottom: 2rem;
+    
+    .header-content {
+        text-align: center;
+        color: white;
+        
+        .header-title {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin: 0 0 0.5rem 0;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        
+        .header-subtitle {
+            font-size: 1.1rem;
+            opacity: 0.9;
+            margin: 0;
+        }
+    }
+}
+
+:host ::ng-deep {
+    .modern-tabs {
+        background: white;
+        border-radius: 16px;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+        overflow: hidden;
+        
+        .p-tablist {
+            background: linear-gradient(to right, #f8f9fa, #ffffff);
+            border-bottom: 1px solid #e9ecef;
+            padding: 0.5rem 1rem;
+        }
+        
+        .modern-tab {
+            .tab-content {
+                display: flex;
+                align-items: center;
+                gap: 0.5rem;
+                padding: 0.75rem 1.5rem;
+                transition: all 0.3s ease;
+                
+                .tab-icon {
+                    font-size: 1.1rem;
+                    color: #6c757d;
+                    transition: all 0.3s ease;
+                }
+                
+                .tab-label {
+                    font-weight: 600;
+                    font-size: 0.95rem;
+                    color: #495057;
+                    transition: all 0.3s ease;
+                }
+                
+                .tab-badge {
+                    background: #e9ecef;
+                    color: #495057;
+                    font-weight: 600;
+                    transition: all 0.3s ease;
+                }
+            }
+            
+            &:hover .tab-content {
+                .tab-icon {
+                    color: #667eea;
+                    transform: scale(1.1);
+                }
+                
+                .tab-label {
+                    color: #667eea;
+                }
+            }
+            
+            &[aria-selected="true"] .tab-content {
+                .tab-icon {
+                    color: #667eea;
+                }
+                
+                .tab-label {
+                    color: #667eea;
+                }
+                
+                .tab-badge {
+                    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                    color: white;
+                }
+            }
+        }
+        
+        .p-tabpanels {
+            background: transparent;
+            padding: 2rem;
+        }
+    }
+}

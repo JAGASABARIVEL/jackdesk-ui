@@ -17,6 +17,8 @@ import { SocketService } from '../../../shared/services/socketio.service';
 import { Subject, takeUntil } from 'rxjs';
 import { UserManagerService } from '../../../shared/services/user-manager.service';
 import { Router } from '@angular/router';
+import { BadgeModule } from 'primeng/badge';
+import { PerformJsonOpPipe } from '../../../shared/pipes/perform-json-op.pipe';
 
 
 
@@ -32,9 +34,11 @@ import { Router } from '@angular/router';
     InputTextModule,
     InputGroupAddonModule,
     InputGroupModule,
+    BadgeModule,
 
     ListChatWindowComponent,
     DetailChatWindowComponent,
+    PerformJsonOpPipe
 
   ],
   providers: [
@@ -403,7 +407,7 @@ async loadContacts(): Promise<void> {
               this.reassignmentProcessResponse = true;
             } else {
               // No conversations available
-              console.log('No conversations available after reassignment');
+              console.warn('No conversations available after reassignment');
               this.selectedConversation.set(null);
               this.reassignmentProcessResponse = true;
             }
@@ -511,5 +515,48 @@ async loadContacts(): Promise<void> {
 
     this.filterconversations.set(sorted);
   }
+
+  // Add these helper methods to your ChatWindowComponent class
+
+/**
+ * Get formatted last message time for a conversation
+ */
+getLastMessageTime(conversation: any): string {
+  if (!conversation.messages || conversation.messages.length === 0) {
+    return '';
+  }
+  
+  const lastMessage = conversation.messages[conversation.messages.length - 1];
+  const time = lastMessage.type === 'customer' ? lastMessage.received_time : lastMessage.sent_time;
+  
+  if (!time) return '';
+  
+  const messageDate = new Date(time);
+  const now = new Date();
+  const diffInMs = now.getTime() - messageDate.getTime();
+  const diffInHours = diffInMs / (1000 * 60 * 60);
+  
+  // Less than 24 hours: show time only
+  if (diffInHours < 24) {
+    return messageDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  }
+  
+  // Less than 7 days: show day of week
+  if (diffInHours < 168) {
+    return messageDate.toLocaleDateString('en-US', { weekday: 'short' });
+  }
+  
+  // Older: show date
+  return messageDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+}
+
+/**
+ * Get unread message count for a conversation
+ */
+getUnreadCount(conversation: any): number {
+  if (!conversation.messages) return 0;
+  
+  return conversation.messages.filter((msg: any) => msg.status === 'unread').length;
+}
 
 }

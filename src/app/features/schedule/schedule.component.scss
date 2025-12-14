@@ -1,0 +1,81 @@
+.schedule-container {
+    min-height: 100vh;
+    background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+    padding: 2rem;
+}
+
+.schedule-header {
+    margin-bottom: 2rem;
+    
+    .header-content {
+        background: white;
+        border-radius: 16px;
+        padding: 2rem;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.07);
+        
+        .page-title {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #2c3e50;
+            margin: 0 0 0.5rem 0;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        .page-subtitle {
+            font-size: 1rem;
+            color: #64748b;
+            margin: 0;
+        }
+    }
+}
+
+::ng-deep {
+    .modern-tabs {
+        background: white;
+        border-radius: 16px;
+        padding: 1.5rem;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.07);
+        
+        .p-tablist {
+            border-bottom: 2px solid #e2e8f0;
+            margin-bottom: 2rem;
+            
+            .modern-tab {
+                .tab-content {
+                    display: flex;
+                    align-items: center;
+                    gap: 0.5rem;
+                    padding: 0.75rem 1.5rem;
+                    font-weight: 600;
+                    transition: all 0.3s ease;
+                    
+                    .tab-icon {
+                        font-size: 1.25rem;
+                    }
+                    
+                    .tab-label {
+                        font-size: 1rem;
+                    }
+                }
+                
+                &:hover {
+                    .tab-content {
+                        color: #667eea;
+                    }
+                }
+                
+                &.p-highlight {
+                    .tab-content {
+                        color: #667eea;
+                    }
+                }
+            }
+        }
+        
+        .p-tabpanels {
+            background: transparent;
+        }
+    }
+}

@@ -1,3 +1,4 @@
+// conversation-dashboard.component.ts - IMPROVED VERSION
 import { CommonModule } from '@angular/common';
 import { Component, OnDestroy, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
@@ -7,9 +8,17 @@ import { ButtonModule } from 'primeng/button';
 import { ChartModule } from 'primeng/chart';
 import { TableModule } from 'primeng/table';
 import { DatePickerModule } from 'primeng/datepicker';
-import { Subject, takeUntil } from 'rxjs';
+import { Subject, takeUntil, interval } from 'rxjs';
 import { FloatLabelModule } from 'primeng/floatlabel';
 import { BadgeModule } from 'primeng/badge';
+import { DialogModule } from 'primeng/dialog';
+import { SelectModule } from 'primeng/select';
+import { CardModule } from 'primeng/card';
+import { TagModule } from 'primeng/tag';
+import { ProgressBarModule } from 'primeng/progressbar';
+import { TooltipModule } from 'primeng/tooltip';
+import { TabsModule } from 'primeng/tabs';
+import { SkeletonModule } from 'primeng/skeleton';
 
 import { CUstomEventService } from '../../../shared/services/Events/custom-events.service';
 import { UserManagerService } from '../../../shared/services/user-manager.service';
@@ -17,9 +26,20 @@ import { ChatManagerService } from '../../../shared/services/chat-manager.servic
 import { ListNewConversationsComponent } from '../../chat/list-conversations/list-conversations.component';
 import { ListActiveConversationsComponent } from '../../chat/list-active-conversations/list-active-conversations.component';
 import { ReportConversationsComponent } from '../../chat/report-conversations/report-conversations.component';
-import { DialogModule } from 'primeng/dialog';
-import { SelectModule } from 'primeng/select';
 import { LayoutService } from '../../../layout/service/app.layout.service';
+
+interface QuickStat {
+  label: string;
+  value: number | string;
+  icon: string;
+  color: string;
+  bgColor: string;
+  subtitle?: string;
+  clickable?: boolean;
+  filter?: string;
+  trend?: number;
+  trendDirection?: 'up' | 'down';
+}
 
 @Component({
   selector: 'app-conversation-dashboard',
@@ -28,7 +48,6 @@ import { LayoutService } from '../../../layout/service/app.layout.service';
     CommonModule,
     RouterModule,
     FormsModule,
-
     BadgeModule,
     ChartModule,
     SelectModule,
@@ -38,33 +57,66 @@ import { LayoutService } from '../../../layout/service/app.layout.service';
     DatePickerModule,
     FloatLabelModule,
     DialogModule,
-
+    CardModule,
+    TagModule,
+    ProgressBarModule,
+    TooltipModule,
+    TabsModule,
+    SkeletonModule,
     ListNewConversationsComponent,
     ListActiveConversationsComponent,
-    ReportConversationsComponent
+    ReportConversationsComponent,
   ],
   templateUrl: './conversation-dashboard.component.html',
   styleUrl: './conversation-dashboard.component.scss'
 })
 export class ConversationDashboardComponent implements OnInit, OnDestroy {
-
-  profile !: any;
-  periods: any[] | undefined;
-  selectedConversationPerformerPeriod: any | undefined;
-  selectedOrgConversationPerformerPeriod: any | undefined;
-  selectedTaskPerformerInterval: any | undefined;
-  conversations!: any[];
-  loadingNewConversation = false;
-  selectedConversationTimePeriod = 'weekly'; // Default time period
-  conversationChartData: any;
-  conversationChartOptions: any;
-  select_global_duration;
-  selectedConversationMainPeriod;
-  employees: any[];
+  profile!: any;
+  loading = false;
+  loadingStats = false;
+  loadingCharts = false;
+  Math = Math;
+  
+  // Quick Stats
+  quickStats: QuickStat[] = [];
+  
+  // Periods
+  periods: any[] = [];
+  selectedConversationMainPeriod: any;
+  selectedOrgConversationPerformerPeriod: any;
+  selectedConversationPerformerPeriod: any;
+  
+  // Date Range
+  select_global_duration: Date[] = [];
+  
+  // Data
+  employees: any[] = [];
+  select_employee_metric: any;
   reportAllConversationVisible = false;
-  filter_status_report!:string;
+  filter_status_report!: string;
+  
+  // Performance Data
+  organizationConversationPerformance: any = {
+    new: 0,
+    active: 0,
+    closed: 0,
+    resolutionrate: 0,
+    resolutiontime: 0,
+    responsetime: 0
+  };
+  
+  myStats: any = null;
+  
+  // Chart Data
+  org_metrics_data: any;
+  emp_metrics_data: any;
+  conversationOrgProductivityChartData: any;
+  conversationEmployeeProductivityChartData: any;
+  conversationChartOptions: any;
+  
+  // Auto refresh
+  private refreshInterval$ = interval(60000); // 1 minute
   private destroy$ = new Subject<void>();
-
 
   constructor(
     private router: Router,
@@ -73,249 +125,275 @@ export class ConversationDashboardComponent implements OnInit, OnDestroy {
     private userManagerService: UserManagerService,
     private layoutService: LayoutService
   ) {}
-  
 
   ngOnDestroy(): void {
-  this.destroy$.next();
-  this.destroy$.complete();
-}
-
+    this.destroy$.next();
+    this.destroy$.complete();
+  }
 
   ngOnInit(): void {
-
     this.loadProfile();
+    this.initializePeriods();
+    this.initializeDateRange();
+    this.setChartOptions();
+    this.setupAutoRefresh();
+  }
 
+  setupAutoRefresh(): void {
+    this.refreshInterval$
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(() => {
+        if (!this.reportAllConversationVisible) {
+          this.loadConversationStats();
+        }
+      });
+  }
+
+  initializePeriods(): void {
     this.periods = [
-      { name: 'Daily', value: 'daily', code: '1 day'},
+      { name: 'Daily', value: 'daily', code: '1 day' },
       { name: 'Weekly', value: 'weekly', code: '1 week' },
       { name: 'Monthly', value: 'monthly', code: '1 month' },
       { name: 'Quarterly', value: 'quarterly', code: '1 quarter' },
       { name: 'Half-yearly', value: 'half-yearly', code: 'half-year' },
-      { name: 'Yearly', value: 'yearly', code: '1 year'}
+      { name: 'Yearly', value: 'yearly', code: '1 year' }
     ];
+    
+    this.selectedConversationMainPeriod = this.periods[2]; // Monthly
+    this.selectedOrgConversationPerformerPeriod = this.periods[2];
+    this.selectedConversationPerformerPeriod = this.periods[2];
+  }
 
-    // Default duration
+  initializeDateRange(): void {
     const today = new Date();
-    const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
-    this.select_global_duration = [startOfMonth, today];
-
-    this.selectedConversationMainPeriod = this.periods[5]; // Default selection as monthly
-
-    this.updateChartData(); // Initialize chart data
-    this.setChartOptions();
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(today.getDate() - 30);
+    this.select_global_duration = [thirtyDaysAgo, today];
   }
 
-  // Utility function to format the date
-  formatDateToYYYYMMDD(date: Date): string {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0"); // Month is 0-indexed
-  const day = String(date.getDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
-  }
-
-  loadProfile() {
-    this.profile = JSON.parse(localStorage.getItem('profile'));
-    if (!this.profile) {
+  loadProfile(): void {
+    this.profile = JSON.parse(localStorage.getItem('profile') || '{}');
+    if (!this.profile || !this.profile.user) {
       this.router.navigate(['/apps/login']);
       return;
     }
     this.loadUsers();
-    //this.loadConversations();
     this.subscribeForNewConversations();
   }
 
-  private usedColors: Set<string> = new Set();
-  currentColor: string = '#FFFFFF';
-
-  generateColor(): void {
-    this.currentColor = this.getRandomColor();
-  }
-
-  getRandomColor(): string {
-    return '#' + Math.floor(Math.random() * 16777215).toString(16).padStart(6, '0');
-  }
-
-  getUniqueRandomColor(): string {
-    let color;
-    do {
-      color = this.getRandomColor();
-    } while (this.usedColors.has(color));
-    this.usedColors.add(color);
-    return color;
-  }
-
-  loadUsers() {
-    this.userManagerService.list_users().pipe(takeUntil(this.destroy$)).subscribe((data) => {
-      this.employees = data;
-      this.employees.forEach(
-        (emp) => {
-          emp.color = this.getUniqueRandomColor();
-          emp.active = 0;
-          emp.closed = 0;
-          emp.resolutiontime = 0;
-          emp.responsetime = 0;
+  loadUsers(): void {
+    this.userManagerService.list_users()
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (data) => {
+          this.employees = data.map(emp => ({
+            ...emp,
+            color: this.getUniqueRandomColor(),
+            active: 0,
+            closed: 0,
+            resolutiontime: 0,
+            responsetime: 0,
+            closeRate: 0
+          }));
+          this.loadConversationStats();
+        },
+        error: (err) => {
+          console.error('Error loading users:', err);
         }
-      );
-      this.loadConversationStats(); // Since its dependent on employees
-    },
-    (err) => {
-      console.error("List conversation | Error getting users ", err);
-    }
-    );
+      });
   }
 
-  subscribeForNewConversations() {
-    this.conversationEventService.newConversationEvent$.pipe(takeUntil(this.destroy$)).subscribe((event)=> {
-      //this.loadConversations();
-    });
+  subscribeForNewConversations(): void {
+    this.conversationEventService.newConversationEvent$
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(() => {
+        this.loadConversationStats();
+      });
   }
 
-  calculateDateDifference(dateString: string): number {
-    // Parse the date string into a Date object
-    const receivedDate = new Date(dateString);
-    // Get today's date (ignoring time)
-    const today = new Date();
-    //today.setHours(0, 0, 0, 0); // Reset time to midnight for accurate day comparison
-    // Calculate the difference in time (milliseconds)
-    const timeDifference = today.getTime() - receivedDate.getTime();
-    // Convert time difference to days
-    const dayDifference = Math.floor(timeDifference / (1000 * 60 * 60 * 24));
-    return dayDifference;
-  }
-
-  //loadConversations() {
-  //  this.loadingNewConversation = true;
-  //  this.conversationService.list_new_conversations().pipe(takeUntil(this.destroy$)).subscribe((data) => {
-  //    data.forEach((convers) => {
-  //      convers.sla = this.calculateDateDifference(convers.created_at);
-  //    })
-  //    this.conversations = data;
-  //    let new_parsed_messages = [].concat(...data.map((unparsed_data) => {
-  //      return {
-  //          'customerName': unparsed_data?.contact?.name === ''? unparsed_data?.contact?.phone : unparsed_data?.contact?.name,
-  //          'text': unparsed_data?.messages[0].message_body
-  //      }
-  //    }))
-  //    this.layoutService.newTaskmessages.update(() => new_parsed_messages);
-  //    this.loadingNewConversation = false;
-  //  },
-  //  (err) => {
-  //    console.error("List conversation | Error getting conversations ", err);
-  //    this.loadingNewConversation = false;
-  //  }
-  //  )
-  //}
-
-  /**
-   * 
-   * {
-    "total_new": 1,
-    "total_active": 4,
-    "total_closed": 18,
-    "customer_performance_stats": [
-        {
-            "contact_id": 1,
-            "services_used": [
-                {
-                    "conversation_count": 1,
-                    "platform_name": "whatsapp"
-                }
-            ]
+  loadConversationStats(): void {
+    this.loadingStats = true;
+    const globalformattedDates = this.select_global_duration.map(this.formatDateToYYYYMMDD);
+    
+    this.conversationService.stats(
+      this.selectedConversationMainPeriod.value,
+      globalformattedDates[0],
+      globalformattedDates[1]
+    ).pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (data) => {
+          this.parseConversationStats(data);
+          this.buildQuickStats();
+          this.loadingStats = false;
         },
-    ],
-    "user_performance_stats": [
-        {
-            "total_assigned": 19,
-            "total_closed": 17,
-            "user_id": 1
-        },
-    ],
-    "user_performance_stats_avg": {
-        "average_resolution_rate": 0.6140350877192983,
-        "average_resolution_time": 208649.00002107024,
-        "average_response_time": 289608.2609564066,
-        "resolution_time_per_employee": [
-            {
-                "avg": 367195.61334103346,
-                "user_id": 1
-            },
-        ],
-        "response_time_per_employee": [
-            {
-                "avg": 299791.05293133925,
-                "user_id": 1
-            }
-        ]
-    }
-}
-   */
-
-  myStats !: any;
-  loadMyStats() {
-    this.myStats = this.employees.find(me => {return me.details.id === this.profile.user.id});
+        error: (err) => {
+          console.error('Error loading stats:', err);
+          this.loadingStats = false;
+        }
+      });
   }
 
-  organizationConversationPerformance:any = {};
-  employeeConversationPerformance:any = {};
-  customerConversationPerformance:any = {};
-  parseConversationStats(data) {
-    this.organizationConversationPerformance.new = data.total_new;
-    this.organizationConversationPerformance.active = data.total_active;
-    this.organizationConversationPerformance.closed = data.total_closed;
-    this.organizationConversationPerformance.resolutionrate = data.user_performance_stats_avg.average_resolution_rate;
-    this.organizationConversationPerformance.resolutiontime = data.user_performance_stats_avg.average_resolution_time;
-    this.organizationConversationPerformance.responsetime = data.user_performance_stats_avg.average_response_time;
+  parseConversationStats(data: any): void {
+    // Organization Performance
+    this.organizationConversationPerformance = {
+      new: data.total_new || 0,
+      active: data.total_active || 0,
+      closed: data.total_closed || 0,
+      resolutionrate: (data.user_performance_stats_avg?.average_resolution_rate || 0),
+      resolutiontime: this.convertSecondsToHours(data.user_performance_stats_avg?.average_resolution_time || 0),
+      responsetime: this.convertSecondsToHours(data.user_performance_stats_avg?.average_response_time || 0),
+      sla_compliance_rate: data.user_performance_stats_avg?.sla_compliance_rate || 0
+    };
 
-    data.user_performance_stats.forEach((user_stat) => {
-      let foundIndex = this.employees.findIndex((employee) => employee.details.id === user_stat.assigned_user_id);
-      if (this.employees[foundIndex]) {
-        this.employees[foundIndex].active = user_stat.total_active;
-        this.employees[foundIndex].closed = user_stat.total_closed;
-      }      
-    });
+    // Employee Performance
+    if (data.user_performance_stats && this.employees) {
+      data.user_performance_stats.forEach((user_stat: any) => {
+        const foundIndex = this.employees.findIndex(
+          (employee) => employee.details.id === user_stat.assigned_user_id
+        );
+        if (foundIndex !== -1) {
+          this.employees[foundIndex].active = user_stat.total_active || 0;
+          this.employees[foundIndex].closed = user_stat.total_closed || 0;
+          this.employees[foundIndex].closeRate = user_stat.total_assigned > 0
+            ? Math.round((user_stat.total_closed / user_stat.total_assigned) * 100)
+            : 0;
+        }
+      });
 
-    data.user_performance_stats_avg.resolution_time_per_employee.forEach((user_stat) => {
-      let foundIndex = this.employees.findIndex((employee) => employee.details.id === user_stat.assigned_user_id);
-      if (this.employees[foundIndex]) {
-        this.employees[foundIndex].resolutiontime = user_stat.avg;
-      }
-    });
+      // Resolution Time
+      data.user_performance_stats_avg?.resolution_time_per_employee?.forEach((user_stat: any) => {
+        const foundIndex = this.employees.findIndex(
+          (employee) => employee.details.id === user_stat.assigned_user_id
+        );
+        if (foundIndex !== -1) {
+          this.employees[foundIndex].resolutiontime = this.convertSecondsToHours(user_stat.avg || 0);
+        }
+      });
 
-    data.user_performance_stats_avg.response_time_per_employee.forEach((user_stat) => {
-      let foundIndex = this.employees.findIndex((employee) => employee.details.id === user_stat.assigned_user_id);
-      if (this.employees[foundIndex]) {
-        this.employees[foundIndex].responsetime = user_stat.avg;
-      }
-    });
+      // Response Time
+      data.user_performance_stats_avg?.response_time_per_employee?.forEach((user_stat: any) => {
+        const foundIndex = this.employees.findIndex(
+          (employee) => employee.details.id === user_stat.assigned_user_id
+        );
+        if (foundIndex !== -1) {
+          this.employees[foundIndex].responsetime = this.convertSecondsToHours(user_stat.avg || 0);
+        }
+      });
+    }
+
     this.loadMyStats();
   }
 
-  loadConversationStats() {
-    let globalformattedDates = this.select_global_duration.map(this.formatDateToYYYYMMDD);
-    // Convert dates
-    this.conversationService.stats(this.selectedConversationMainPeriod.value, globalformattedDates[0], globalformattedDates[1]).pipe(takeUntil(this.destroy$)).subscribe(
-      (data) => {
-        this.parseConversationStats(data);
-      },
-      (err) => {
-        console.error("Dashboard | Fetch stats ", err);
-      }
-    );
+  loadMyStats(): void {
+    this.myStats = this.employees.find(
+      (emp) => emp.details.id === this.profile.user.id
+    ) || { active: 0, closed: 0, resolutiontime: 0, responsetime: 0, closeRate: 0 };
   }
 
-  countSeverity(value: any) {
-    value = Number(value);
-    if (value < 5) {
-        return 'danger';
-    } else if (value >= 5 && value < 10) {
-        return 'warn';
-    } else {
-        return 'success';
-    }
-}
-  
-  org_metrics_data;
-  reset_org_metrics_data() {
+  buildQuickStats(): void {
+    const isOwner = this.profile.user.role === 'owner';
+    const totalConversations = isOwner 
+      ? (this.organizationConversationPerformance.new)
+      : (this.myStats?.active + this.myStats?.closed);
+
+    this.quickStats = [
+      {
+        label: 'Total Conversations',
+        value: totalConversations,
+        icon: 'pi-comment',
+        color: '#3B82F6',
+        bgColor: '#DBEAFE',
+        subtitle: isOwner 
+          ? `${this.organizationConversationPerformance.new - (this.organizationConversationPerformance.active + this.organizationConversationPerformance.closed)} new`
+          : `${this.myStats?.active} active`,
+        clickable: true,
+        filter: ''
+      },
+      {
+        label: 'Active',
+        value: isOwner 
+          ? this.organizationConversationPerformance.active 
+          : this.myStats?.active,
+        icon: 'pi-clock',
+        color: '#F59E0B',
+        bgColor: '#FEF3C7',
+        subtitle: 'In progress',
+        clickable: true,
+        filter: 'active'
+      },
+      {
+        label: 'Resolved',
+        value: isOwner 
+          ? this.organizationConversationPerformance.closed 
+          : this.myStats?.closed,
+        icon: 'pi-check-circle',
+        color: '#10B981',
+        bgColor: '#D1FAE5',
+        subtitle: 'Completed',
+        clickable: true,
+        filter: 'closed'
+      },
+      //{
+      //  label: isOwner ? 'Avg Resolution Rate' : 'My Close Rate',
+      //  value: isOwner 
+      //    ? `${this.organizationConversationPerformance.resolutionrate.toFixed(1)}%`
+      //    : `${this.myStats?.closeRate || 0}%`,
+      //  icon: 'pi-verified',
+      //  color: '#8B5CF6',
+      //  bgColor: '#EDE9FE',
+      //  subtitle: 'Success rate',
+      //  trend: isOwner 
+      //    ? this.organizationConversationPerformance.resolutionrate - 75
+      //    : this.myStats?.closeRate - 75,
+      //  trendDirection: (isOwner 
+      //    ? this.organizationConversationPerformance.resolutionrate 
+      //    : this.myStats?.closeRate) > 75 ? 'up' : 'down'
+      //},
+      //{
+      //  label: 'Avg Response Time',
+      //  value: isOwner 
+      //    ? `${this.organizationConversationPerformance.responsetime.toFixed(1)}h`
+      //    : `${(this.myStats?.responsetime || 0).toFixed(1)}h`,
+      //  icon: 'pi-clock',
+      //  color: '#EC4899',
+      //  bgColor: '#FCE7F3',
+      //  subtitle: 'First response'
+      //},
+      //{
+      //  label: 'SLA Compliance',
+      //  value: `${this.organizationConversationPerformance.sla_compliance_rate}%`,
+      //  icon: 'pi-shield',
+      //  color: '#8B5CF6',
+      //  bgColor: '#EDE9FE',
+      //  subtitle: 'On-time responses',
+      //}
+    ];
+  }
+
+  loadConversationOrgMetrics(): void {
+    this.loadingCharts = true;
+    const globalformattedDates = this.select_global_duration.map(this.formatDateToYYYYMMDD);
+    
+    this.conversationService.org_metrics(
+      this.selectedOrgConversationPerformerPeriod.value,
+      globalformattedDates[0],
+      globalformattedDates[1]
+    ).pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (data) => {
+          this.reset_org_metrics_data();
+          this.parseOrgMetricsData(data);
+          this.updateOrgMetricsChartData();
+          this.loadingCharts = false;
+        },
+        error: (err) => {
+          console.error('Error loading org metrics:', err);
+          this.loadingCharts = false;
+        }
+      });
+  }
+
+  reset_org_metrics_data(): void {
     this.org_metrics_data = {
       labels: [],
       total: [],
@@ -326,64 +404,75 @@ export class ConversationDashboardComponent implements OnInit, OnDestroy {
 
   parseOrgMetricsData(data: any): void {
     const existingLabels = new Set(this.org_metrics_data.labels);
-  
-    data.org_performance_stats.forEach((org_metric) => {
+
+    data.org_performance_stats?.forEach((org_metric: any) => {
       if (!existingLabels.has(org_metric.label)) {
         this.org_metrics_data.labels.push(org_metric.label);
-        this.org_metrics_data.total.push(org_metric.total_assigned);
-        this.org_metrics_data.active.push(org_metric.total_active);
-        this.org_metrics_data.closed.push(org_metric.total_closed);
-  
-        existingLabels.add(org_metric.label); // Keep track of added labels
+        this.org_metrics_data.total.push(org_metric.total_assigned || 0);
+        this.org_metrics_data.active.push(org_metric.total_active || 0);
+        this.org_metrics_data.closed.push(org_metric.total_closed || 0);
+        existingLabels.add(org_metric.label);
       }
     });
   }
 
-  loadConversationOrgMetrics() {
-    let globalformattedDates = this.select_global_duration.map(this.formatDateToYYYYMMDD);
-    this.conversationService.org_metrics(this.selectedOrgConversationPerformerPeriod.value, globalformattedDates[0], globalformattedDates[1]).pipe(takeUntil(this.destroy$)).subscribe(
-      (data) => {
-        this.reset_org_metrics_data(); // Clear the existing data;
-        this.parseOrgMetricsData(data);
-        this.updateOrgMetricsChartData();
-      },
-      (err) => {
-
-      }
-    );
-  }
-
-  conversationOrgProductivityChartData;
-  updateOrgMetricsChartData() {
-    // Fetch and filter data based on `selectedTimePeriod`
-    const data = this.org_metrics_data
+  updateOrgMetricsChartData(): void {
+    const data = this.org_metrics_data;
     this.conversationOrgProductivityChartData = {
-      labels: data.labels, // Time intervals (e.g., days, weeks)
+      labels: data.labels,
       datasets: [
         {
+          label: 'Total Assigned',
+          data: data.total,
+          backgroundColor: 'rgba(59, 130, 246, 0.8)',
+          borderColor: '#3B82F6',
+          borderWidth: 2
+        },
+        {
           label: 'Active',
-          data: data.active, // Metrics for conversations
-          backgroundColor: 'rgba(75, 192, 192, 0.6)'
+          data: data.active,
+          backgroundColor: 'rgba(245, 158, 11, 0.8)',
+          borderColor: '#F59E0B',
+          borderWidth: 2
         },
         {
           label: 'Closed',
-          data: data.closed, // Metrics for tasks closed
-          backgroundColor: 'rgba(153, 102, 255, 0.6)'
-        },
-        {
-          label: 'Total',
-          data: data.total, // Metrics for tasks closed
-          backgroundColor: 'rgba(180, 10, 2, 0.6)'
+          data: data.closed,
+          backgroundColor: 'rgba(16, 185, 129, 0.8)',
+          borderColor: '#10B981',
+          borderWidth: 2
         }
       ]
     };
   }
 
+  loadConversationEmploeeMetrics(): void {
+    if (!this.select_employee_metric) return;
+    
+    this.loadingCharts = true;
+    const globalformattedDates = this.select_global_duration.map(this.formatDateToYYYYMMDD);
+    
+    this.conversationService.employee_metrics(
+      this.selectedConversationPerformerPeriod?.value,
+      globalformattedDates[0],
+      globalformattedDates[1],
+      this.select_employee_metric.details.id
+    ).pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (data) => {
+          this.reset_emp_metrics_data();
+          this.parseEmployeeMetricsData(data);
+          this.updateEmploeeMetricsChartData();
+          this.loadingCharts = false;
+        },
+        error: (err) => {
+          console.error('Error loading employee metrics:', err);
+          this.loadingCharts = false;
+        }
+      });
+  }
 
-
-  select_employee_metric;
-  emp_metrics_data;
-  reset_emp_metrics_data() {
+  reset_emp_metrics_data(): void {
     this.emp_metrics_data = {
       labels: [],
       total: [],
@@ -391,111 +480,90 @@ export class ConversationDashboardComponent implements OnInit, OnDestroy {
       closed: []
     };
   }
-  
+
   parseEmployeeMetricsData(data: any): void {
     const existingLabels = new Set(this.emp_metrics_data.labels);
-  
-    data.user_performance_stats.forEach((user_metric) => {
-      if (this.select_employee_metric.details.id === user_metric.assigned_user_id && 
+
+    data.user_performance_stats?.forEach((user_metric: any) => {
+      if (this.select_employee_metric.details.id === user_metric.assigned_user_id &&
           !existingLabels.has(user_metric.label)) {
         this.emp_metrics_data.labels.push(user_metric.label);
-        this.emp_metrics_data.total.push(user_metric.total_assigned);
-        this.emp_metrics_data.active.push(user_metric.total_active);
-        this.emp_metrics_data.closed.push(user_metric.total_closed);
-  
-        existingLabels.add(user_metric.label); // Keep track of added labels
+        this.emp_metrics_data.total.push(user_metric.total_assigned || 0);
+        this.emp_metrics_data.active.push(user_metric.total_active || 0);
+        this.emp_metrics_data.closed.push(user_metric.total_closed || 0);
+        existingLabels.add(user_metric.label);
       }
     });
   }
-  
 
-  loadConversationEmploeeMetrics() {
-    let globalformattedDates = this.select_global_duration.map(this.formatDateToYYYYMMDD);
-    this.conversationService.employee_metrics(this.selectedConversationPerformerPeriod?.value, globalformattedDates[0], globalformattedDates[1], this.select_employee_metric.details.id).pipe(takeUntil(this.destroy$)).subscribe(
-      (data) => {
-        this.reset_emp_metrics_data(); // Clear the existing data;
-        this.parseEmployeeMetricsData(data);
-        this.updateEmploeeMetricsChartData();
-      },
-      (err) => {
-
-      }
-    );
-  }
-
-  conversationEmployeeProductivityChartData;
-  updateEmploeeMetricsChartData() {
-    // Fetch and filter data based on `selectedTimePeriod`
-    const data = this.emp_metrics_data
+  updateEmploeeMetricsChartData(): void {
+    const data = this.emp_metrics_data;
     this.conversationEmployeeProductivityChartData = {
-      labels: data.labels, // Time intervals (e.g., days, weeks)
+      labels: data.labels,
       datasets: [
         {
+          label: 'Total Assigned',
+          data: data.total,
+          backgroundColor: 'rgba(59, 130, 246, 0.8)',
+          borderColor: '#3B82F6',
+          borderWidth: 2
+        },
+        {
           label: 'Active',
-          data: data.active, // Metrics for conversations
-          backgroundColor: 'rgba(75, 192, 192, 0.6)'
+          data: data.active,
+          backgroundColor: 'rgba(245, 158, 11, 0.8)',
+          borderColor: '#F59E0B',
+          borderWidth: 2
         },
         {
           label: 'Closed',
-          data: data.closed, // Metrics for tasks closed
-          backgroundColor: 'rgba(153, 102, 255, 0.6)'
-        },
-        {
-          label: 'Total',
-          data: data.total, // Metrics for tasks closed
-          backgroundColor: 'rgba(180, 10, 2, 0.6)'
+          data: data.closed,
+          backgroundColor: 'rgba(16, 185, 129, 0.8)',
+          borderColor: '#10B981',
+          borderWidth: 2
         }
       ]
     };
   }
 
-  onSelectedConversationMainIntervalChange() {
-    this.loadUsers();
-  }
-
-  getSeverity(status: string) {
-    switch (status) {
-        case 'new':
-            return 'danger';
-        case 'active':
-            return 'warning';
-        case 'closed':
-            return 'success';
+  onSelectedConversationMainIntervalChange(): void {
+    if (this.select_global_duration && 
+        this.select_global_duration[0] && 
+        this.select_global_duration[1]) {
+      this.loadUsers();
     }
-    return 'danger';
   }
 
-  updateChartData() {
-    // Fetch and filter data based on `selectedTimePeriod`
-    const mockData = this.getMockMetrics(this.selectedConversationTimePeriod);
+  setChartOptions(): void {
+    const textColor = '#374151';
+    const gridColor = '#E5E7EB';
 
-    this.conversationChartData = {
-      labels: mockData.labels, // Time intervals (e.g., days, weeks)
-      datasets: [
-        {
-          label: 'Conversations Closed',
-          data: mockData.conversations, // Metrics for conversations
-          backgroundColor: 'rgba(75, 192, 192, 0.6)'
-        },
-        {
-          label: 'Tasks Closed',
-          data: mockData.tasksClosed, // Metrics for tasks closed
-          backgroundColor: 'rgba(153, 102, 255, 0.6)'
-        },
-      ]
-    };
-  }
-
-  setChartOptions() {
     this.conversationChartOptions = {
       responsive: true,
+      maintainAspectRatio: false,
       plugins: {
         legend: {
           display: true,
-          position: 'top'
+          position: 'top',
+          labels: {
+            color: textColor,
+            font: {
+              size: 12,
+              weight: '500'
+            }
+          }
         },
         tooltip: {
-          enabled: true
+          enabled: true,
+          backgroundColor: 'rgba(0, 0, 0, 0.8)',
+          padding: 12,
+          titleFont: {
+            size: 14,
+            weight: 'bold'
+          },
+          bodyFont: {
+            size: 13
+          }
         }
       },
       scales: {
@@ -503,68 +571,99 @@ export class ConversationDashboardComponent implements OnInit, OnDestroy {
           display: true,
           title: {
             display: true,
-            text: 'Time Intervals'
+            text: 'Time Period',
+            color: textColor,
+            font: {
+              size: 12,
+              weight: '600'
+            }
+          },
+          ticks: {
+            color: textColor,
+            font: {
+              size: 11
+            }
+          },
+          grid: {
+            color: gridColor
           }
         },
         y: {
           display: true,
           title: {
             display: true,
-            text: 'Count'
+            text: 'Count',
+            color: textColor,
+            font: {
+              size: 12,
+              weight: '600'
+            }
+          },
+          ticks: {
+            color: textColor,
+            font: {
+              size: 11
+            }
+          },
+          grid: {
+            color: gridColor
           }
         }
       }
     };
   }
 
-  getMockMetrics(period: string) {
-    // Mock data for demonstration purposes
-    switch (period) {
-      case 'daily':
-        return {
-          labels: ['Day 1', 'Day 2', 'Day 3', 'Day 4', 'Day 5', 'Day 6', 'Day 7'],
-          conversations: [5, 8, 10, 6, 7, 12, 9],
-          tasksClosed: [4, 6, 8, 5, 6, 9, 7]
-        };
-      case 'weekly':
-        return {
-          labels: ['Week 1', 'Week 2', 'Week 3', 'Week 4'],
-          conversations: [25, 40, 30, 50],
-          tasksClosed: [15, 20, 35, 45]
-        };
-      case 'monthly':
-        return {
-          labels: ['January', 'February', 'March', 'April'],
-          conversations: [100, 200, 150, 250],
-          tasksClosed: [80, 120, 160, 220]
-        };
-      case 'quarterly':
-        return {
-          labels: ['Q1', 'Q2', 'Q3', 'Q4'],
-          conversations: [400, 450, 300, 500],
-          tasksClosed: [350, 400, 320, 480]
-        };
-      case 'half-yearly':
-        return {
-          labels: ['H1', 'H2'],
-          conversations: [850, 1200],
-          tasksClosed: [700, 1100]
-        };
-      case 'yearly':
-        return {
-          labels: ['2020', '2021', '2022', '2023'],
-          conversations: [1200, 1500, 1700, 2000],
-          tasksClosed: [1100, 1400, 1600, 1900]
-        };
-      default:
-        return {
-          labels: [],
-          conversations: [],
-          tasksClosed: []
-        };
+  // Utility Methods
+  formatDateToYYYYMMDD(date: Date): string {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  }
+
+  convertSecondsToHours(seconds: number): number {
+    return seconds ? Math.round((seconds / 3600) * 10) / 10 : 0;
+  }
+
+  getUniqueRandomColor(): string {
+    return '#' + Math.floor(Math.random() * 16777215).toString(16).padStart(6, '0');
+  }
+
+  getSeverity(status: string): string {
+    const severities: any = {
+      new: 'danger',
+      active: 'warn',
+      closed: 'success'
+    };
+    return severities[status] || 'info';
+  }
+
+  countSeverity(value: number): any {
+    if (value < 5) return 'danger';
+    if (value >= 5 && value < 10) return 'warn';
+    return 'success';
+  }
+
+  getPerformanceColor(rate: number): string {
+    if (rate >= 90) return '#10B981';
+    if (rate >= 70) return '#F59E0B';
+    return '#EF4444';
+  }
+
+  onStatClick(stat: QuickStat): void {
+    if (stat.clickable) {
+      this.filter_status_report = stat.filter || '';
+      this.reportAllConversationVisible = true;
     }
   }
 
-  
-
+  refreshDashboard(): void {
+    this.loadConversationStats();
+    if (this.selectedOrgConversationPerformerPeriod) {
+      this.loadConversationOrgMetrics();
+    }
+    if (this.select_employee_metric) {
+      this.loadConversationEmploeeMetrics();
+    }
+  }
 }

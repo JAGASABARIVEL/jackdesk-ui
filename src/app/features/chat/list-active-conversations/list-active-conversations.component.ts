@@ -41,7 +41,6 @@ import { CheckboxModule } from 'primeng/checkbox';
     TableModule,
     ConfirmDialogModule,
     InputGroupModule,
-    InputGroupAddon,
     DialogModule,
     CheckboxModule,
   ],
@@ -56,7 +55,7 @@ export class ListActiveConversationsComponent implements OnInit, OnDestroy {
   private destroy$ = new Subject<void>();
 
   @Input() is_user_specific: boolean;
-  @Input() heading !: string;
+  @Input() heading: string = "Active Conversations";
   users!: any[];
   conversation !: any;
   conversations!: ConversationModel[];

@@ -1,65 +1,171 @@
-<div class="surface-section px-4 py-8 md:px-6 lg:px-8 text-center">
-    <div class="mb-3 font-bold text-3xl">
-        <span class="text-700">One Product, </span>
-        <span class="text-primary">Many Solutions</span>
+<div class="features-section py-12 md:py-20 px-4 sm:px-6 lg:px-8">
+    <div class="max-w-7xl mx-auto">
+        <div class="text-center mb-12 md:mb-16">
+            <h2 class="text-3xl md:text-4xl lg:text-5xl font-bold mb-4">
+                Everything You Need to
+                <span class="gradient-text"> Scale Support</span>
+            </h2>
+            <p class="mb-8 text-lg md:text-xl text-gray-600 max-w-3xl mx-auto">
+                Powerful features designed for MSMEs to deliver exceptional customer experiences
+            </p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
+            <!-- Omnichannel Messaging -->
+            <div class="feature-card group">
+                <div class="feature-icon">
+                    <i class="pi pi-comments"></i>
+                </div>
+                <h3 class="text-xl font-bold mb-3 text-gray-900">Omnichannel Messaging</h3>
+                <p class="text-gray-600">Unify WhatsApp, Gmail, SMS, Messenger, and Web Chat in one powerful inbox</p>
+            </div>
+
+            <!-- Smart Scheduling -->
+            <div class="feature-card group">
+                <div class="feature-icon">
+                    <i class="pi pi-calendar"></i>
+                </div>
+                <h3 class="text-xl font-bold mb-3 text-gray-900">Smart Scheduling</h3>
+                <p class="text-gray-600">Schedule campaigns, track delivery status, and automate your outreach</p>
+            </div>
+
+            <!-- Contact Management -->
+            <div class="feature-card group">
+                <div class="feature-icon">
+                    <i class="pi pi-users"></i>
+                </div>
+                <h3 class="text-xl font-bold mb-3 text-gray-900">Contact Management</h3>
+                <p class="text-gray-600">Organize contacts into groups for targeted campaigns and better engagement</p>
+            </div>
+
+            <!-- Advanced Analytics -->
+            <div class="feature-card group">
+                <div class="feature-icon">
+                    <i class="pi pi-chart-line"></i>
+                </div>
+                <h3 class="text-xl font-bold mb-3 text-gray-900">Advanced Analytics</h3>
+                <p class="text-gray-600">Real-time dashboards with SLA tracking, resolution rates, and team performance</p>
+            </div>
+
+            <!-- Employee Monitoring -->
+            <div class="feature-card group">
+                <div class="feature-icon">
+                    <i class="pi pi-clock"></i>
+                </div>
+                <h3 class="text-xl font-bold mb-3 text-gray-900">Employee Monitoring</h3>
+                <p class="text-gray-600">Track productivity, app usage, idle time, and attendance with detailed reports</p>
+            </div>
+
+            <!-- Auto-Assignment -->
+            <div class="feature-card group">
+                <div class="feature-icon">
+                    <i class="pi pi-bolt"></i>
+                </div>
+                <h3 class="text-xl font-bold mb-3 text-gray-900">Auto-Assignment</h3>
+                <p class="text-gray-600">Round-robin or bandwidth-based ticket distribution across your team</p>
+            </div>
+        </div>
     </div>
-    <div class="text-700 mb-6">
-        Manage your organization’s workflows seamlessly — from customer messaging to cloud storage and access control — all from a single platform.
-    </div>
-    <div class="grid">
-        <!-- Manage Campaigns -->
-        <div class="col-12 md:col-4 mb-4 px-5">
-            <span class="p-3 shadow-2 mb-3 inline-block surface-card" style="border-radius: 10px">
-                <i class="pi pi-send text-4xl text-primary"></i>
-            </span>
-            <div class="text-700 text-xl mb-3 font-medium">Smart Campaigns</div>
-            <span class="text-700 line-height-3">
-                Launch targeted campaigns, schedule messages, manage unlimited outreach, and access delivery reports to stay ahead.
-            </span>
+</div>
+
+<!-- Product Showcase Section -->
+<div class="product-showcase py-8 md:py-20 px-4 sm:px-6 lg:px-8">
+    <div class="max-w-7xl mx-auto">
+        <div class="text-center mb-8 md:mb-12">
+            <div class="mb-3 font-bold text-3xl md:text-4xl">
+              <span class="text-700">Two Powerful </span>
+              <span class="gradient-text">Products</span>
+            </div>
+            <p class="text-lg md:text-xl text-gray-600">Choose what fits your business needs</p>
         </div>
 
-        <!-- Manage Files -->
-        <div class="col-12 md:col-4 mb-4 px-5">
-            <span class="p-3 shadow-2 mb-3 inline-block surface-card" style="border-radius: 10px">
-                <i class="pi pi-cloud-upload text-4xl text-primary"></i>
-            </span>
-            <div class="text-700 text-xl mb-3 font-medium">Cloud Storage</div>
-            <span class="text-700 line-height-3">
-                Unlimited secure storage with competitive pricing. Pay only for what you use — no hidden fees.
-            </span>
+        <div class="flex w-full justify-center mb-8">
+            <div class="product-tabs">
+                <button 
+                    class="tab-button" 
+                    [class.active]="activeTab === 'messaging'"
+                    (click)="activeTab = 'messaging'">
+                    <i class="pi pi-comments mr-2"></i>
+                    <span class="hidden sm:inline">Omnichannel Messaging</span>
+                    <span class="sm:hidden">Messaging</span>
+                </button>
+                <button 
+                    class="tab-button" 
+                    [class.active]="activeTab === 'monitoring'"
+                    (click)="activeTab = 'monitoring'">
+                    <i class="pi pi-clock mr-2"></i>
+                    <span class="hidden sm:inline">Employee Monitoring</span>
+                    <span class="sm:hidden">Monitoring</span>
+                </button>
+            </div>
         </div>
 
-        <!-- Manage Conversations -->
-        <div class="col-12 md:col-4 mb-4 px-5">
-            <span class="p-3 shadow-2 mb-3 inline-block surface-card" style="border-radius: 10px">
-                <i class="pi pi-comments text-4xl text-primary"></i>
-            </span>
-            <div class="text-700 text-xl mb-3 font-medium">Conversation Hub</div>
-            <span class="text-700 line-height-3">
-                Provide faster customer service via WhatsApp and assign tickets across your team with live updates and actionable insights.
-            </span>
+        <!-- Messaging Tab -->
+        <div *ngIf="activeTab === 'messaging'" class="tab-content">
+            <div class="product-grid">
+                <div class="product-content order-2">
+                    <h3 class="text-2xl md:text-3xl font-bold mb-6">Omnichannel Communication Suite</h3>
+                    <ul class="feature-list">
+                        <li>
+                            <i class="pi pi-check-circle"></i>
+                            <span><strong>Multi-Channel Inbox:</strong> WhatsApp, Gmail, SMS, Messenger, Web Chat in one place</span>
+                        </li>
+                        <li>
+                            <i class="pi pi-check-circle"></i>
+                            <span><strong>Smart Scheduling:</strong> Plan campaigns and track delivery status</span>
+                        </li>
+                        <li>
+                            <i class="pi pi-check-circle"></i>
+                            <span><strong>Ticket Management:</strong> Assign, track, and resolve conversations</span>
+                        </li>
+                        <li>
+                            <i class="pi pi-check-circle"></i>
+                            <span><strong>Auto-Assignment:</strong> Round-robin or bandwidth-based routing</span>
+                        </li>
+                        <li>
+                            <i class="pi pi-check-circle"></i>
+                            <span><strong>Analytics Dashboard:</strong> Track SLA, resolution rates, team performance</span>
+                        </li>
+                    </ul>
+                </div>
+                <div class="product-image order-1">
+                    <img src="../../../../assets/Icons/Schedule/official_product_screenshots/conversation_journal.png" alt="Messaging Dashboard" />
+                </div>
+            </div>
         </div>
 
-        <!-- Manage Contacts -->
-        <div class="col-12 md:col-4 mb-4 px-5">
-            <span class="p-3 shadow-2 mb-3 inline-block surface-card" style="border-radius: 10px">
-                <i class="pi pi-user-plus text-4xl text-primary"></i>
-            </span>
-            <div class="text-700 text-xl mb-3 font-medium">Contact Management</div>
-            <span class="text-700 line-height-3">
-                Easily manage and group your customers. Import contacts in bulk and collaborate across your team with ease.
-            </span>
-        </div>
-
-        <!-- Manage Users -->
-        <div class="col-12 md:col-4 mb-4 px-5">
-            <span class="p-3 shadow-2 mb-3 inline-block surface-card" style="border-radius: 10px">
-                <i class="pi pi-users text-4xl text-primary"></i>
-            </span>
-            <div class="text-700 text-xl mb-3 font-medium">User Access Control</div>
-            <span class="text-700 line-height-3">
-                Secure your platform by managing authenticated users with a centralized control system and role-based access.
-            </span>
+        <!-- Monitoring Tab -->
+        <div *ngIf="activeTab === 'monitoring'" class="tab-content">
+            <div class="product-grid">
+                <div class="product-image">
+                    <img src="../../../../assets/Icons/Schedule/official_product_screenshots/productivity_attendance.png" alt="Monitoring Dashboard" />
+                </div>
+                <div class="product-content">
+                    <h3 class="text-2xl md:text-3xl font-bold mb-6">Employee Performance Monitoring</h3>
+                    <ul class="feature-list">
+                        <li>
+                            <i class="pi pi-check-circle"></i>
+                            <span><strong>Productivity Tracking:</strong> Monitor idle time and active work hours</span>
+                        </li>
+                        <li>
+                            <i class="pi pi-check-circle"></i>
+                            <span><strong>App Usage Analytics:</strong> Track productive vs non-productive applications</span>
+                        </li>
+                        <li>
+                            <i class="pi pi-check-circle"></i>
+                            <span><strong>Attendance System:</strong> Login/logout trends with detailed reports</span>
+                        </li>
+                        <li>
+                            <i class="pi pi-check-circle"></i>
+                            <span><strong>Idle Time Heatmaps:</strong> Visual analysis of productivity patterns</span>
+                        </li>
+                        <li>
+                            <i class="pi pi-check-circle"></i>
+                            <span><strong>Live Team Status:</strong> Real-time view of online employees and current activities</span>
+                        </li>
+                    </ul>
+                </div>
+            </div>
         </div>
     </div>
 </div>

@@ -1,0 +1,436 @@
+// Accordion Styling
+::ng-deep {
+  .p-accordion {
+    .p-accordion-panel {
+      margin-bottom: 1rem;
+      border-radius: 16px;
+      overflow: hidden;
+      box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+      border: none;
+      transition: all 0.3s ease;
+
+      &:hover {
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.12);
+      }
+    }
+
+    .p-accordion-header {
+      border: none;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+
+      .p-accordion-header-link {
+        padding: 1.5rem 2rem;
+        border: none;
+        background: transparent;
+        color: white;
+        font-weight: 600;
+        font-size: 1.125rem;
+        transition: all 0.3s ease;
+
+        &:hover {
+          background: rgba(255, 255, 255, 0.1);
+        }
+
+        .p-accordion-toggle-icon {
+          color: white;
+          font-size: 1.25rem;
+        }
+      }
+    }
+
+    .p-accordion-content {
+      background: white;
+      padding: 2rem;
+      border: none;
+    }
+  }
+
+  // Card Styling
+  .p-card {
+    border-radius: 16px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+    border: 1px solid #e2e8f0;
+    transition: all 0.3s ease;
+
+    &:hover {
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+      transform: translateY(-2px);
+    }
+
+    .p-card-body {
+      padding: 1.5rem;
+    }
+
+    .p-card-content {
+      padding: 0;
+    }
+  }
+
+  // Form Elements
+  .p-select {
+    border: 2px solid #e2e8f0;
+    border-radius: 10px;
+    transition: all 0.3s ease;
+    width: 100% !important;
+
+    &:hover {
+      border-color: #cbd5e0;
+    }
+
+    &.p-focus {
+      border-color: #667eea;
+      box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    }
+
+    .p-select-label {
+      padding: 0.75rem 1rem;
+    }
+  }
+
+  .p-inputtext,
+  .p-inputtextarea {
+    border: 2px solid #e2e8f0;
+    border-radius: 10px;
+    padding: 0.75rem 1rem;
+    transition: all 0.3s ease;
+    font-size: 0.95rem;
+    width: 100%;
+
+    &:hover {
+      border-color: #cbd5e0;
+    }
+
+    &:focus {
+      border-color: #667eea;
+      box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+      outline: none;
+    }
+
+    &::placeholder {
+      color: #a0aec0;
+    }
+  }
+
+  // Input Group
+  .p-inputgroup {
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+    margin-bottom: 1rem;
+
+    .p-inputgroup-addon {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border: none;
+      padding: 0.75rem 1rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+
+      i {
+        font-size: 1.125rem;
+      }
+    }
+
+    input {
+      border-left: none;
+    }
+  }
+
+  // Table Styling
+  .p-table {
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+    margin-top: 1.5rem;
+
+    .p-table-thead > tr > th {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      font-weight: 600;
+      padding: 1.25rem 1rem;
+      border: none;
+      text-transform: uppercase;
+      font-size: 0.875rem;
+      letter-spacing: 0.5px;
+
+      .p-sortable-column-icon {
+        color: white;
+      }
+    }
+
+    .p-table-tbody > tr {
+      transition: all 0.3s ease;
+
+      &:hover {
+        background: #f7fafc;
+      }
+
+      > td {
+        padding: 1rem;
+        border-bottom: 1px solid #e2e8f0;
+        color: #2d3748;
+        font-size: 0.95rem;
+
+        .p-button {
+          border-radius: 8px;
+          transition: all 0.3s ease;
+
+          &:hover:not(:disabled) {
+            transform: translateY(-2px);
+          }
+
+          &:disabled {
+            opacity: 0.4;
+          }
+        }
+      }
+    }
+
+    .p-paginator {
+      background: #f7fafc;
+      border-top: 1px solid #e2e8f0;
+      padding: 1rem;
+
+      .p-paginator-pages .p-paginator-page {
+        border-radius: 8px;
+        transition: all 0.3s ease;
+
+        &.p-highlight {
+          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+          color: white;
+        }
+
+        &:hover {
+          background: #e2e8f0;
+        }
+      }
+    }
+  }
+
+  // Button Styling
+  .p-button {
+    border-radius: 10px;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    border: none;
+    padding: 0.75rem 1.5rem;
+
+    &:hover:not(:disabled) {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
+    }
+
+    &:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    &.p-button-outlined {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border: none;
+
+      &:hover:not(:disabled) {
+        box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
+      }
+    }
+
+    &.p-button-success {
+      background: linear-gradient(135deg, #48bb78 0%, #38a169 100%);
+
+      &.p-button-outlined {
+        background: transparent;
+        color: #48bb78;
+        border: 2px solid #48bb78;
+
+        &:hover:not(:disabled) {
+          background: #48bb78;
+          color: white;
+        }
+      }
+    }
+
+    &.p-button-danger {
+      background: linear-gradient(135deg, #f56565 0%, #e53e3e 100%);
+
+      &.p-button-outlined {
+        background: transparent;
+        color: #f56565;
+        border: 2px solid #f56565;
+
+        &:hover:not(:disabled) {
+          background: #f56565;
+          color: white;
+        }
+      }
+    }
+
+    &.p-button-secondary {
+      background: #718096;
+
+      &:hover:not(:disabled) {
+        background: #4a5568;
+      }
+    }
+
+    &.p-button-sm {
+      padding: 0.5rem 1rem;
+      font-size: 0.875rem;
+    }
+  }
+
+  // Dialog Styling
+  .p-dialog {
+    border-radius: 20px;
+    overflow: hidden;
+    box-shadow: 0 25px 50px rgba(0, 0, 0, 0.25);
+
+    .p-dialog-header {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 1.75rem 2rem;
+      border-bottom: none;
+
+      .p-dialog-title {
+        font-size: 1.5rem;
+        font-weight: 600;
+      }
+
+      .p-dialog-header-icon {
+        color: white;
+
+        &:hover {
+          background: rgba(255, 255, 255, 0.1);
+        }
+      }
+    }
+
+    .p-dialog-content {
+      padding: 2rem;
+      background: white;
+    }
+
+    .p-dialog-footer {
+      background: #f7fafc;
+      padding: 1.5rem 2rem;
+      border-top: 1px solid #e2e8f0;
+    }
+  }
+
+  // Checkbox Styling
+  .p-checkbox {
+    .p-checkbox-box {
+      border: 2px solid #cbd5e0;
+      border-radius: 6px;
+      transition: all 0.3s ease;
+
+      &.p-highlight {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border-color: #667eea;
+      }
+    }
+
+    &:hover .p-checkbox-box {
+      border-color: #667eea;
+    }
+  }
+}
+
+// Layout Helpers
+.flex.align-items-start.justify-content-start {
+  gap: 2rem;
+  flex-wrap: wrap;
+
+  > .p-card {
+    flex: 0 0 auto;
+    min-width: 300px;
+  }
+
+  > .card {
+    flex: 1;
+    min-width: 0;
+  }
+}
+
+// Form Fields
+.field.grid {
+  align-items: center;
+  margin-bottom: 1.5rem;
+
+  label {
+    font-weight: 600;
+    color: #4a5568;
+    margin-bottom: 0;
+  }
+
+  .col {
+    .p-inputtext,
+    .p-inputtextarea,
+    .p-select,
+    .p-checkbox {
+      width: 100%;
+    }
+  }
+}
+
+// Badge/Status Indicators
+.bg-green-100 {
+  background: #c6f6d5;
+  border-radius: 12px;
+
+  .text-green-600 {
+    color: #38a169;
+  }
+
+  .text-green-700 {
+    color: #2f855a;
+  }
+
+  .text-green-900 {
+    color: #22543d;
+  }
+}
+
+.bg-red-100 {
+  background: #fed7d7;
+  border-radius: 12px;
+
+  .text-red-600 {
+    color: #e53e3e;
+  }
+
+  .text-red-900 {
+    color: #742a2a;
+  }
+}
+
+// QR Code Dialog Specific
+.border-2.border-300 {
+  border: 2px solid #e2e8f0;
+  padding: 1.5rem;
+  background: white;
+
+  img {
+    display: block;
+    border-radius: 8px;
+  }
+}
+
+.text-sm {
+  font-size: 0.875rem;
+}
+
+.text-600 {
+  color: #718096;
+}
+
+ol {
+  margin: 0.5rem 0;
+  padding-left: 1.5rem;
+
+  li {
+    margin: 0.5rem 0;
+    color: #4a5568;
+  }
+}

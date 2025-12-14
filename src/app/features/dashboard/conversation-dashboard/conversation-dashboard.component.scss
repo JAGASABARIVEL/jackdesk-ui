@@ -1,0 +1,404 @@
+// conversation-dashboard.component.scss - IMPROVED STYLES
+
+:host ::ng-deep {
+  // Card Enhancements
+  .surface-card {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    
+    &.cursor-pointer:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 
+                  0 10px 10px -5px rgba(0, 0, 0, 0.04) !important;
+    }
+  }
+
+  // Stats Card Specific
+  .stats-card {
+    position: relative;
+    overflow: hidden;
+    
+    &::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      right: 0;
+      width: 100px;
+      height: 100px;
+      background: linear-gradient(135deg, rgba(255, 255, 255, 0.1), transparent);
+      border-radius: 50%;
+      transform: translate(30%, -30%);
+    }
+  }
+
+  // Table Enhancements
+  .p-datatable {
+    .p-datatable-thead > tr > th {
+      background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
+      font-weight: 600;
+      border-bottom: 2px solid #e2e8f0;
+      color: #1e293b;
+      font-size: 0.875rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      padding: 1rem;
+    }
+    
+    .p-datatable-tbody > tr {
+      transition: all 0.2s ease;
+      
+      &:hover {
+        background: #f8fafc;
+        transform: scale(1.01);
+      }
+      
+      td {
+        padding: 1rem;
+        border-bottom: 1px solid #f1f5f9;
+      }
+    }
+
+    // Rank badges
+    .rank-badge {
+      width: 2rem;
+      height: 2rem;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+      font-weight: 700;
+      font-size: 0.875rem;
+    }
+  }
+
+  // Progress Bar Enhancements
+  .p-progressbar {
+    height: 6px;
+    border-radius: 3px;
+    background: #e5e7eb;
+    overflow: visible;
+    
+    .p-progressbar-value {
+      background: linear-gradient(90deg, #3b82f6, #2563eb);
+      border-radius: 3px;
+      transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+      position: relative;
+      
+      &::after {
+        content: '';
+        position: absolute;
+        right: 0;
+        top: -2px;
+        width: 10px;
+        height: 10px;
+        background: #2563eb;
+        border-radius: 50%;
+        box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.2);
+      }
+    }
+  }
+
+
+
+  // Tag Enhancements
+  .p-tag {
+    font-weight: 600;
+    padding: 0.5rem 1rem;
+    font-size: 0.875rem;
+    letter-spacing: 0.025em;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  }
+
+  // Avatar Enhancements
+  .p-avatar {
+    font-weight: 600;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    
+    &.p-avatar-circle {
+      border: 2px solid white;
+    }
+  }
+
+  // Button Enhancements
+  .p-button {
+    font-weight: 600;
+    transition: all 0.2s ease;
+    
+    &:not(.p-button-outlined):hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 
+                  0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    }
+    
+    &.p-button-outlined {
+      border-width: 2px;
+      
+      &:hover {
+        transform: translateY(-1px);
+      }
+    }
+  }
+
+  // Chart Container
+  .chart-container {
+    position: relative;
+    
+    canvas {
+      max-height: 350px;
+    }
+  }
+
+  // Date Picker Enhancements
+  .p-datepicker {
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+    border: 1px solid #e5e7eb;
+    
+    .p-datepicker-header {
+      background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
+      border-bottom: 1px solid #e2e8f0;
+    }
+  }
+
+  // Dropdown Enhancements
+  .p-select,
+  .p-dropdown {
+    &:not(.p-disabled):hover {
+      border-color: #3b82f6;
+    }
+    
+    &:not(.p-disabled).p-focus {
+      border-color: #3b82f6;
+      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    }
+  }
+
+  // Loading States
+  .loading-skeleton {
+    animation: pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.5;
+    }
+  }
+
+  // Responsive Adjustments
+  @media screen and (max-width: 768px) {
+    .p-datatable {
+      .p-datatable-thead > tr > th,
+      .p-datatable-tbody > tr > td {
+        padding: 0.75rem;
+        font-size: 0.875rem;
+      }
+    }
+
+    .stats-card {
+      .text-3xl {
+        font-size: 1.875rem;
+      }
+    }
+  }
+
+  // Custom Scrollbar
+  .p-datatable-wrapper {
+    &::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+    
+    &::-webkit-scrollbar-track {
+      background: #f1f5f9;
+      border-radius: 4px;
+    }
+    
+    &::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 4px;
+      
+      &:hover {
+        background: #94a3b8;
+      }
+    }
+  }
+
+  // Empty State
+  .empty-state {
+    padding: 3rem;
+    text-align: center;
+    
+    i {
+      opacity: 0.3;
+    }
+    
+    .empty-state-title {
+      font-size: 1.25rem;
+      font-weight: 600;
+      color: #475569;
+      margin-top: 1rem;
+    }
+    
+    .empty-state-description {
+      color: #94a3b8;
+      margin-top: 0.5rem;
+    }
+  }
+
+  // Performance Indicator Colors
+  .performance-excellent {
+    color: #10b981;
+    background: #d1fae5;
+  }
+
+  .performance-good {
+    color: #f59e0b;
+    background: #fef3c7;
+  }
+
+  .performance-needs-work {
+    color: #ef4444;
+    background: #fee2e2;
+  }
+
+  // Trend Indicators
+  .trend-up {
+    color: #10b981;
+    
+    &::before {
+      content: '↑';
+      margin-right: 0.25rem;
+    }
+  }
+
+  .trend-down {
+    color: #ef4444;
+    
+    &::before {
+      content: '↓';
+      margin-right: 0.25rem;
+    }
+  }
+
+  // Section Headers
+  .section-header {
+    border-bottom: 2px solid #e5e7eb;
+    padding-bottom: 1rem;
+    margin-bottom: 1.5rem;
+    
+    h3 {
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: #1e293b;
+      margin: 0;
+    }
+    
+    p {
+      color: #64748b;
+      font-size: 0.875rem;
+      margin-top: 0.25rem;
+    }
+  }
+
+  // Metric Cards
+  .metric-card {
+    background: white;
+    border-radius: 0.75rem;
+    padding: 1.5rem;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s ease;
+    
+    &:hover {
+      box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+      transform: translateY(-2px);
+    }
+    
+    .metric-icon {
+      width: 3rem;
+      height: 3rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 0.75rem;
+      font-size: 1.5rem;
+    }
+    
+    .metric-value {
+      font-size: 2rem;
+      font-weight: 700;
+      line-height: 1;
+      margin: 0.75rem 0 0.25rem;
+    }
+    
+    .metric-label {
+      font-size: 0.875rem;
+      color: #64748b;
+      font-weight: 500;
+    }
+  }
+
+  // Animations
+  @keyframes slideInUp {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .animate-slide-in {
+    animation: slideInUp 0.4s ease-out;
+  }
+
+  // Dialog Enhancements
+  .p-dialog {
+    .p-dialog-header {
+      background: linear-gradient(180deg, #f8fafc 0%, white 100%);
+      border-bottom: 1px solid #e5e7eb;
+      padding: 1.5rem;
+      
+      .p-dialog-title {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: #1e293b;
+      }
+    }
+    
+    .p-dialog-content {
+      padding: 1.5rem;
+    }
+  }
+}
+
+// Dark mode support (optional)
+@media (prefers-color-scheme: dark) {
+  :host ::ng-deep {
+    .surface-card {
+      background: #1e293b;
+      color: #f1f5f9;
+    }
+    
+    .p-datatable {
+      .p-datatable-thead > tr > th {
+        background: #334155;
+        color: #f1f5f9;
+        border-color: #475569;
+      }
+      
+      .p-datatable-tbody > tr {
+        &:hover {
+          background: #334155;
+        }
+        
+        td {
+          color: #e2e8f0;
+          border-color: #334155;
+        }
+      }
+    }
+  }
+}

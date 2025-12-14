@@ -284,6 +284,42 @@ export class CrudSchedulesComponent implements OnInit, OnDestroy {
 
   }
 
+  // Add this method to your CrudSchedulesComponent class
+
+getPlatformIcon(platformName: string): string {
+  const platform = platformName?.toLowerCase();
+  switch (platform) {
+    case 'whatsapp':
+      return 'pi-whatsapp';
+    case 'telegram':
+      return 'pi-telegram';
+    case 'messanger':
+      return 'pi-facebook';
+    case 'insta':
+      return 'pi-instagram';
+    default:
+      return 'pi-send';
+  }
+}
+
+getFrequencySeverity(frequency: number): any {
+  switch (frequency) {
+    case 0: // Daily
+      return 'danger';
+    case 1: // Weekly
+      return 'success';
+    case 2: // Monthly
+      return 'info';
+    case 3: // Quarterly
+    case 4: // Half Yearly
+      return 'warn';
+    case 5: // Yearly
+      return null;
+    default:
+      return null;
+  }
+}
+
   deleteProduct(schedule) {
 
   }

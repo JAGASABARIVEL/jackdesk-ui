@@ -1,4 +1,4 @@
-import { Component, ElementRef, OnDestroy, OnInit, ViewChild } from '@angular/core';
+import { Component, ElementRef, OnDestroy, OnInit, ViewChild, HostListener } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import { MenuItem } from 'primeng/api';
 import { formatDate } from '@angular/common';
@@ -31,39 +31,48 @@ declare const google: any;
         CommonModule,
         SplitButtonModule,
         RouterLink,
-
         OverlayBadgeModule,
         AvatarModule,
         ButtonModule,
         MeterGroup,
         CardModule
     ]
-
 })
 export class AppTopBarComponent implements OnInit, OnDestroy {
 
     items!: MenuItem[];
 
     @ViewChild('menubutton') menuButton!: ElementRef;
-
     @ViewChild('topbarmenubutton') topbarMenuButton!: ElementRef;
-
     @ViewChild('topbarmenu') menu!: ElementRef;
+    @ViewChild('newTasksDropdown') newTasksDropdown!: ElementRef;
+    @ViewChild('unrespondedDropdown') unrespondedDropdown!: ElementRef;
+    @ViewChild('systemNotificationDropdown') systemNotificationDropdown!: ElementRef;
 
-    IST_OFFSET_MINUTES = 330; // IST = UTC+5:30
+    IST_OFFSET_MINUTES = 330;
     today;
     now;
-    // Set start of IST day (00:00 IST)
     istStart;
-    // Set end of IST day (23:59:59.999 IST)
     istEnd;
     start;
     end;
-    // Resulting UTC ISO strings
     startISOString;
     endISOString;
 
-    constructor(private router: Router, private authService: SocialAuthService, public layoutService: LayoutService, private socketService: SocketService, private localEventService: CUstomEventService, private productivityService: ProductivityService, private platformManagerService: PlatformManagerService) {
+    // Notification dropdown states
+    showNewTasks = false;
+    showUnrespondedMessages = false;
+    showSystemNotifications = false;
+
+    constructor(
+        private router: Router, 
+        private authService: SocialAuthService, 
+        public layoutService: LayoutService, 
+        private socketService: SocketService, 
+        private localEventService: CUstomEventService, 
+        private productivityService: ProductivityService, 
+        private platformManagerService: PlatformManagerService
+    ) {
         this.items = [
             {
                 icon: 'pi pi-user',
@@ -81,29 +90,38 @@ export class AppTopBarComponent implements OnInit, OnDestroy {
                 }
             }
         ];
+    }
 
+    @HostListener('document:click', ['$event'])
+    onDocumentClick(event: MouseEvent) {
+        // Close new tasks dropdown if clicking outside
+        if (this.showNewTasks && this.newTasksDropdown && 
+            !this.newTasksDropdown.nativeElement.contains(event.target)) {
+            this.showNewTasks = false;
+        }
 
+        // Close unresponded messages dropdown if clicking outside
+        if (this.showUnrespondedMessages && this.unrespondedDropdown && 
+            !this.unrespondedDropdown.nativeElement.contains(event.target)) {
+            this.showUnrespondedMessages = false;
+        }
+
+        // Close system notifications dropdown if clicking outside
+        if (this.showSystemNotifications && this.systemNotificationDropdown && 
+            !this.systemNotificationDropdown.nativeElement.contains(event.target)) {
+            this.showSystemNotifications = false;
+        }
     }
 
     initDate() {
-
-        const IST_OFFSET_MINUTES = 330; // IST = UTC + 5:30
-
-        this.today = new Date(); // local system date (assumed IST)
-
-        // Construct IST datetime: 2025-06-28 00:00:45 IST
+        const IST_OFFSET_MINUTES = 330;
+        this.today = new Date();
         const istStart = new Date(this.today.getFullYear(), this.today.getMonth(), this.today.getDate(), 0, 0, 45);
-
-        // Construct IST datetime: 2025-06-28 23:00:47 IST
         const istEnd = new Date(this.today.getFullYear(), this.today.getMonth(), this.today.getDate(), 23, 0, 47);
-
-        // Convert IST to UTC
         const utcStart = new Date(istStart.getTime() - IST_OFFSET_MINUTES * 60 * 1000);
         const utcEnd = new Date(istEnd.getTime() - IST_OFFSET_MINUTES * 60 * 1000);
-
-        // Output as ISO strings in UTC (with "Z")
-        this.start = istStart.toISOString();  // ✅ "2025-06-27T18:30:45.000Z"
-        this.end = istEnd.toISOString();      // ✅ "2025-06-28T17:30:47.000Z"
+        this.start = istStart.toISOString();
+        this.end = istEnd.toISOString();
     }
 
     ngOnDestroy(): void {
@@ -114,7 +132,6 @@ export class AppTopBarComponent implements OnInit, OnDestroy {
     }
 
     ngOnInit(): void {
-
         if (!this.socketService.isSocketConnected) {
             this.layoutService.addNotification(
                 { 'severity': 'error', 'app': 'Socket', 'text': 'Socket connection not available for new notification. Please contact Engineering' }
@@ -135,7 +152,6 @@ export class AppTopBarComponent implements OnInit, OnDestroy {
 
     private fetchActiveTimeSubscription: Subscription | undefined;
     fetchActiveTime() {
-        // Call service with default date range
         if (this.layoutService.isLoggedIn()) {
             this.fetchActiveTimeSubscription = this.productivityService.my_summary(this.start, this.end).subscribe(
                 {
@@ -178,13 +194,6 @@ export class AppTopBarComponent implements OnInit, OnDestroy {
                                 text: `${platformLabel} (${item.email}): Watcher subscription is about to expire in a day. Please refresh.`
                             });
                         }
-                        //if (item.token_expired) {
-                        //    this.layoutService.addNotification({
-                        //        severity: 'info',
-                        //        app: 'Topbar',
-                        //        text: `${platformLabel} (${item.email}): Token expired. Attempting automatic refresh.`
-                        //    });
-                        //}
                     });
                 },
                 error: (err) =>
@@ -193,13 +202,9 @@ export class AppTopBarComponent implements OnInit, OnDestroy {
         }
     }
 
-
-
-
     playNotificationSound() {
         const audio = new Audio("../../assets/media/new_conversation_notofication.mp3");
         audio.play();
-
     }
 
     profile = { user: { is_productivity_enable: false } };
@@ -207,8 +212,12 @@ export class AppTopBarComponent implements OnInit, OnDestroy {
     subscribeToLocalEvents() {
         this.loginNotificationSubscription = this.localEventService.loginSuccessNotification$.subscribe(
             {
-                next: (data) => { this.profile = data; this.fetchActiveTime(); this.fetchPlatformNotifications(); },
-                error: (err) => console.error("Error fetching active time upon receiving login succeess notification")
+                next: (data) => { 
+                    this.profile = data; 
+                    this.fetchActiveTime(); 
+                    this.fetchPlatformNotifications(); 
+                },
+                error: (err) => console.error("Error fetching active time upon receiving login success notification")
             }
         )
     }
@@ -219,7 +228,13 @@ export class AppTopBarComponent implements OnInit, OnDestroy {
             if (message.msg_from_type === "CUSTOMER" && this.layoutService.newTaskUpdateToken()) {
                 this.layoutService.newTaskUpdateToken.set(false);
                 if (message.is_conversation_new) {
-                    this.layoutService.newTaskmessages.update((prev) => [...prev, { 'customerName': message.customer_name, 'text': message.message_body, 'total_count': message.total_count }])
+                    this.layoutService.newTaskmessages.update((prev) => [...prev, { 
+                        'customerName': message.customer_name, 
+                        'text': message.message_body, 
+                        'total_count': message.total_count,
+                        'conversationId': message.conversation_id,
+                        'contactId': message.contact_id
+                    }])
                     this.playNotificationSound();
                 }
                 this.layoutService.newTaskUpdateToken.set(true);
@@ -227,22 +242,70 @@ export class AppTopBarComponent implements OnInit, OnDestroy {
         });
     }
 
-    showMessages = false;
-    toggleMessages() {
-        this.showMessages = !this.showMessages;
-        //if (!this.showMessages) {
-        //  this.messages.update(()=>[]);
-        //}
+    toggleNewTasks(event: Event) {
+        event.stopPropagation();
+        this.showNewTasks = !this.showNewTasks;
+        this.showUnrespondedMessages = false;
+        this.showSystemNotifications = false;
     }
 
-    showNotificationMessages = false;
-    toggleNotificationMessages() {
-        this.showNotificationMessages = !this.showNotificationMessages;
+    toggleUnrespondedMessages(event: Event) {
+        event.stopPropagation();
+        this.showUnrespondedMessages = !this.showUnrespondedMessages;
+        this.showNewTasks = false;
+        this.showSystemNotifications = false;
     }
 
-    showUnrespondedConversationMessages = false;
-    toggleUnrespondedConversationMessages() {
-        this.showUnrespondedConversationMessages = !this.showUnrespondedConversationMessages;
+    toggleSystemNotifications(event: Event) {
+        event.stopPropagation();
+        this.showSystemNotifications = !this.showSystemNotifications;
+        this.showNewTasks = false;
+        this.showUnrespondedMessages = false;
+    }
+
+    navigateToConversation(conversationId: number, contactId: number) {
+        // Navigate to the conversation chat
+        this.router.navigate(['/apps/chat'], { 
+            queryParams: { 
+                conversationId: conversationId,
+                contactId: contactId 
+            } 
+        });
+        this.showNewTasks = false;
+        this.showUnrespondedMessages = false;
+    }
+
+    getSeverityIcon(severity: string): string {
+        switch(severity) {
+            case 'error': return 'pi pi-times-circle';
+            case 'warn': return 'pi pi-exclamation-triangle';
+            case 'info': return 'pi pi-info-circle';
+            default: return 'pi pi-bell';
+        }
+    }
+
+    getSeverityColor(severity: string): string {
+        switch(severity) {
+            case 'error': return 'text-red-500';
+            case 'warn': return 'text-yellow-500';
+            case 'info': return 'text-blue-500';
+            default: return 'text-gray-500';
+        }
+    }
+
+    getTimeAgo(dateString: string): string {
+        const date = new Date(dateString);
+        const now = new Date();
+        const diffMs = now.getTime() - date.getTime();
+        const diffMins = Math.floor(diffMs / 60000);
+        const diffHours = Math.floor(diffMins / 60);
+        const diffDays = Math.floor(diffHours / 24);
+
+        if (diffMins < 1) return 'Just now';
+        if (diffMins < 60) return `${diffMins}m ago`;
+        if (diffHours < 24) return `${diffHours}h ago`;
+        if (diffDays < 7) return `${diffDays}d ago`;
+        return date.toLocaleDateString();
     }
 
     profileViewButton() {

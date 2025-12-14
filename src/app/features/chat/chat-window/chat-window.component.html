@@ -1,52 +1,144 @@
 <div class="flex bg-white" style="max-height: 100vh;">
-  <!-- Left: Chat List -->
-  <div class="w-4 shadow-1 p-3" style="height: 80vh;">
-    <div class="flex flex-column gap-3 mb-2">
-      <div class="flex justify-content-start align-items-center gap-2">
-        <div>
-          <img *ngIf="profile.user?.image" [src]="profile.user.image" alt="avatar" class="border-circle h-4rem w-4rem mr-2"/>
-          <p-avatar *ngIf="!profile.user?.image" label="{{ profile.user.username | slice:0:1 }}" size="xlarge"
-            shape="circle" styleClass="mr-2"></p-avatar>
+  <!-- Left: Modern Chat List -->
+  <div class="w-4 chat-list-container" style="height: 80vh;">
+    <!-- Enhanced User Profile Section with Gradient Accent -->
+    <div class="user-profile-section mb-2">
+      <div class="flex align-items-center gap-3">
+        <div class="user-avatar">
+          <img *ngIf="profile.user?.image" [src]="profile.user.image" alt="avatar" 
+               class="border-circle h-4rem w-4rem" style="object-fit: cover;"/>
+          <p-avatar *ngIf="!profile.user?.image" 
+                    label="{{ profile.user.username | slice:0:1 }}" 
+                    size="normal"
+                    shape="circle">
+          </p-avatar>
         </div>
-        <div class="flex flex-column gap-2">
-          <span class="font-semibold text-xl">{{ profile.user.username }}</span>
-          <span class="text-md">{{ profile.user.email }}</span>
+        <div class="user-info flex-1">
+          <div class="username">{{ profile.user.username }}</div>
+          <div class="user-email">{{ profile.user.email }}</div>
         </div>
       </div>
-      
-      <!-- Search Contacts -->
+    </div>
+    
+    <!-- Modern Search -->
+    <div class="search-container px-3">
       <p-inputgroup class="w-full">
         <p-inputgroup-addon>
           <i class="pi pi-search"></i>
         </p-inputgroup-addon>
-        <input pInputText type="text" placeholder="search or start a new conversation" [(ngModel)]="searchQuery"
-          (input)="filterContacts()" class="w-full" />
+        <input pInputText 
+               type="text" 
+               placeholder="Search conversations..." 
+               [(ngModel)]="searchQuery"
+               (input)="filterContacts()" 
+               class="w-full" />
       </p-inputgroup>
     </div>
     
-    <!-- Scrollable container -->
-    <div style="max-height: 62vh; overflow-y: auto;">
-      <!-- ✅ Show conversations if available -->
+    <!-- Scrollable Conversations -->
+    <div class="px-3" style="max-height: 55vh; overflow-y: auto;">
+      <!-- Conversations List -->
       <ng-container *ngIf="filterconversations() && filterconversations().length > 0; else noConversations">
-        <div class="p-2 chat-list-item mt-1" 
+        <div class="chat-list-item" 
              [class.active]="conversation.id === selectedConversation()?.id" 
              *ngFor="let conversation of filterconversations()"
              (click)="onConversationSelected(conversation)">
-          <app-list-chat-window [conversation]="conversation"></app-list-chat-window>
+          <div class="conversation-item">
+            <div class="flex align-items-start justify-content-between gap-2">
+              <!-- Left: Avatar + Preview -->
+              <div class="flex gap-3 flex-1 min-w-0">
+                <!-- Avatar with Platform Badge -->
+                <div class="platform-indicator position-relative">
+                  <img *ngIf="conversation.contact?.img" 
+                       [src]="conversation.contact.img" 
+                       alt="avatar"
+                       class="border-circle" 
+                       style="width: 48px; height: 48px; object-fit: cover;" />
+                  <p-avatar *ngIf="conversation.contact?.name && !conversation.contact?.img"
+                            label="{{conversation.contact.name | slice:0:1}}"
+                            size="large" 
+                            shape="circle">
+                  </p-avatar>
+                  <p-avatar *ngIf="!conversation.contact?.name && !conversation.contact?.img && conversation.contact?.phone"
+                            label="{{conversation.contact.phone | slice:0:1}}"
+                            size="large" 
+                            shape="circle">
+                  </p-avatar>
+                  
+                  <!-- Platform Icon Badge -->
+                  <img *ngIf="conversation.contact?.platform_name === 'webchat'" 
+                       class="platform-icon"
+                       src="../../../../../assets/Icons/Schedule/webchat.png" 
+                       style="width: 18px; height: 18px;">
+                  <img *ngIf="conversation.contact?.platform_name === 'whatsapp'" 
+                       class="platform-icon"
+                       src="../../../../../assets/Icons/Schedule/whatsapp.svg" 
+                       style="width: 20px; height: 20px;">
+                  <img *ngIf="conversation.contact?.platform_name === 'messenger'" 
+                       class="platform-icon"
+                       src="../../../../../assets/Icons/Schedule/messenger.png" 
+                       style="width: 18px; height: 18px;">
+                  <img *ngIf="conversation.contact?.platform_name === 'gmail'" 
+                       class="platform-icon"
+                       src="../../../../../assets/Icons/Schedule/gmail.png" 
+                       style="width: 20px; height: 20px;">
+                  <img *ngIf="conversation.contact?.platform_name === 'gmessages'" 
+                       class="platform-icon"
+                       src="../../../../../assets/Icons/Schedule/gmessages.png" 
+                       style="width: 20px; height: 20px;">
+                </div>
+                
+                <!-- Name and Preview -->
+                <div class="conversation-preview flex-1 min-w-0">
+                  <div class="contact-name text-overflow-ellipsis overflow-hidden white-space-nowrap">
+                    {{conversation.contact?.name || conversation.contact?.phone}}
+                  </div>
+                  <div class="last-message text-overflow-ellipsis overflow-hidden white-space-nowrap">
+                    <ng-container *ngIf="!conversation.messages[conversation.messages?.length - 1]?.template && !conversation?.subject">
+                      {{ conversation.messages[conversation.messages?.length - 1]?.message_body || 'No messages yet' }}
+                    </ng-container>
+                    <ng-container *ngIf="conversation.messages?.length">
+                      <ng-container *ngIf="conversation.messages[conversation.messages.length - 1]?.template as tmpl">
+                        <ng-container *ngIf="tmpl | performJsonOp: 'load' as loadedTemplate">
+                          <span *ngIf="loadedTemplate.components?.length > 1">
+                            📋 {{ loadedTemplate.components[1]?.text | slice:0:50 }}
+                          </span>
+                        </ng-container>
+                      </ng-container>
+                    </ng-container>
+                    <ng-container *ngIf="conversation?.subject">
+                      📧 {{ conversation?.subject | slice:0:50 }}
+                    </ng-container>
+                  </div>
+                </div>
+              </div>
+              
+              <!-- Right: Time + Badge -->
+              <div class="conversation-meta flex flex-column align-items-end gap-2">
+                <div class="timestamp">
+                  {{getLastMessageTime(conversation)}}
+                </div>
+                <p-badge *ngIf="getUnreadCount(conversation) > 0" 
+                         [value]="getUnreadCount(conversation).toString()"
+                         styleClass="unread-badge"/>
+              </div>
+            </div>
+          </div>
         </div>
       </ng-container>
       
-      <!-- ✅ Empty state -->
+      <!-- Empty State -->
       <ng-template #noConversations>
-        <div class="flex flex-column align-items-center justify-content-center p-4 text-center" style="height: 50vh;">
-          <i class="pi pi-inbox text-6xl text-color-secondary mb-3"></i>
-          <h3 class="text-xl font-semibold text-color-secondary mb-2">No Conversations</h3>
-          <p class="text-color-secondary">
+        <div class="empty-state flex flex-column align-items-center justify-content-center text-center" 
+             style="height: 50vh;">
+          <i class="pi pi-inbox empty-icon" style="font-size: 4rem;"></i>
+          <h3 class="empty-title">No Conversations</h3>
+          <p class="empty-description max-w-20rem">
             <ng-container *ngIf="searchQuery; else noActiveConversations">
-              No conversations match your search.
+              No conversations match "<strong>{{searchQuery}}</strong>".
             </ng-container>
             <ng-template #noActiveConversations>
-              You don't have any active conversations yet.
+              You don't have any active conversations yet. New messages will appear here.
             </ng-template>
           </p>
         </div>
@@ -54,9 +146,9 @@
     </div>
   </div>
   
-  <!-- Middle: Detail Chat Window -->
+  <!-- Right: Modern Detail View -->
   <div class="w-8">
-    <!-- ✅ Show detail view only when conversation is selected -->
+    <!-- Show detail when conversation selected -->
     <ng-container *ngIf="selectedConversation() !== null; else noConversationSelected">
       <app-detail-chat-window
         (chatDetailsPageLoaded)="onChatDetailsPageLoad()" 
@@ -71,14 +163,32 @@
       </app-detail-chat-window>
     </ng-container>
     
-    <!-- ✅ Empty state for detail view -->
+    <!-- Empty State for Detail View -->
     <ng-template #noConversationSelected>
-      <div class="flex flex-column align-items-center justify-content-center" style="height: 80vh;">
-        <i class="pi pi-comments text-6xl text-color-secondary mb-3"></i>
-        <h2 class="text-2xl font-semibold text-color-secondary mb-2">Select a Conversation</h2>
-        <p class="text-color-secondary text-center max-w-30rem">
-          Choose a conversation from the list to view messages and start chatting.
-        </p>
+      <div class="flex flex-column align-items-center justify-content-center" 
+           style="height: 80vh; background: linear-gradient(135deg, #f9fafb 0%, #ffffff 100%);">
+        <div class="text-center max-w-30rem">
+          <div class="mb-4" style="font-size: 5rem; opacity: 0.3;">
+            💬
+          </div>
+          <h2 class="text-3xl font-bold mb-3" 
+              style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
+                     -webkit-background-clip: text; 
+                     -webkit-text-fill-color: transparent;
+                     background-clip: text;">
+            Welcome to Your Inbox
+          </h2>
+          <p class="text-color-secondary text-lg mb-4">
+            Select a conversation from the list to view messages and start chatting with your customers.
+          </p>
+          <div class="flex gap-2 justify-content-center">
+            <span class="inline-flex align-items-center gap-2 px-3 py-2 border-round" 
+                  style="background: rgba(102, 126, 234, 0.1); color: #667eea; font-size: 0.9rem;">
+              <i class="pi pi-info-circle"></i>
+              Tip: Use the search bar to find specific conversations quickly
+            </span>
+          </div>
+        </div>
       </div>
     </ng-template>
   </div>

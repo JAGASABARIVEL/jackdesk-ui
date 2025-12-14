@@ -1,31 +1,53 @@
-<div class="card">
-    <p-megamenu [model]="items" [style]="{ 'border-radius': '4rem', display: 'flex' }" styleClass="p-4 bg-surface-0 dark:bg-surface-900">
+<nav class="modern-nav" [class.scrolled]="isScrolled">
+    <div class="nav-container">
+        <div class="nav-content">
+            <!-- Logo -->
+            <div class="nav-logo">
+                <img src="../../../../assets/Icons/Schedule/logo.png" style="height:4rem; width: 4rem;" alt="">
+                <!--span class="logo-text">JackDesk</span-->
+                
+            </div>
 
-        <ng-template #item let-item>
-            <div (click)="onMenuSelect(item)">
+            <!-- Desktop Menu -->
+            <div class="desktop-menu">
+                <button class="nav-link" (click)="scrollToSection('hero')">Home</button>
+                <button class="nav-link" (click)="scrollToSection('solutions')">Features</button>
+                <button class="nav-link" (click)="scrollToSection('subscriptions')">Pricing</button>
+                <button class="nav-link" (click)="scrollToSection('contact')">Contact</button>
+                <button class="nav-cta" (click)="navigateToLogin()">
+                    <i class="pi pi-user mr-2"></i>
+                    Sign In
+                </button>
+            </div>
 
-            
-            <a *ngIf="item.root" pRipple class="flex items-center cursor-pointer px-4 py-2 overflow-hidden relative font-semibold text-lg uppercase" style="border-radius: 2rem">
-                <i [ngClass]="item.icon"></i>
-                <span class="ml-2">{{ item.label }}</span>
-            </a>
-            <a *ngIf="!item.root && !item.image" class="flex items-center p-4 cursor-pointer mb-2 gap-2">
-                <span class="inline-flex items-center justify-center rounded-full">
-                    <i [ngClass]="item.icon + ' text-lg'"></i>
-                </span>
-                <span class="inline-flex flex-col gap-1">
-                    <span class="font-medium text-lg text-surface-900 dark:text-surface-0">{{ item.label }}</span>
-                    <span class="p-text-secondary">{{ item.subtext }}</span>
-                </span>
-            </a>
+            <!-- Mobile Menu Button -->
+            <button class="mobile-menu-btn" (click)="toggleMobileMenu()">
+                <i class="pi" [ngClass]="mobileMenuOpen ? 'pi-times' : 'pi-bars'"></i>
+            </button>
         </div>
-            <div *ngIf="item.image" class="flex flex-col items-start gap-4">
-                <img [src]="item.image" alt="megamenu-demo" class="get-started-img w-full" />
-            </div>
-            <div *ngIf="item.image" class="flex flex-row gap-4 mt-4 mb-4">
-                <span>{{ item.subtext }}</span>
-                <p-button [label]="item.label" [outlined]="true" (click)="onMenuSelect({'label':'Pricing'})"></p-button>
-            </div>
-        </ng-template>
-    </p-megamenu>
-</div>
+
+        <!-- Mobile Menu -->
+        <div class="mobile-menu" [class.open]="mobileMenuOpen">
+            <button class="mobile-nav-link" (click)="scrollToSection('hero')">
+                <i class="pi pi-home mr-2"></i>
+                Home
+            </button>
+            <button class="mobile-nav-link" (click)="scrollToSection('solutions')">
+                <i class="pi pi-star mr-2"></i>
+                Features
+            </button>
+            <button class="mobile-nav-link" (click)="scrollToSection('subscriptions')">
+                <i class="pi pi-tag mr-2"></i>
+                Pricing
+            </button>
+            <button class="mobile-nav-link" (click)="scrollToSection('contact')">
+                <i class="pi pi-phone mr-2"></i>
+                Contact
+            </button>
+            <button class="mobile-nav-cta" (click)="navigateToLogin()">
+                <i class="pi pi-user mr-2"></i>
+                Sign In
+            </button>
+        </div>
+    </div>
+</nav>

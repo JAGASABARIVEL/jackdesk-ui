@@ -97,4 +97,49 @@ export class MessageHistoryComponent implements OnInit, OnDestroy {
       this.onFailedMessage.emit(this.failed_message_count);
     }
   }
+
+  // Add these methods to your MessageHistoryComponent class
+
+getStatusCount(status: string): number {
+  if (!this.messages) return 0;
+  return this.messages.filter(m => m.status?.toLowerCase() === status.toLowerCase()).length;
+}
+
+getStatusClass(status: string): string {
+  const statusLower = status?.toLowerCase();
+  if (statusLower === 'sent' || statusLower === 'success') {
+    return 'status-success';
+  } else if (statusLower === 'failed') {
+    return 'status-failed';
+  } else if (statusLower === 'sent_to_server' || statusLower === 'pending') {
+    return 'status-sent_to_server';
+  }
+  return 'status-pending';
+}
+
+getStatusIcon(status: string): string {
+  const statusLower = status?.toLowerCase();
+  if (statusLower === 'sent' || statusLower === 'success') {
+    return 'pi-check';
+  } else if (statusLower === 'failed') {
+    return 'pi-times';
+  } else if (statusLower === 'sent_to_server' || statusLower === 'pending') {
+    return 'pi-clock';
+  }
+  return 'pi-circle';
+}
+
+getProgressWidth(status: string): string {
+  const statusLower = status?.toLowerCase();
+  if (statusLower === 'sent' || statusLower === 'success') {
+    return '100%';
+  } else if (statusLower === 'failed') {
+    return '100%';
+  } else if (statusLower === 'sent_to_server') {
+    return '60%';
+  } else if (statusLower === 'pending') {
+    return '30%';
+  }
+  return '0%';
+}
 }

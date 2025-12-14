@@ -1,107 +1,209 @@
-
-<div class="card">
-    <p-toolbar styleClass="mb-4 gap-2">
-        <ng-template pTemplate="left">
-            
-        </ng-template>
-        <ng-template pTemplate="right">
-            <button
-                pButton
-                severity="success"
-                icon="pi pi-replay"
-                class="mr-2 p-button-outlined"
-                label="Reload"
-                (click)="loadHistory()"
-            >
+<div class="history-container">
+    <!-- Header Section -->
+    <div class="history-header">
+        <div class="header-left">
+            <h2 class="section-title">Campaign Journal</h2>
+            <p class="section-subtitle">Track delivery status and performance of your campaigns</p>
+        </div>
+        <div class="header-actions">
+            <button 
+                pButton 
+                class="btn-refresh" 
+                icon="pi pi-refresh" 
+                label="Refresh"
+                (click)="loadHistory()">
             </button>
-        </ng-template>
-    </p-toolbar>
+        </div>
+    </div>
 
-    <p-table
-        #dt2
-        [value]="messages"
-        dataKey="id"
-        [rows]="10"
-        [rowsPerPageOptions]="[10, 25, 50]"
-        [loading]="loading"
-        [paginator]="true"
-        [globalFilterFields]="[
-        'name',
-        'schedule',
-        'status'
-        ]"
-        [tableStyle]="{ 'min-width': '75rem' }"
-        [loading]="loading"
-    >
-    <ng-template pTemplate="header">
-        <tr>
-            <th>Schedule Name</th>
-            <th>Recipient</th>
-            <th>Last Sent Date</th>
-            <th>Last Sent Status</th>
-            <th>Status Details</th>
-        </tr>
-        <tr>
-            <th>
-                <p-columnFilter 
-                    type="text"
-                    field="schedule_name" 
-                    placeholder="Search by name" 
-                    ariaLabel="Filter Name" />
-            </th>
-            <th>
-                <p-columnFilter 
-                    type="text"
-                    field="recipient_name"
-                    placeholder="Search by recipient" 
-                    ariaLabel="Filter Message" />
-            </th>
-            <th>
-                <p-columnFilter
-                    type="date"
-                    field="send_date"
-                    placeholder="Search by date" 
-                    ariaLabel="Filter Status" />
-            </th>
-            <th>
-                <p-columnFilter 
-                    type="text"
-                    field="status"
-                    placeholder="Search by status" 
-                    ariaLabel="Filter Status" />
-            </th>
-            <th>
-                <p-columnFilter 
-                    type="text"
-                    field="log_message"
-                    placeholder="Search by status details" 
-                    ariaLabel="Filter Status Details" />
-            </th>
-        </tr>
-    </ng-template>
-    <ng-template pTemplate="body" let-message>
-        <tr>
-            <td>
-                {{ message.schedule_name }}
-            </td>
-            <td>
-                {{ message.recipient_name }}
-            </td>
-            <td>
-                {{ message.send_date }}
-            </td>
-            <td>
-                {{ message.status }}
-            </td>
-            <td>
-                {{ message.log_message }}
-            </td>
-        </tr>
-    </ng-template>
-    <ng-template pTemplate="emptymessage">
-        <tr>
-            <td colspan="5">No message history found.</td>
-        </tr>
-    </ng-template>
-    </p-table>
+    <!-- Stats Cards -->
+    <div class="stats-grid">
+        <div class="stat-card success">
+            <div class="stat-icon">
+                <i class="pi pi-check-circle"></i>
+            </div>
+            <div class="stat-content">
+                <span class="stat-label">Successful</span>
+                <span class="stat-value">{{ getStatusCount('sent') + getStatusCount('success') }}</span>
+            </div>
+        </div>
+        
+        <div class="stat-card failed">
+            <div class="stat-icon">
+                <i class="pi pi-times-circle"></i>
+            </div>
+            <div class="stat-content">
+                <span class="stat-label">Failed</span>
+                <span class="stat-value">{{ failed_message_count }}</span>
+            </div>
+        </div>
+        
+        <div class="stat-card pending">
+            <div class="stat-icon">
+                <i class="pi pi-clock"></i>
+            </div>
+            <div class="stat-content">
+                <span class="stat-label">Sent to Server</span>
+                <span class="stat-value">{{ getStatusCount('sent_to_server') }}</span>
+            </div>
+        </div>
+        
+        <div class="stat-card total">
+            <div class="stat-icon">
+                <i class="pi pi-inbox"></i>
+            </div>
+            <div class="stat-content">
+                <span class="stat-label">Total Messages</span>
+                <span class="stat-value">{{ messages?.length || 0 }}</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Table -->
+    <div class="table-wrapper">
+        <p-table
+            #dt2
+            [value]="messages"
+            dataKey="id"
+            [rows]="10"
+            [rowsPerPageOptions]="[10, 25, 50]"
+            [loading]="loading"
+            [paginator]="true"
+            [globalFilterFields]="['schedule_name', 'recipient_name', 'status', 'log_message']"
+            [tableStyle]="{ 'min-width': '75rem' }"
+            styleClass="modern-table history-table">
+            
+            <ng-template pTemplate="header">
+                <tr>
+                    <th pSortableColumn="schedule_name">
+                        <div class="header-cell">
+                            <span>Campaign</span>
+                            <p-sortIcon field="schedule_name" />
+                        </div>
+                    </th>
+                    <th pSortableColumn="recipient_name">
+                        <div class="header-cell">
+                            <span>Recipient</span>
+                            <p-sortIcon field="recipient_name" />
+                        </div>
+                    </th>
+                    <th pSortableColumn="send_date">
+                        <div class="header-cell">
+                            <span>Sent Date</span>
+                            <p-sortIcon field="send_date" />
+                        </div>
+                    </th>
+                    <th pSortableColumn="status">
+                        <div class="header-cell">
+                            <span>Status</span>
+                            <p-sortIcon field="status" />
+                        </div>
+                    </th>
+                    <th style="min-width: 20rem">
+                        <span>Details</span>
+                    </th>
+                </tr>
+                <tr class="filter-row">
+                    <th>
+                        <p-columnFilter 
+                            type="text"
+                            field="schedule_name" 
+                            placeholder="Search campaign" 
+                            ariaLabel="Filter Campaign"
+                            styleClass="filter-input" />
+                    </th>
+                    <th>
+                        <p-columnFilter 
+                            type="text"
+                            field="recipient_name"
+                            placeholder="Search recipient" 
+                            ariaLabel="Filter Recipient"
+                            styleClass="filter-input" />
+                    </th>
+                    <th>
+                        <p-columnFilter
+                            type="date"
+                            field="send_date"
+                            placeholder="Search date" 
+                            ariaLabel="Filter Date"
+                            styleClass="filter-input" />
+                    </th>
+                    <th>
+                        <p-columnFilter 
+                            type="text"
+                            field="status"
+                            placeholder="Search status" 
+                            ariaLabel="Filter Status"
+                            styleClass="filter-input" />
+                    </th>
+                    <th>
+                        <p-columnFilter 
+                            type="text"
+                            field="log_message"
+                            placeholder="Search details" 
+                            ariaLabel="Filter Details"
+                            styleClass="filter-input" />
+                    </th>
+                </tr>
+            </ng-template>
+            
+            <ng-template pTemplate="body" let-message>
+                <tr class="table-row">
+                    <td>
+                        <div class="campaign-cell">
+                            <i class="pi pi-bookmark"></i>
+                            <span>{{ message.schedule_name }}</span>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="recipient-cell">
+                            <i class="pi pi-user"></i>
+                            <span>{{ message.recipient_name }}</span>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="date-cell">
+                            <i class="pi pi-calendar"></i>
+                            <span>{{ message.send_date | date:'short' }}</span>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="status-cell">
+                            <!-- Progress indicator for different statuses -->
+                            <div class="status-progress" [ngClass]="getStatusClass(message.status)">
+                                <div class="progress-bar">
+                                    <div class="progress-fill" [style.width]="getProgressWidth(message.status)"></div>
+                                </div>
+                                <div class="status-info">
+                                    <span class="status-icon">
+                                        <i class="pi" [ngClass]="getStatusIcon(message.status)"></i>
+                                    </span>
+                                    <span class="status-text">{{ message.status | titlecase }}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="details-cell">
+                            <span class="details-text" [class.error]="message.status === 'failed'">
+                                {{ message.log_message || 'No additional details' }}
+                            </span>
+                        </div>
+                    </td>
+                </tr>
+            </ng-template>
+            
+            <ng-template pTemplate="emptymessage">
+                <tr>
+                    <td colspan="5" class="empty-state">
+                        <div class="empty-content">
+                            <i class="pi pi-history"></i>
+                            <h3>No message history</h3>
+                            <p>Messages sent will appear here</p>
+                        </div>
+                    </td>
+                </tr>
+            </ng-template>
+        </p-table>
+    </div>
 </div>

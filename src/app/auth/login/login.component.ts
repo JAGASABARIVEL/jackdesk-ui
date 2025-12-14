@@ -202,9 +202,9 @@ export class LoginComponent implements OnInit, OnDestroy {
       icon: 'pi pi-megaphone',
       items: [
         {
-          label: 'Compose',
-          icon: 'pi pi-pencil',
-          routerLink: ['/apps/compose'],
+          label: 'Journal',
+          icon: 'pi pi-history',
+          routerLink: ['/apps/history'],
         },
         {
           label: 'Schedules',
@@ -212,10 +212,10 @@ export class LoginComponent implements OnInit, OnDestroy {
           routerLink: ['/apps/schedules'],
         },
         {
-          label: 'History',
-          icon: 'pi pi-history',
-          routerLink: ['/apps/history'],
-        }
+          label: 'Compose',
+          icon: 'pi pi-pencil',
+          routerLink: ['/apps/compose'],
+        },
       ]
     }
 
@@ -224,15 +224,15 @@ export class LoginComponent implements OnInit, OnDestroy {
       icon: 'pi pi-megaphone',
       items: [
         {
+          label: 'Journal',
+          icon: 'pi pi-history',
+          routerLink: ['/apps/history'],
+        },
+        {
           label: 'Schedules',
           icon: 'pi pi-calendar-clock',
           routerLink: ['/apps/schedules'],
         },
-        {
-          label: 'History',
-          icon: 'pi pi-history',
-          routerLink: ['/apps/history'],
-        }
       ]
     }
     if (profile?.user.role === "owner") {
@@ -312,17 +312,22 @@ export class LoginComponent implements OnInit, OnDestroy {
                 icon: 'pi pi-comment',
                 items: [
                   {
+                    label: 'Journal',
+                    icon: 'pi pi-ticket',
+                    routerLink: ['/apps/ticketing'],
+                  },
+                  {
                     label: 'Chat',
                     icon: 'pi pi-comment',
                     routerLink: ['/apps/chat'],
                   },
                   {
-                    label: 'Active Conversations',
+                    label: 'Active',
                     icon: 'pi pi-comments',
                     routerLink: ['/apps/chat-active'],
                   },
                   {
-                    label: 'Usage Cost',
+                    label: 'Usage',
                     icon: 'pi pi-chart-bar',
                     routerLink: ['/apps/chat-usage-cost'],
                   }

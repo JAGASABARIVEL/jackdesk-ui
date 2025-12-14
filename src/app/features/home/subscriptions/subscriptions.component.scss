@@ -1,5 +1,144 @@
+.pricing-section {
+  background: #f9fafb;
+  margin-top: 2rem;
+  padding-top: 1rem;
+  padding-bottom: 1rem;
+}
 
-::ng-deep .p-tablist-content {
-    display: flex;
-    justify-content: center;
+.gradient-text {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+
+
+.popular-badge {
+  position: absolute;
+  top: -1rem;
+  left: 50%;
+  transform: translateX(-50%);
+
+  span {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 0.5rem 1.5rem;
+    border-radius: 9999px;
+    font-size: 0.875rem;
+    font-weight: 600;
+    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+    white-space: nowrap;
+  }
+}
+
+.price-value {
+  font-size: 2.5rem;
+  font-weight: 700;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+
+  @media (min-width: 768px) {
+    font-size: 3rem;
+  }
+}
+
+.pricing-btn {
+  padding: 1rem;
+  border-radius: 9999px;
+  font-weight: 600;
+  transition: all 0.3s ease;
+  border: none;
+  cursor: pointer;
+  margin-top: auto;
+
+  &.primary-btn {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+
+    &:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
+    }
+  }
+
+  &.secondary-btn {
+    background: white;
+    color: #667eea;
+    border: 2px solid #667eea;
+
+    &:hover {
+      background: rgba(102, 126, 234, 0.05);
+      transform: translateY(-2px);
+    }
+  }
+}
+
+::ng-deep .p-button {
+  &.primary-btn {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border: none;
+    
+    &:hover {
+      background: linear-gradient(135deg, #5568d3 0%, #653a8b 100%);
+    }
+  }
+
+  &.secondary-btn {
+    background: white;
+    color: #667eea;
+    border: 2px solid #667eea;
+    
+    &:hover {
+      background: rgba(102, 126, 234, 0.05);
+      color: #667eea;
+      border: 2px solid #667eea;
+    }
+  }
+}
+
+@media (max-width: 768px) {
+  .pricing-card {
+    padding: 1.5rem;
+  }
+
+  .price-value {
+    font-size: 2rem;
+  }
+}
+
+.subscription-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2rem;
+  justify-content: center;
+  max-width: 1200px;
+  margin: 0 auto;
+
+  @media (max-width: 768px) {
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+}
+
+.pricing-card {
+  text-align: center;
+  padding: 2rem 1.5rem;
+  background: linear-gradient(to bottom, rgba(102, 126, 234, 0.05), white);
+  border-radius: 1rem;
+  transition: all 0.3s ease;
+  flex: 1;
+  min-width: 280px;
+  max-width: 350px;
+
+  @media (max-width: 768px) {
+    max-width: 100%;
+  }
+
+  &:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+  }
 }

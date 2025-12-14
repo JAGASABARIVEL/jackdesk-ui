@@ -27,6 +27,7 @@ import { LayoutService } from '../../../layout/service/app.layout.service';
 import { Subject, takeUntil } from 'rxjs';
 import { supported_platforms } from '../../../shared/constants';
 import { SelectModule } from 'primeng/select';
+import { CalendarModule } from 'primeng/calendar';
 
 @Component({
   selector: 'app-contact',
@@ -49,6 +50,7 @@ import { SelectModule } from 'primeng/select';
     InputTextModule,
     AvatarModule,
     SelectModule,
+    CalendarModule,
 
     InputGroupModule,
     InputGroupAddonModule
