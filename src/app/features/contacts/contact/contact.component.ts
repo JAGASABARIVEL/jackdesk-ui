@@ -137,6 +137,11 @@ export class ContactComponent implements OnInit, OnDestroy {
     dt.filterGlobal(searchValue, 'contains');
   }
 
+  // contact.component.ts - ADD METHOD
+viewCustomerDetail(customerId: number): void {
+  this.router.navigate(['/apps/contacts', customerId]);
+}
+
   openNew() {
     this.product = {
       name: '',

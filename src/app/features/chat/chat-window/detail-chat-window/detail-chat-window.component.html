@@ -187,87 +187,90 @@
       </div>
       
       <!-- Agent Message -->
-      <div *ngIf="message.type === 'org'" class="message-container agent-message">
-        <div class="flex justify-content-end">
-          <div class="flex flex-column align-items-end">
-            <div class="message-bubble">
-              <app-message-preview *ngIf="message.template" 
-                                   [selectedTemplateForPreview]="message.template" 
-                                   [media_url]="message.media_url"
-                                   (previewReady)="onTemplatePreviewReadyEvent($event)" 
-                                   [messageDetails]="message">
-              </app-message-preview>
-              
-              <div *ngIf="!message.template">
-                <div class="message-content">
-                  <!-- Media Content -->
-                  <img *ngIf="message.message_type !== 'text' && message.message_type.includes('image')"
-                       [src]="message.media_url" 
-                       style="max-width: 300px; max-height: 300px; object-fit: contain;"
-                       (contextmenu)="onRightClick($event, message.status_details, cm, message.media_url)">
-                  <video *ngIf="message.message_type !== 'text' && message.message_type.includes('video')"
-                         [src]="message.media_url" 
-                         controls
-                         style="max-width: 300px;"
-                         (contextmenu)="onRightClick($event, message.status_details, cm, message.media_url)">
-                  </video>
-                  <audio *ngIf="message.message_type !== 'text' && message.message_type.includes('audio')"
-                         [src]="message.media_url" 
-                         controls
-                         style="width: 100%;"
-                         (contextmenu)="onRightClick($event, message.status_details, cm, message.media_url)">
-                  </audio>
-                  <img *ngIf="(message?.message_type?.includes('spreadsheet'))"
-                       style="width: 100px; height: 100px; cursor: pointer;"
-                       src="../../../../assets/Icons/Schedule/ms-excel.svg"
-                       (contextmenu)="onRightClick($event, message.status_details, cm, message.media_url)" />
-                  <iframe *ngIf="(message?.message_type?.includes('pdf'))" 
-                          [src]="message.media_url | safeUrl" 
-                          width="100%" 
-                          height="300px"
-                          style="border: none; border-radius: 8px;" 
-                          (contextmenu)="onRightClick($event, message.status_details, cm, message.media_url)">
-                  </iframe>
-                  <img *ngIf="message?.message_type?.includes('application/zip')"
-                       src="../../../../assets/Icons/Schedule/zip-folder.png"
-                       style="width: 100px; height: 100px; cursor: pointer;"
-                       (contextmenu)="onRightClick($event, message.status_details, cm, message.media_url)">
-                  <img *ngIf="!(message?.message_type?.includes('application/zip') || message?.message_type?.includes('spreadsheet') || message?.message_type?.includes('pdf') || message?.message_type?.includes('image') || message.message_type.includes('video') || message.message_type.includes('audio') || message?.message_type === 'text')"
-                       style="width: 100px; height: 100px; cursor: pointer;"
-                       src="../../../../assets/Icons/Schedule/file.png"
-                       (contextmenu)="onRightClick($event, message.status_details, cm, message.media_url)" />
-                  
-                  <!-- Text Content -->
-                  <span style="white-space: pre-wrap;">{{ message?.message_body || '' }}</span>
-                </div>
-                
-                <!-- Message Meta (Sender, Time, Status) -->
-                <div class="message-meta">
-                  <span class="sender-name">
-                    {{ getEmployeeNameFromId(message.sender)?.details?.username }}
-                  </span>
-                  <span class="message-time">{{ message.displayTime }}</span>
-                  <div class="message-status">
-                    <i *ngIf="message.status === 'sent_to_server' || message.status === 'server_processing'" 
-                       class="pi pi-check"
-                       style="color: #9ca3af;"></i>
-                    <i *ngIf="['sent', 'delivered'].includes(message.status)"
-                       class="pi pi-check-circle bg-gray-100 text-black border-circle text-md"
-                       style="display: inline-flex; width: 1.2rem; height: 1.2rem; justify-content: center; align-items: center;"></i>
-                    <i *ngIf="message.status === 'read'" 
-                       class="pi pi-check-circle background-gradient text-white border-circle text-md"
-                       style="display: inline-flex; width: 1.2rem; height: 1.2rem; justify-content: center; align-items: center;"></i>
-                    <span *ngIf="message.status === 'failed'" [pTooltip]="message.status_details" tooltipPosition="top">
-                      <i class="pi pi-times-circle bg-red-400 text-white border-circle text-md"
-                         style="display: inline-flex; width: 1.2rem; height: 1.2rem; justify-content: center; align-items: center;"></i>
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </div>
+      <!-- Agent Message -->
+<div *ngIf="message.type === 'org'" class="message-container agent-message">
+  <div class="flex justify-content-end">
+    <div class="flex flex-column align-items-end">
+      <div class="message-bubble">
+        <!-- Template Preview -->
+        <app-message-preview *ngIf="message.template" 
+                             [selectedTemplateForPreview]="message.template" 
+                             [media_url]="message.media_url"
+                             (previewReady)="onTemplatePreviewReadyEvent($event)" 
+                             [messageDetails]="message">
+        </app-message-preview>
+        
+        <!-- Non-Template Message -->
+        <div *ngIf="!message.template">
+          <div class="message-content">
+            <!-- Media Content -->
+            <img *ngIf="message.message_type !== 'text' && message.message_type.includes('image')"
+                 [src]="message.media_url" 
+                 style="max-width: 300px; max-height: 300px; object-fit: contain;"
+                 (contextmenu)="onRightClick($event, message.status_details, cm, message.media_url)">
+            <video *ngIf="message.message_type !== 'text' && message.message_type.includes('video')"
+                   [src]="message.media_url" 
+                   controls
+                   style="max-width: 300px;"
+                   (contextmenu)="onRightClick($event, message.status_details, cm, message.media_url)">
+            </video>
+            <audio *ngIf="message.message_type !== 'text' && message.message_type.includes('audio')"
+                   [src]="message.media_url" 
+                   controls
+                   style="width: 100%;"
+                   (contextmenu)="onRightClick($event, message.status_details, cm, message.media_url)">
+            </audio>
+            <img *ngIf="(message?.message_type?.includes('spreadsheet'))"
+                 style="width: 100px; height: 100px; cursor: pointer;"
+                 src="../../../../assets/Icons/Schedule/ms-excel.svg"
+                 (contextmenu)="onRightClick($event, message.status_details, cm, message.media_url)" />
+            <iframe *ngIf="(message?.message_type?.includes('pdf'))" 
+                    [src]="message.media_url | safeUrl" 
+                    width="100%" 
+                    height="300px"
+                    style="border: none; border-radius: 8px;" 
+                    (contextmenu)="onRightClick($event, message.status_details, cm, message.media_url)">
+            </iframe>
+            <img *ngIf="message?.message_type?.includes('application/zip')"
+                 src="../../../../assets/Icons/Schedule/zip-folder.png"
+                 style="width: 100px; height: 100px; cursor: pointer;"
+                 (contextmenu)="onRightClick($event, message.status_details, cm, message.media_url)">
+            <img *ngIf="!(message?.message_type?.includes('application/zip') || message?.message_type?.includes('spreadsheet') || message?.message_type?.includes('pdf') || message?.message_type?.includes('image') || message.message_type.includes('video') || message.message_type.includes('audio') || message?.message_type === 'text')"
+                 style="width: 100px; height: 100px; cursor: pointer;"
+                 src="../../../../assets/Icons/Schedule/file.png"
+                 (contextmenu)="onRightClick($event, message.status_details, cm, message.media_url)" />
+            
+            <!-- Text Content -->
+            <span style="white-space: pre-wrap;">{{ message?.message_body || '' }}</span>
+          </div>
+        </div>
+        
+        <!-- Message Meta (Sender, Time, Status) - Now shown for ALL messages -->
+        <div class="message-meta">
+          <span class="sender-name">
+            {{ getEmployeeNameFromId(message.sender)?.details?.username }}
+          </span>
+          <span class="message-time">{{ message.displayTime }}</span>
+          <div class="message-status">
+            <i *ngIf="message.status === 'sent_to_server' || message.status === 'server_processing'" 
+               class="pi pi-check"
+               style="color: #9ca3af;"></i>
+            <i *ngIf="['sent', 'delivered'].includes(message.status)"
+               class="pi pi-check-circle bg-gray-100 text-black border-circle text-md"
+               style="display: inline-flex; width: 1.2rem; height: 1.2rem; justify-content: center; align-items: center;"></i>
+            <i *ngIf="message.status === 'read'" 
+               class="pi pi-check-circle background-gradient text-white border-circle text-md"
+               style="display: inline-flex; width: 1.2rem; height: 1.2rem; justify-content: center; align-items: center;"></i>
+            <span *ngIf="message.status === 'failed'" [pTooltip]="message.status_details" tooltipPosition="top">
+              <i class="pi pi-times-circle bg-red-400 text-white border-circle text-md"
+                 style="display: inline-flex; width: 1.2rem; height: 1.2rem; justify-content: center; align-items: center;"></i>
+            </span>
           </div>
         </div>
       </div>
+    </div>
+  </div>
+</div>
     </div>
   </div>
 
@@ -376,6 +379,14 @@
   <app-additional-detail-chat-window *ngIf="selectedConversation !== null"
     [selectedConversation]="selectedConversation" (changeContactInSelectedConversationObject)="editContacDialogVisible=true;"></app-additional-detail-chat-window>
 </p-sidebar>
+
+<!--app-internal-notes 
+  *ngIf="showInternalNotes"
+  [conversationId]="selectedConversation.id"
+  [showInternalNotes]="showInternalNotes"
+  (dialogVisibilityChange)="showInternalNotes=$event">
+</app-internal-notes-->
+
 <!-- Close conversation dialog -->
 <p-dialog header="Close Conversation" [modal]="true" [(visible)]="closeConversationVisible" [style]="{ width: '35rem' }">
         <div class="field grid my-4">
@@ -1195,3 +1206,4 @@
 </p-dialog>
 
 <p-confirmDialog [style]="{ width: '450px' }" />
+

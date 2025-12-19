@@ -22,6 +22,7 @@ export const routes: Routes = [
         /** Contacts and groups */
         { path: 'user',  loadComponent: () => import('./features/contacts/contact/contact.component').then(m => m.ContactComponent) },
         { path: 'group',  loadComponent: () => import('./features/contacts/groups/groups.component').then(m => m.GroupsComponent) },
+        //{ path: 'contacts/:id', loadComponent: () => import('./features/contact/customer-detail/customer-detail.component').then(m => m.CustomerDetailComponent) },
 
         /** Campaign */
         { path: 'compose', loadComponent: () => import('./features/schedule/compose-message/compose-message.component').then(m => m.ComposeMessageComponent) },
@@ -35,7 +36,7 @@ export const routes: Routes = [
         { path: 'chat-usage-cost',  loadComponent: () => import('./features/chat/cost-analysis/cost-analysis.component').then(m => m.CostAnalysisComponentChat) },
 
         /** Tickets */
-        //{ path: 'tickets',  loadComponent: () => import('./features/tickets/lists/lists.component').then(m => m.ListsComponent) },
+        //{ path: 'ticketssrc/app/app.routes.ts',  loadComponent: () => import('./features/tickets/lists/lists.component').then(m => m.ListsComponent) },
         //{ path: 'tickets/view',  loadComponent: () => import('./features/tickets/details/details.component').then(m => m.DetailsComponent) },
         //{ path: 'tickets/create',  loadComponent: () => import('./features/tickets/create/create.component').then(m => m.CreateComponent) },
 

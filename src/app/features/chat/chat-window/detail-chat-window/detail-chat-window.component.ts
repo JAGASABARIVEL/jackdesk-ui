@@ -40,6 +40,7 @@ import { PanelModule } from 'primeng/panel';          // ✅ ADD THIS
 import { UserManagerService } from '../../../../shared/services/user-manager.service';
 import { MenuModule } from 'primeng/menu';
 import { MenuItem } from 'primeng/api';
+import { InternalNotesComponent } from './internal-notes/internal-notes.component';
 
 
 
@@ -75,6 +76,7 @@ import { MenuItem } from 'primeng/api';
 
     AdditionalDetailChatWindowComponent,
     MessagePreviewComponent,
+    InternalNotesComponent
   ],
   providers: [
     ConfirmationService,
@@ -96,6 +98,7 @@ export class DetailChatWindowComponent implements AfterViewInit {
   @Output() reassignThisConversationEvent: EventEmitter<any> = new EventEmitter();
   _selectedConversation;
   chatdetaildrawerVisible = true
+  showInternalNotes=false
   selectedUserForAssignment = null;
   users = []
   private destroy$ = new Subject<void>();
@@ -208,6 +211,15 @@ buildMenuItems() {
       this.chatdetaildrawerVisible = true;
     }
   });
+
+  // Internal Comments Button
+  //this.menuItems.push({
+  //  label: 'Add Comments',
+  //  icon: 'pi pi-comments',
+  //  command: () => {
+  //    this.showInternalNotes = true;
+  //  }
+  //});
 
   // Historical Conversation (only for non-Gmail)
   if (this.selectedConversation.contact.platform_name !== 'gmail') {
