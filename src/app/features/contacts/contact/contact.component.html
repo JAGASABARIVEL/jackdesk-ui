@@ -8,8 +8,10 @@
             <button *ngIf="profile?.user.role === 'owner'" pButton class="modern-btn modern-btn-danger" label="Delete Selected" icon="pi pi-trash" (click)="deleteSelectedProducts()" [disabled]="!selectedProducts || !selectedProducts.length"></button>
         </div>
         <div class="action-right">
-            <button pButton class="modern-btn modern-btn-secondary" label="Reload" icon="pi pi-replay" (click)="loadContacts()"></button>
-            <p-fileUpload #fileUpload mode="basic" accept=".xls,.xlsx" [maxFileSize]="1000000" chooseLabel="Import" class="modern-file-upload" fileLimit="1" (onSelect)="onBulkUpload($event, fileUpload)" />
+            <button pButton class="modern-btn modern-btn-primary" label="Reload" icon="pi pi-replay" (click)="loadContacts()"></button>
+            <!--p-fileUpload #fileUpload mode="basic" accept=".xls,.xlsx" [maxFileSize]="1000000" chooseLabel="Import" class="modern-file-upload" fileLimit="1" (onSelect)="onBulkUpload($event, fileUpload)" /-->
+            <!-- ✅ UPDATED - Import button opens dialog -->
+            <button pButton class="modern-btn modern-btn-primary" label="Import Contacts" icon="pi pi-upload" (click)="showImportContactDialog()"></button>
         </div>
     </div>
 
@@ -17,12 +19,27 @@
     <div class="search-container">
         <span class="p-input-icon-left search-wrapper">
             <i class="pi pi-search search-icon"></i>
-            <input pInputText type="text" #searchInput (input)="onSearchInput($event, dt)" placeholder="Search contacts by name, phone, or category..." class="search-input" />
+            <input pInputText type="text" #searchInput (input)="onSearchInput($event, dt)" placeholder="Search contacts by name, phone, platform, or category..." class="search-input" />
         </span>
     </div>
 
     <!-- Modern Table -->
-    <p-table #dt [value]="products" [rows]="10" [paginator]="true" [globalFilterFields]="['_search_blob']" [tableStyle]="{ 'min-width': '75rem' }" [(selection)]="selectedProducts" [rowHover]="true" dataKey="id" [loading]="loading" currentPageReportTemplate="Showing {first} to {last} of {totalRecords} contacts" [showCurrentPageReport]="true" styleClass="modern-table">
+    <p-table #dt [value]="products"
+    [globalFilterFields]="['_search_blob']" 
+    [tableStyle]="{ 'min-width': '75rem' }" 
+    [(selection)]="selectedProducts" 
+    [rowHover]="true" dataKey="id" 
+    [loading]="loading" 
+    currentPageReportTemplate="Showing {first} to {last} of {totalRecords} contacts" 
+    [showCurrentPageReport]="true" 
+    styleClass="modern-table"
+    [totalRecords]="totalRecords"
+    [first]="(currentPage - 1) * pageSize"
+    [lazy]="true"
+    [paginator]="true"
+    [rows]="pageSize"
+    (onLazyLoad)="onPageChange($event)"
+    >
         
         <ng-template pTemplate="header">
             <tr>
@@ -32,6 +49,7 @@
                 <th style="width: 4rem"></th>
                 <th pSortableColumn="name">Name <p-sortIcon field="name" /></th>
                 <th pSortableColumn="phone">Phone <p-sortIcon field="phone" /></th>
+                <th pSortableColumn="user_platform_name">Platform <p-sortIcon field="user_platform_name" /></th> <!-- ✅ Added -->
                 <th pSortableColumn="category">Category <p-sortIcon field="category" /></th>
                 <th pSortableColumn="description">Description <p-sortIcon field="description" /></th>
                 <th style="width: 10rem">Actions</th>
@@ -55,6 +73,9 @@
                 <td>
                     <span class="contact-phone">{{ product.phone }}</span>
                 </td>
+                <td> <!-- ✅ Added -->
+                    <span class="contact-platform">{{ product.user_platform_name || 'N/A' }}</span>
+                </td>
                 <td>
                     <p-tag [value]="product.category || 'N/A'" [severity]="getSeverity(product.category)" styleClass="modern-tag" />
                 </td>
@@ -63,13 +84,6 @@
                 </td>
                 <td class="actions-cell">
                     <div class="action-buttons">
-                      <!--button 
-                        pButton
-                        icon="pi pi-eye" 
-                        class="action-btn"
-                        (click)="viewCustomerDetail(product.id)"
-                        pTooltip="View Details">
-                      </button-->
                       <button 
                           pButton
                           icon="pi pi-user-edit" 
@@ -90,7 +104,7 @@
         
         <ng-template pTemplate="emptymessage">
             <tr>
-                <td colspan="7" class="empty-message">
+                <td colspan="8" class="empty-message"> <!-- ✅ Updated colspan -->
                     <div class="empty-state">
                         <i class="pi pi-inbox empty-icon"></i>
                         <p class="empty-text">No contacts found</p>
@@ -140,18 +154,143 @@
                     </div>
                 </div>
 
-                <div class="form-row">
-                    <div class="form-group">
-                        <label for="phone" class="form-label">Contact <span class="required">*</span></label>
-                        <input type="text" pInputText id="phone" [(ngModel)]="product.phone" required class="form-input" placeholder="Phone number"/>
-                        <small class="error-message" *ngIf="submitted && !product.phone">Contact is required</small>
-                    </div>
 
-                    <div class="form-group">
-                        <label for="platform" class="form-label">Platform</label>
-                        <p-select class="form-input" [options]="supported_platforms" [(ngModel)]="product.platform_name" optionValue="name" optionLabel="name" [filter]="true" filterBy="name" appendTo="body" [showClear]="true" placeholder="Select platform"></p-select>
-                    </div>
+                <!-- Replace the phone input section in your dialog with this -->
+
+<div class="form-row">
+    <!-- WhatsApp Phone Number with Country Code -->
+    <div class="form-group" *ngIf="isWhatsAppContact">
+        <label for="country_code" class="form-label">Country <span class="required">*</span></label>
+        <p-select 
+            class="form-input" 
+            [options]="supportedCountryCodes" 
+            [(ngModel)]="selectedCountryCode"
+            (onChange)="onCountryCodeChange($event.value)"
+            optionLabel="name"
+            [required]="true" 
+            placeholder="Select country"
+            appendTo="body">
+            <ng-template let-country pTemplate="item">
+                <div class="country-option">
+                    <span class="country-flag">{{ country.flag }}</span>
+                    <span class="country-name">{{ country.name }}</span>
+                    <span class="country-code">+{{ country.code }}</span>
                 </div>
+            </ng-template>
+            <ng-template let-country pTemplate="selectedItem">
+                <div class="country-selected" *ngIf="country">
+                    <span class="country-flag">{{ country.flag }}</span>
+                    <span class="country-code">+{{ country.code }}</span>
+                </div>
+            </ng-template>
+        </p-select>
+        <small class="error-message" *ngIf="submitted && !selectedCountryCode">Country is required</small>
+    </div>
+
+    <div class="form-group" *ngIf="isWhatsAppContact">
+        <label for="whatsapp_phone" class="form-label">WhatsApp Number <span class="required">*</span></label>
+        <div class="phone-input-container">
+            <div class="country-prefix" *ngIf="selectedCountryCode">
+                <span class="prefix-flag">{{ selectedCountryCode.flag }}</span>
+                <span class="prefix-code">+{{ selectedCountryCode.code }}</span>
+            </div>
+            <input 
+                type="tel" 
+                pInputText 
+                id="whatsapp_phone" 
+                [(ngModel)]="phoneNumberWithoutCode"
+                (input)="onPhoneNumberInput()"
+                [maxlength]="selectedCountryCode?.maxLength"
+                required 
+                class="form-input phone-number-input"
+                placeholder="Enter phone number"
+            />
+        </div>
+        <small 
+            class="validation-message"
+            [ngClass]="{
+                'error-message': !validatePhoneNumber() && phoneNumberWithoutCode.length > 0,
+                'success-message': validatePhoneNumber() && phoneNumberWithoutCode.length > 0,
+                'info-message': phoneNumberWithoutCode.length === 0
+            }">
+            {{ getPhoneValidationMessage() }}
+        </small>
+        <small class="info-text" *ngIf="selectedCountryCode && phoneNumberWithoutCode">
+            Full number: +{{ selectedCountryCode.code }}{{ phoneNumberWithoutCode }}
+        </small>
+    </div>
+
+    <!-- Non-WhatsApp Phone Input (Original) -->
+    <div class="form-group" *ngIf="!isWhatsAppContact">
+        <label for="phone" class="form-label">Contact <span class="required">*</span></label>
+        <input 
+            type="text" 
+            pInputText 
+            id="phone" 
+            [(ngModel)]="product.phone" 
+            required 
+            class="form-input" 
+            placeholder="Phone number or email"
+        />
+        <small class="error-message" *ngIf="submitted && !product.phone">Contact is required</small>
+    </div>
+
+    <!-- Platform Type Dropdown -->
+    <div class="form-group">
+        <label for="platform_type" class="form-label">Channel Type <span class="required">*</span></label>
+        <p-select 
+            class="form-input" 
+            [options]="supported_platforms" 
+            [(ngModel)]="product.platform_name" 
+            (onChange)="onPlatformNameChange($event.value)"
+            optionValue="name" 
+            optionLabel="name" 
+            [filter]="true" 
+            filterBy="name" 
+            appendTo="body" 
+            [showClear]="true"
+            [required]="true" 
+            placeholder="Select channel type">
+        </p-select>
+        <small class="error-message" *ngIf="submitted && !product.platform_name">Channel type is required</small>
+    </div>
+</div>
+
+<!-- Platform Instance Dropdown -->
+<div class="form-group" *ngIf="product.platform_name">
+    <label for="platform" class="form-label">Channel <span class="required">*</span></label>
+    <p-select 
+        class="form-input" 
+        [options]="platforms" 
+        [(ngModel)]="product.platform_id" 
+        optionValue="id" 
+        optionLabel="user_platform_name" 
+        [filter]="true" 
+        filterBy="user_platform_name" 
+        appendTo="body" 
+        [showClear]="true" 
+        [required]="true" 
+        [disabled]="!platforms || platforms.length === 0"
+        placeholder="Select channel instance">
+        <ng-template let-platform pTemplate="item">
+            <div class="platform-option">
+                <span>{{ platform.user_platform_name }}</span>
+                <small class="platform-id-hint">({{ platform.login_id || platform.app_id }})</small>
+            </div>
+        </ng-template>
+    </p-select>
+    <small class="error-message" *ngIf="submitted && !product.platform_id">Channel is required</small>
+    <small class="info-text" *ngIf="platforms && platforms.length === 0">
+        No platforms registered for {{ product.platform_name }}
+    </small>
+    <small class="info-text" *ngIf="product.platform_id && getSelectedPlatformName()">
+        Selected: {{ getSelectedPlatformName() }}
+    </small>
+</div>
+
+
+
+            
 
                 <div class="form-group">
                     <label for="address" class="form-label">Address</label>
@@ -175,13 +314,97 @@
             </div>
         </ng-template>
 
+        <!-- Update the Save Button -->
+<ng-template pTemplate="footer">
+    <div class="dialog-footer">
+        <button pButton label="Cancel" icon="pi pi-times" class="modern-btn modern-btn-secondary" (click)="hideDialog()"></button>
+        <button 
+            pButton 
+            label="Save Contact" 
+            icon="pi pi-check" 
+            class="modern-btn modern-btn-primary" 
+            [disabled]="!isFormValid()" 
+            (click)="saveProduct()">
+        </button>
+    </div>
+</ng-template>
+    </p-dialog>
+
+    <p-confirmDialog styleClass="modern-confirm-dialog" />
+
+    <p-dialog 
+        [(visible)]="showImportDialog" 
+        [style]="{ width: '500px' }" 
+        header="Import Contacts" 
+        [modal]="true" 
+        styleClass="modern-dialog"
+        (onShow)="onImportDialogShow()">
+        <ng-template pTemplate="content">
+            <div class="dialog-content">
+                <div class="import-instructions">
+                    <i class="pi pi-info-circle"></i>
+                    <p>Select a platform instance to import contacts for that platform</p>
+                </div>
+
+                <div class="form-group">
+                    <label for="import-platform" class="form-label">
+                        Platform Instance <span class="required">*</span>
+                    </label>
+                    <p-select 
+                        id="import-platform"
+                        class="form-input" 
+                        [options]="platforms" 
+                        [(ngModel)]="selectedImportPlatformId" 
+                        optionValue="id" 
+                        optionLabel="user_platform_name" 
+                        [filter]="true" 
+                        filterBy="user_platform_name" 
+                        appendTo="body" 
+                        placeholder="Select platform instance">
+                        <ng-template let-platform pTemplate="item">
+                            <div class="platform-option">
+                                <span>{{ platform.user_platform_name }}</span>
+                                <small class="platform-id-hint">({{ platform.platform_name }})</small>
+                            </div>
+                        </ng-template>
+                    </p-select>
+                </div>
+
+                <div class="import-actions">
+                    <button 
+                        pButton 
+                        class="modern-btn modern-btn-secondary" 
+                        label="Download Template" 
+                        icon="pi pi-download" 
+                        [disabled]="!selectedImportPlatformId"
+                        (click)="downloadTemplate()">
+                    </button>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Upload Contacts File</label>
+                    <p-fileUpload 
+                        #importFileUpload
+                        mode="basic" 
+                        accept=".xls,.xlsx" 
+                        [maxFileSize]="5000000" 
+                        chooseLabel="Choose Excel File" 
+                        class="modern-file-upload" 
+                        fileLimit="1"
+                        [disabled]="!selectedImportPlatformId"
+                        (onSelect)="onBulkUpload($event, importFileUpload)">
+                    </p-fileUpload>
+                    <small class="info-text">Maximum file size: 5MB. Formats: .xlsx, .xls</small>
+                </div>
+            </div>
+        </ng-template>
+
         <ng-template pTemplate="footer">
             <div class="dialog-footer">
-                <button pButton label="Cancel" icon="pi pi-times" class="modern-btn modern-btn-secondary" (click)="hideDialog()"></button>
-                <button pButton label="Save Contact" icon="pi pi-check" class="modern-btn modern-btn-primary" [disabled]="!product.name || !product.phone" (click)="saveProduct()"></button>
+                <button pButton label="Close" icon="pi pi-times" class="modern-btn modern-btn-secondary" (click)="showImportDialog = false"></button>
             </div>
         </ng-template>
     </p-dialog>
 
-    <p-confirmDialog styleClass="modern-confirm-dialog" />
+    <!-- Your existing contact dialog -->
 </div>

@@ -1,0 +1,447 @@
+<!-- customer-detail.component.html -->
+<div class="customer-detail-container">
+  <p-toast></p-toast>
+  
+  <!-- Header Section -->
+  <div class="customer-header">
+    <div class="header-left">
+      <p-button 
+        icon="pi pi-arrow-left" 
+        [text]="true"
+        (onClick)="goBack()"
+        label="Back to Customers">
+      </p-button>
+    </div>
+    <div class="header-right">
+      <p-button 
+        icon="pi pi-pencil" 
+        label="Edit"
+        [outlined]="true"
+        (onClick)="openEditDialog()">
+      </p-button>
+    </div>
+  </div>
+
+  <div *ngIf="loading" class="loading-container">
+    <i class="pi pi-spin pi-spinner" style="font-size: 3rem"></i>
+  </div>
+
+  <div *ngIf="!loading && customer" class="customer-content">
+    <!-- Customer Profile Card -->
+    <div class="profile-section">
+      <p-card>
+        <div class="profile-header">
+          <div class="avatar-section">
+            <p-avatar 
+              *ngIf="!customer.image"
+              [label]="customer.name?.charAt(0).toUpperCase()"
+              size="xlarge"
+              shape="circle"
+              styleClass="customer-avatar">
+            </p-avatar>
+            <img 
+              *ngIf="customer.image"
+              [src]="customer.image"
+              class="customer-avatar-img"
+              alt="Customer">
+          </div>
+          
+          <div class="profile-info">
+            <h2 class="customer-name">{{ customer.name }}</h2>
+            <p class="customer-phone">
+              <i class="pi pi-phone"></i> {{ customer.phone }}
+            </p>
+            <p *ngIf="customer.email" class="customer-email">
+              <i class="pi pi-envelope"></i> {{ customer.email }}
+            </p>
+          </div>
+          
+          <div class="profile-tags">
+            <p-tag 
+              [value]="customer.lifecycle_stage || 'customer'"
+              [severity]="getLifecycleSeverity(customer.lifecycle_stage || 'customer')">
+            </p-tag>
+            <p-tag 
+              [value]="customer.category"
+              severity="info">
+            </p-tag>
+          </div>
+        </div>
+
+        <p-divider></p-divider>
+
+        <!-- Quick Stats -->
+        <div class="quick-stats">
+          <div class="stat-item">
+            <div class="stat-icon">
+              <i class="pi pi-dollar"></i>
+            </div>
+            <div class="stat-content">
+              <span class="stat-label">Total Revenue</span>
+              <span class="stat-value">{{ formatCurrency(customer.total_revenue || 0) }}</span>
+            </div>
+          </div>
+
+          <div class="stat-item">
+            <div class="stat-icon">
+              <i class="pi pi-shopping-cart"></i>
+            </div>
+            <div class="stat-content">
+              <span class="stat-label">Total Purchases</span>
+              <span class="stat-value">{{ purchaseHistory?.summary?.total_purchases || 0 }}</span>
+            </div>
+          </div>
+
+          <div class="stat-item">
+            <div class="stat-icon">
+              <i class="pi pi-star"></i>
+            </div>
+            <div class="stat-content">
+              <span class="stat-label">Lead Score</span>
+              <span class="stat-value">{{ customer.lead_score || 0 }}/100</span>
+            </div>
+          </div>
+
+          <div class="stat-item">
+            <div class="stat-icon">
+              <i class="pi pi-calendar"></i>
+            </div>
+            <div class="stat-content">
+              <span class="stat-label">Customer Since</span>
+              <span class="stat-value">{{ formatDate(customer.customer_since || customer.created_at) }}</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="action-buttons">
+          <p-button 
+            icon="pi pi-megaphone" 
+            label="Marketing"
+            severity="info"
+            (onClick)="startConversation('marketing')">
+          </p-button>
+          <p-button 
+            icon="pi pi-shopping-cart" 
+            label="Sales"
+            severity="success"
+            (onClick)="startConversation('sales')">
+          </p-button>
+          <p-button 
+            icon="pi pi-headphones" 
+            label="Support"
+            severity="warn"
+            (onClick)="startConversation('support')">
+          </p-button>
+        </div>
+      </p-card>
+    </div>
+
+    <!-- Tabbed Content -->
+    <div class="details-section">
+      <p-tabs value="0">
+        <p-tablist>
+          <p-tab value="0">
+            <i class="pi pi-info-circle"></i>
+            <span class="ml-2">Details</span>
+          </p-tab>
+          <p-tab value="1">
+            <i class="pi pi-shopping-bag"></i>
+            <span class="ml-2">Purchase History</span>
+          </p-tab>
+          <p-tab value="2">
+            <i class="pi pi-box"></i>
+            <span class="ml-2">Products</span>
+          </p-tab>
+          <p-tab value="3">
+            <i class="pi pi-comments"></i>
+            <span class="ml-2">Conversations</span>
+          </p-tab>
+          <p-tab value="4">
+            <i class="pi pi-clock"></i>
+            <span class="ml-2">Activity</span>
+          </p-tab>
+        </p-tablist>
+
+        <p-tabpanels>
+          <!-- Details Tab -->
+          <p-tabpanel value="0">
+            <p-card>
+              <h3>Customer Information</h3>
+              <div class="detail-grid">
+                <div class="detail-item">
+                  <label>Description</label>
+                  <p>{{ customer.description || 'N/A' }}</p>
+                </div>
+                <div class="detail-item">
+                  <label>Address</label>
+                  <p>{{ customer.address || 'N/A' }}</p>
+                </div>
+                <div class="detail-item">
+                  <label>Platform</label>
+                  <p>{{ customer.platform_name || 'N/A' }}</p>
+                </div>
+                <div class="detail-item">
+                  <label>Category</label>
+                  <p>{{ customer.category || 'N/A' }}</p>
+                </div>
+              </div>
+
+              <h3 class="mt-4">Custom Fields</h3>
+              <div class="detail-grid">
+                <div *ngFor="let field of customer.custom_fields | keyvalue" class="detail-item">
+                  <label>{{ field.key }}</label>
+                  <p>{{ field.value || 'N/A' }}</p>
+                </div>
+              </div>
+            </p-card>
+          </p-tabpanel>
+
+          <!-- Purchase History Tab -->
+          <p-tabpanel value="1">
+            <p-card>
+              <div *ngIf="purchaseHistory" class="purchase-summary">
+                <div class="summary-card">
+                  <i class="pi pi-shopping-cart summary-icon"></i>
+                  <div>
+                    <span class="summary-label">Total Purchases</span>
+                    <span class="summary-value">{{ purchaseHistory.summary.total_purchases }}</span>
+                  </div>
+                </div>
+                <div class="summary-card">
+                  <i class="pi pi-dollar summary-icon"></i>
+                  <div>
+                    <span class="summary-label">Total Spent</span>
+                    <span class="summary-value">{{ formatCurrency(purchaseHistory.summary.total_spent) }}</span>
+                  </div>
+                </div>
+                <div class="summary-card">
+                  <i class="pi pi-chart-bar summary-icon"></i>
+                  <div>
+                    <span class="summary-label">Avg Order Value</span>
+                    <span class="summary-value">{{ formatCurrency(purchaseHistory.summary.avg_order_value) }}</span>
+                  </div>
+                </div>
+                <div class="summary-card">
+                  <i class="pi pi-calendar summary-icon"></i>
+                  <div>
+                    <span class="summary-label">Last Purchase</span>
+                    <span class="summary-value">{{ formatDate(purchaseHistory.summary.last_purchase) }}</span>
+                  </div>
+                </div>
+              </div>
+
+              <p-table 
+                [value]="purchaseHistory?.products || []"
+                [paginator]="true"
+                [rows]="10"
+                styleClass="mt-4">
+                <ng-template pTemplate="header">
+                  <tr>
+                    <th>Product</th>
+                    <th>SKU</th>
+                    <th>Quantity</th>
+                    <th>Total Spent</th>
+                    <th>Last Purchase</th>
+                  </tr>
+                </ng-template>
+                <ng-template pTemplate="body" let-product>
+                  <tr>
+                    <td>{{ product.product_name }}</td>
+                    <td>{{ product.product_sku }}</td>
+                    <td>{{ product.quantity }}</td>
+                    <td>{{ formatCurrency(product.total_spent) }}</td>
+                    <td>{{ formatDate(product.purchases[0]?.date) }}</td>
+                  </tr>
+                </ng-template>
+                <ng-template pTemplate="emptymessage">
+                  <tr>
+                    <td colspan="5" class="text-center">
+                      <i class="pi pi-inbox empty-icon"></i>
+                      <p>No purchase history available</p>
+                    </td>
+                  </tr>
+                </ng-template>
+              </p-table>
+            </p-card>
+          </p-tabpanel>
+
+          <!-- Products Tab -->
+          <p-tabpanel value="2">
+            <p-card>
+              <div *ngFor="let rel of productRelationships" class="product-card">
+                <div class="product-header">
+                  <div>
+                    <h4>{{ rel.product.name }}</h4>
+                    <span class="product-sku">{{ rel.product.sku }}</span>
+                  </div>
+                  <p-chip 
+                    [icon]="getRelationshipIcon(rel.relationship_type)"
+                    [label]="rel.relationship_type"
+                    styleClass="relationship-chip">
+                  </p-chip>
+                </div>
+
+                <div class="product-stats">
+                  <div class="product-stat">
+                    <span class="stat-label">Total Purchases</span>
+                    <span class="stat-value">{{ rel.total_purchases }}</span>
+                  </div>
+                  <div class="product-stat">
+                    <span class="stat-label">Total Spent</span>
+                    <span class="stat-value">{{ formatCurrency(rel.total_spent) }}</span>
+                  </div>
+                  <div class="product-stat">
+                    <span class="stat-label">Support Tickets</span>
+                    <span class="stat-value">{{ rel.support_tickets }}</span>
+                  </div>
+                  <div class="product-stat" *ngIf="rel.satisfaction_score">
+                    <span class="stat-label">Satisfaction</span>
+                    <span class="stat-value">{{ rel.satisfaction_score }}/5</span>
+                  </div>
+                </div>
+
+                <div class="product-timeline">
+                  <span class="timeline-item">
+                    <i class="pi pi-calendar"></i>
+                    First: {{ formatDate(rel.first_purchase) }}
+                  </span>
+                  <span class="timeline-item">
+                    <i class="pi pi-calendar-times"></i>
+                    Last: {{ formatDate(rel.last_purchase) }}
+                  </span>
+                </div>
+              </div>
+
+              <div *ngIf="productRelationships.length === 0" class="empty-state">
+                <i class="pi pi-box empty-icon"></i>
+                <p>No products associated with this customer</p>
+              </div>
+            </p-card>
+          </p-tabpanel>
+
+          <!-- Conversations Tab -->
+          <p-tabpanel value="3">
+            <p-card>
+              <p-table 
+                [value]="conversations"
+                [paginator]="true"
+                [rows]="10">
+                <ng-template pTemplate="header">
+                  <tr>
+                    <th>Date</th>
+                    <th>Type</th>
+                    <th>Status</th>
+                    <th>Messages</th>
+                    <th>Actions</th>
+                  </tr>
+                </ng-template>
+                <ng-template pTemplate="body" let-conv>
+                  <tr>
+                    <td>{{ formatDate(conv.created_at) }}</td>
+                    <td>
+                      <p-chip 
+                        [icon]="getActivityIcon(conv.context)"
+                        [label]="conv.context || 'support'">
+                      </p-chip>
+                    </td>
+                    <td>
+                      <p-tag [value]="conv.status" [severity]="conv.status === 'closed' ? 'success' : 'warn'"></p-tag>
+                    </td>
+                    <td>{{ conv.message_count || 0 }}</td>
+                    <td>
+                      <p-button 
+                        icon="pi pi-eye"
+                        [text]="true"
+                        (onClick)="viewConversation(conv.id)">
+                      </p-button>
+                    </td>
+                  </tr>
+                </ng-template>
+              </p-table>
+            </p-card>
+          </p-tabpanel>
+
+          <!-- Activity Timeline Tab -->
+          <p-tabpanel value="4">
+            <p-card>
+              <p-timeline 
+                [value]="activityTimeline"
+                align="alternate">
+                <ng-template pTemplate="content" let-event>
+                  <div class="timeline-event">
+                    <div class="event-icon">
+                      <i [class]="'pi ' + event.icon"></i>
+                    </div>
+                    <div class="event-content">
+                      <h4>{{ event.title }}</h4>
+                      <p>{{ event.description }}</p>
+                      <small>{{ formatDate(event.date) }}</small>
+                    </div>
+                  </div>
+                </ng-template>
+              </p-timeline>
+
+              <div *ngIf="activityTimeline.length === 0" class="empty-state">
+                <i class="pi pi-clock empty-icon"></i>
+                <p>No activity history available</p>
+              </div>
+            </p-card>
+          </p-tabpanel>
+        </p-tabpanels>
+      </p-tabs>
+    </div>
+  </div>
+</div>
+
+<!-- Edit Dialog -->
+<p-dialog 
+  [(visible)]="editDialogVisible"
+  [modal]="true"
+  [style]="{width: '600px'}"
+  header="Edit Customer">
+  <div class="edit-form">
+    <div class="form-field">
+      <label>Name</label>
+      <input pInputText [(ngModel)]="customer.name" class="w-full">
+    </div>
+    
+    <div class="form-field">
+      <label>Phone</label>
+      <input pInputText [(ngModel)]="customer.phone" class="w-full">
+    </div>
+    
+    <div class="form-field">
+      <label>Email</label>
+      <input pInputText [(ngModel)]="customer.email" class="w-full">
+    </div>
+    
+    <div class="form-field">
+      <label>Description</label>
+      <textarea pInputTextarea [(ngModel)]="customer.description" rows="3" class="w-full"></textarea>
+    </div>
+    
+    <div class="form-field">
+      <label>Lifecycle Stage</label>
+      <p-select 
+        [(ngModel)]="customer.lifecycle_stage"
+        [options]="lifecycleStages"
+        optionLabel="label"
+        optionValue="value"
+        class="w-full">
+      </p-select>
+    </div>
+  </div>
+  
+  <ng-template pTemplate="footer">
+    <p-button 
+      label="Cancel"
+      [text]="true"
+      (onClick)="editDialogVisible = false">
+    </p-button>
+    <p-button 
+      label="Save"
+      (onClick)="saveCustomer()">
+    </p-button>
+  </ng-template>
+</p-dialog>

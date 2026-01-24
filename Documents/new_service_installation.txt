@@ -1,0 +1,38 @@
+1. Add <service>.conf to /opt/nginx/conf/conf.d:
+server {
+    # Change it to your domain name
+    server_name productivity.jackdesk.com;
+
+    # ACME challenge — MUST come first
+    location ^~ /.well-known/acme-challenge/ {
+        root /opt/nginx/html;   # or any folder you choose
+        default_type text/plain;
+        try_files $uri =404;
+    }
+
+    location / {
+        proxy_pass http://unix:/opt/productivity_tracker/gunicorn.sock;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto http;
+    }
+
+    location /static/ {
+        alias /opt/productivity_tracker/staticfiles/;
+    }
+
+    client_max_body_size 1000M;
+}
+
+2. Reload and validate the nginx conf
+sudo /opt/nginx/sbin/nginx -t && sudo systemctl reload nginx
+
+3. Go insiden the venv
+source ~/ven/bin/activate
+
+4. Run certbot,
+sudo certbot certonly   --webroot   -w /opt/nginx/html   -d <productivity.jackdesk.com> # CHange it to your domain name
+
+5. Deactivate venv
+deactivate

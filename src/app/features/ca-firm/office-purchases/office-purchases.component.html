@@ -1,0 +1,804 @@
+<!-- src/app/features/ca-firm/office-purchases/office-purchases.component.html -->
+<p-toast></p-toast>
+<p-confirmDialog></p-confirmDialog>
+
+<div class="office-purchases-container">
+  <!-- Header -->
+  <div class="header-section">
+    <div class="header-content">
+      <div class="title-section">
+        <h1 class="page-title">
+          <i class="pi pi-shopping-cart"></i>
+          Office Purchases
+        </h1>
+        <p class="page-subtitle">Manage vendor purchases and payments</p>
+      </div>
+      
+      <div class="header-actions">
+        <p-button 
+          label="Add Vendor" 
+          icon="pi pi-user-plus" 
+          (onClick)="openNewVendor()"
+          styleClass="p-button-outlined">
+        </p-button>
+        <p-button 
+          label="New Purchase" 
+          icon="pi pi-plus" 
+          (onClick)="openNewPurchase()"
+          styleClass="p-button-primary">
+        </p-button>
+        <p-button 
+          label="Export" 
+          icon="pi pi-download" 
+          (onClick)="exportToExcel()"
+          styleClass="p-button-outlined">
+        </p-button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Summary Cards -->
+  <div class="stats-grid">
+    <p-card styleClass="stat-card blue">
+      <div class="stat-content">
+        <div class="stat-icon total">
+          <i class="pi pi-shopping-bag"></i>
+        </div>
+        <div class="stat-details">
+          <div class="stat-value">{{ summaryStats.total_purchases }}</div>
+          <div class="stat-label">Total Purchases</div>
+        </div>
+      </div>
+    </p-card>
+
+    <p-card styleClass="stat-card purple">
+      <div class="stat-content">
+        <div class="stat-icon head">
+          <i class="pi pi-money-bill"></i>
+        </div>
+        <div class="stat-details">
+          <div class="stat-value">{{ formatCurrency(summaryStats.total_amount) }}</div>
+          <div class="stat-label">Total Amount</div>
+        </div>
+      </div>
+    </p-card>
+
+    <p-card styleClass="stat-card green">
+      <div class="stat-content">
+        <div class="stat-icon active">
+          <i class="pi pi-check-circle"></i>
+        </div>
+        <div class="stat-details">
+          <div class="stat-value">{{ formatCurrency(summaryStats.paid_amount) }}</div>
+          <div class="stat-label">Paid Amount</div>
+        </div>
+      </div>
+    </p-card>
+
+    <p-card styleClass="stat-card orange">
+      <div class="stat-content">
+        <div class="stat-icon triage">
+          <i class="pi pi-exclamation-circle"></i>
+        </div>
+        <div class="stat-details">
+          <div class="stat-value">{{ formatCurrency(summaryStats.pending_amount) }}</div>
+          <div class="stat-label">Pending Amount</div>
+        </div>
+      </div>
+    </p-card>
+  </div>
+
+  <!-- Filters -->
+  <p-card styleClass="filter-card">
+    <div class="filter-section">
+      <span class="p-input-icon-left flex-1">
+        <i class="pi pi-search"></i>
+        <input 
+          pInputText 
+          type="text" 
+          [(ngModel)]="searchText"
+          placeholder="Search by invoice, vendor, or description..."
+          class="w-full" />
+      </span>
+      
+      <p-select
+        [options]="vendors"
+        [(ngModel)]="selectedVendorFilter"
+        optionLabel="name"
+        optionValue="id"
+        placeholder="Filter by Vendor"
+        [showClear]="true"
+        appendTo="body"
+        styleClass="filter-select">
+      </p-select>
+
+      <p-select
+        [options]="paymentStatuses"
+        [(ngModel)]="selectedStatusFilter"
+        optionLabel="label"
+        optionValue="value"
+        placeholder="Payment Status"
+        [showClear]="true"
+        appendTo="body"
+        styleClass="filter-select">
+      </p-select>
+
+      <p-datepicker
+        [(ngModel)]="dateRange"
+        selectionMode="range"
+        [showIcon]="true"
+        dateFormat="yy-mm-dd"
+        placeholder="Date Range"
+        (onClose)="loadPurchases()"
+        styleClass="filter-date">
+      </p-datepicker>
+    </div>
+  </p-card>
+
+  <!-- Purchases Table -->
+  <p-card styleClass="table-card">
+    <p-table 
+      [value]="getFilteredPurchases()" 
+      [loading]="loading"
+      [paginator]="true" 
+      [rows]="10"
+      [showCurrentPageReport]="true"
+      [rowsPerPageOptions]="[10, 25, 50]"
+      currentPageReportTemplate="Showing {first} to {last} of {totalRecords} purchases"
+      styleClass="p-datatable-gridlines"
+      responsiveLayout="scroll">
+      
+      <ng-template pTemplate="header">
+        <tr>
+          <th pSortableColumn="invoice_number">
+            Invoice # <p-sortIcon field="invoice_number"></p-sortIcon>
+          </th>
+          <th pSortableColumn="vendor_name">
+            Vendor <p-sortIcon field="vendor_name"></p-sortIcon>
+          </th>
+          <th pSortableColumn="category_name">
+            Category <p-sortIcon field="category_name"></p-sortIcon>
+          </th>
+          <th pSortableColumn="purchase_date">
+            Purchase Date <p-sortIcon field="purchase_date"></p-sortIcon>
+          </th>
+          <th pSortableColumn="total_amount" style="text-align: right;">
+            Amount <p-sortIcon field="total_amount"></p-sortIcon>
+          </th>
+          <th style="text-align: right;">Paid</th>
+          <th style="text-align: right;">Remaining</th>
+          <th pSortableColumn="payment_status">
+            Status <p-sortIcon field="payment_status"></p-sortIcon>
+          </th>
+          <th style="width: 14rem;">Actions</th>
+        </tr>
+      </ng-template>
+      
+      <ng-template pTemplate="body" let-purchase>
+        <tr>
+          <td>
+            <p-chip [label]="purchase.invoice_number"></p-chip>
+          </td>
+          <td>{{ purchase.vendor_name }}</td>
+          <td>
+            <p-chip [label]="purchase.category_name" icon="pi pi-tag"></p-chip>
+          </td>
+          <td>{{ purchase.purchase_date | date: 'dd MMM yyyy' }}</td>
+          <td style="text-align: right;">
+            <strong>{{ formatCurrency(purchase.total_amount) }}</strong>
+          </td>
+          <td style="text-align: right;">
+            <span class="paid-amount">{{ formatCurrency(purchase.paid_amount || 0) }}</span>
+          </td>
+          <td style="text-align: right;">
+            <span class="remaining-amount">{{ formatCurrency(purchase.remaining_amount || 0) }}</span>
+          </td>
+          <td>
+            <p-tag 
+              [value]="purchase.payment_status" 
+              [severity]="getStatusSeverity(purchase.payment_status)">
+            </p-tag>
+          </td>
+          <td>
+            <div class="action-buttons">
+              <p-button 
+                icon="pi pi-eye" 
+                (onClick)="viewDetails(purchase)"
+                [rounded]="true"
+                [text]="true"
+                severity="info"
+                pTooltip="View Details"
+                tooltipPosition="top">
+              </p-button>
+              <p-button 
+                icon="pi pi-pencil" 
+                (onClick)="editPurchase(purchase)"
+                [rounded]="true"
+                [text]="true"
+                severity="success"
+                pTooltip="Edit"
+                tooltipPosition="top">
+              </p-button>
+              <p-button 
+                icon="pi pi-wallet" 
+                (onClick)="openPaymentDialog(purchase)"
+                [rounded]="true"
+                [text]="true"
+                severity="warn"
+                pTooltip="Record Payment"
+                tooltipPosition="top"
+                [disabled]="purchase.payment_status === 'paid'">
+              </p-button>
+              <p-button 
+                icon="pi pi-trash" 
+                (onClick)="deletePurchase(purchase)"
+                [rounded]="true"
+                [text]="true"
+                severity="danger"
+                pTooltip="Delete"
+                tooltipPosition="top">
+              </p-button>
+            </div>
+          </td>
+        </tr>
+      </ng-template>
+      
+      <ng-template pTemplate="emptymessage">
+        <tr>
+          <td colspan="9" class="text-center">
+            <div class="empty-state">
+              <i class="pi pi-shopping-cart" style="font-size: 3rem; color: #cbd5e1;"></i>
+              <p class="empty-text">No purchases found</p>
+              <p-button 
+                label="Add First Purchase" 
+                icon="pi pi-plus" 
+                (onClick)="openNewPurchase()"
+                styleClass="p-button-sm">
+              </p-button>
+            </div>
+          </td>
+        </tr>
+      </ng-template>
+    </p-table>
+  </p-card>
+</div>
+
+<!-- Add/Edit Purchase Dialog -->
+<p-dialog 
+  [(visible)]="displayPurchaseDialog" 
+  [header]="isEditMode ? 'Edit Purchase' : 'New Purchase'"
+  [modal]="true" 
+  [style]="{width: '50vw'}" 
+  [breakpoints]="{'960px': '75vw', '640px': '90vw'}">
+  
+  <form [formGroup]="purchaseForm" class="purchase-form">
+    <div class="form-grid">
+      <div class="form-field">
+        <label class="form-label required">Vendor</label>
+        <div class="vendor-select-group">
+          <p-select
+            formControlName="vendor"
+            [options]="vendors"
+            optionLabel="name"
+            optionValue="id"
+            placeholder="Select vendor"
+            [filter]="true"
+            styleClass="flex-1"
+            appendTo="body"
+            [class.ng-invalid]="purchaseForm.get('vendor')?.invalid && purchaseForm.get('vendor')?.touched">
+          </p-select>
+          <p-button 
+            icon="pi pi-plus" 
+            (onClick)="openNewVendor()"
+            [text]="true"
+            pTooltip="Add New Vendor"
+            tooltipPosition="top">
+          </p-button>
+        </div>
+        <small class="p-error" *ngIf="purchaseForm.get('vendor')?.invalid && purchaseForm.get('vendor')?.touched">
+          Vendor is required
+        </small>
+      </div>
+
+      <div class="form-field">
+        <label class="form-label required">Category</label>
+        <p-select
+          formControlName="category"
+          [options]="categories"
+          optionLabel="name"
+          optionValue="id"
+          placeholder="Select category"
+          styleClass="w-full"
+          appendTo="body"
+          [class.ng-invalid]="purchaseForm.get('category')?.invalid && purchaseForm.get('category')?.touched">
+        </p-select>
+        <small class="p-error" *ngIf="purchaseForm.get('category')?.invalid && purchaseForm.get('category')?.touched">
+          Category is required
+        </small>
+      </div>
+
+      <div class="form-field">
+        <label class="form-label required">Invoice Number</label>
+        <input 
+          pInputText 
+          formControlName="invoice_number"
+          placeholder="INV-2024-001"
+          class="w-full"
+          [class.ng-invalid]="purchaseForm.get('invoice_number')?.invalid && purchaseForm.get('invoice_number')?.touched" />
+        <small class="p-error" *ngIf="purchaseForm.get('invoice_number')?.invalid && purchaseForm.get('invoice_number')?.touched">
+          Invoice number is required
+        </small>
+      </div>
+
+      <div class="form-field">
+        <label class="form-label required">Purchase Date</label>
+        <p-datepicker
+          formControlName="purchase_date"
+          [showIcon]="true"
+          dateFormat="yy-mm-dd"
+          placeholder="Select date"
+          styleClass="w-full"
+          [class.ng-invalid]="purchaseForm.get('purchase_date')?.invalid && purchaseForm.get('purchase_date')?.touched">
+        </p-datepicker>
+        <small class="p-error" *ngIf="purchaseForm.get('purchase_date')?.invalid && purchaseForm.get('purchase_date')?.touched">
+          Purchase date is required
+        </small>
+      </div>
+
+      <div class="form-field full-width">
+        <label class="form-label required">Description</label>
+        <textarea 
+          pInputTextarea 
+          formControlName="description"
+          rows="3"
+          placeholder="Enter purchase description"
+          class="w-full"
+          [class.ng-invalid]="purchaseForm.get('description')?.invalid && purchaseForm.get('description')?.touched">
+        </textarea>
+        <small class="p-error" *ngIf="purchaseForm.get('description')?.invalid && purchaseForm.get('description')?.touched">
+          Description is required
+        </small>
+      </div>
+
+      <div class="form-field">
+        <label class="form-label required">Amount (₹)</label>
+        <input 
+          pInputText 
+          formControlName="amount"
+          type="number"
+          step="0.01"
+          placeholder="10000.00"
+          class="w-full"
+          [class.ng-invalid]="purchaseForm.get('amount')?.invalid && purchaseForm.get('amount')?.touched" />
+        <small class="p-error" *ngIf="purchaseForm.get('amount')?.invalid && purchaseForm.get('amount')?.touched">
+          Valid amount is required
+        </small>
+      </div>
+
+      <div class="form-field">
+        <label class="form-label required">Tax Amount (₹)</label>
+        <input 
+          pInputText 
+          formControlName="tax_amount"
+          type="number"
+          step="0.01"
+          placeholder="1800.00"
+          class="w-full"
+          [class.ng-invalid]="purchaseForm.get('tax_amount')?.invalid && purchaseForm.get('tax_amount')?.touched" />
+        <small class="p-error" *ngIf="purchaseForm.get('tax_amount')?.invalid && purchaseForm.get('tax_amount')?.touched">
+          Tax amount is required
+        </small>
+      </div>
+
+      <div class="form-field full-width total-display">
+        <label class="form-label">Total Amount</label>
+        <div class="total-value">
+          {{ formatCurrency((purchaseForm.get('amount')?.value || 0) + (purchaseForm.get('tax_amount')?.value || 0)) }}
+        </div>
+      </div>
+
+      <div class="form-field full-width">
+        <label class="form-label">Notes</label>
+        <textarea 
+          pInputTextarea 
+          formControlName="notes"
+          rows="2"
+          placeholder="Additional notes (optional)"
+          class="w-full">
+        </textarea>
+      </div>
+    </div>
+  </form>
+
+  <ng-template pTemplate="footer">
+    <div class="dialog-footer">
+      <p-button 
+        label="Cancel" 
+        icon="pi pi-times" 
+        (onClick)="hideDialog()"
+        styleClass="p-button-text">
+      </p-button>
+      <p-button 
+        [label]="isEditMode ? 'Update' : 'Save'" 
+        icon="pi pi-check" 
+        (onClick)="savePurchase()"
+        [loading]="loading">
+      </p-button>
+    </div>
+  </ng-template>
+</p-dialog>
+
+<!-- Add Vendor Dialog -->
+<p-dialog 
+  [(visible)]="displayVendorDialog" 
+  header="Add New Vendor"
+  [modal]="true" 
+  [style]="{width: '40vw'}" 
+  [breakpoints]="{'960px': '75vw', '640px': '90vw'}">
+  
+  <form [formGroup]="vendorForm" class="vendor-form">
+    <div class="form-grid">
+      <div class="form-field full-width">
+        <label class="form-label required">Vendor Name</label>
+        <input 
+          pInputText 
+          formControlName="name"
+          placeholder="Enter vendor name"
+          class="w-full"
+          [class.ng-invalid]="vendorForm.get('name')?.invalid && vendorForm.get('name')?.touched" />
+        <small class="p-error" *ngIf="vendorForm.get('name')?.invalid && vendorForm.get('name')?.touched">
+          Vendor name is required
+        </small>
+      </div>
+
+      <div class="form-field">
+        <label class="form-label">Contact Person</label>
+        <input 
+          pInputText 
+          formControlName="contact_person"
+          placeholder="Contact person name"
+          class="w-full" />
+      </div>
+
+      <div class="form-field">
+        <label class="form-label">Phone</label>
+        <input 
+          pInputText 
+          formControlName="phone"
+          placeholder="9876543210"
+          class="w-full"
+          [class.ng-invalid]="vendorForm.get('phone')?.invalid && vendorForm.get('phone')?.touched" />
+        <small class="p-error" *ngIf="vendorForm.get('phone')?.invalid && vendorForm.get('phone')?.touched">
+          Invalid phone number (10 digits)
+        </small>
+      </div>
+
+      <div class="form-field">
+        <label class="form-label">Email</label>
+        <input 
+          pInputText 
+          formControlName="email"
+          type="email"
+          placeholder="vendor@example.com"
+          class="w-full"
+          [class.ng-invalid]="vendorForm.get('email')?.invalid && vendorForm.get('email')?.touched" />
+        <small class="p-error" *ngIf="vendorForm.get('email')?.invalid && vendorForm.get('email')?.touched">
+          Invalid email format
+        </small>
+      </div>
+
+      <div class="form-field">
+        <label class="form-label">GSTIN</label>
+        <input 
+          pInputText 
+          formControlName="gstin"
+          placeholder="29ABCDE1234F1Z5"
+          class="w-full"
+          style="text-transform: uppercase"
+          [class.ng-invalid]="vendorForm.get('gstin')?.invalid && vendorForm.get('gstin')?.touched" />
+        <small class="p-error" *ngIf="vendorForm.get('gstin')?.invalid && vendorForm.get('gstin')?.touched">
+          Invalid GSTIN format
+        </small>
+      </div>
+
+      <div class="form-field">
+        <label class="form-label">PAN</label>
+        <input 
+          pInputText 
+          formControlName="pan"
+          placeholder="ABCDE1234F"
+          class="w-full"
+          style="text-transform: uppercase"
+          [class.ng-invalid]="vendorForm.get('pan')?.invalid && vendorForm.get('pan')?.touched" />
+        <small class="p-error" *ngIf="vendorForm.get('pan')?.invalid && vendorForm.get('pan')?.touched">
+          Invalid PAN format
+        </small>
+      </div>
+
+      <div class="form-field full-width">
+        <label class="form-label">Address</label>
+        <textarea 
+          pInputTextarea 
+          formControlName="address"
+          rows="3"
+          placeholder="Enter complete address"
+          class="w-full">
+        </textarea>
+      </div>
+    </div>
+  </form>
+
+  <ng-template pTemplate="footer">
+    <div class="dialog-footer">
+      <p-button 
+        label="Cancel" 
+        icon="pi pi-times" 
+        (onClick)="hideDialog()"
+        styleClass="p-button-text">
+      </p-button>
+      <p-button 
+        label="Save Vendor" 
+        icon="pi pi-check" 
+        (onClick)="saveVendor()"
+        [loading]="loading">
+      </p-button>
+    </div>
+  </ng-template>
+</p-dialog>
+
+<!-- Record Payment Dialog -->
+<p-dialog 
+  [(visible)]="displayPaymentDialog" 
+  header="Record Payment"
+  [modal]="true" 
+  [style]="{width: '35vw'}" 
+  [breakpoints]="{'960px': '75vw', '640px': '90vw'}">
+  
+  <div *ngIf="selectedPurchase" class="payment-info">
+    <p-card styleClass="mb-3">
+      <div class="payment-summary">
+        <div class="summary-row">
+          <span>Invoice:</span>
+          <strong>{{ selectedPurchase.invoice_number }}</strong>
+        </div>
+        <div class="summary-row">
+          <span>Total Amount:</span>
+          <strong>{{ formatCurrency(selectedPurchase.total_amount) }}</strong>
+        </div>
+        <div class="summary-row">
+          <span>Paid Amount:</span>
+          <strong class="text-green-600">{{ formatCurrency(selectedPurchase.paid_amount || 0) }}</strong>
+        </div>
+        <div class="summary-row highlight">
+          <span>Remaining:</span>
+          <strong class="text-orange-600">{{ formatCurrency(selectedPurchase.remaining_amount || 0) }}</strong>
+        </div>
+      </div>
+    </p-card>
+  </div>
+
+  <form [formGroup]="paymentForm" class="payment-form">
+    <div class="form-grid">
+      <div class="form-field">
+        <label class="form-label required">Payment Date</label>
+        <p-datepicker
+          formControlName="payment_date"
+          [showIcon]="true"
+          dateFormat="yy-mm-dd"
+          placeholder="Select date"
+          styleClass="w-full">
+        </p-datepicker>
+      </div>
+
+      <div class="form-field">
+        <label class="form-label required">Amount (₹)</label>
+        <input 
+          pInputText 
+          formControlName="amount"
+          type="number"
+          step="0.01"
+          placeholder="0.00"
+          class="w-full"
+          [class.ng-invalid]="paymentForm.get('amount')?.invalid && paymentForm.get('amount')?.touched" />
+        <small class="p-error" *ngIf="paymentForm.get('amount')?.invalid && paymentForm.get('amount')?.touched">
+          Valid amount is required
+        </small>
+      </div>
+
+      <div class="form-field full-width">
+        <label class="form-label required">Payment Method</label>
+        <p-select
+          formControlName="payment_method"
+          [options]="paymentMethods"
+          placeholder="Select method"
+          styleClass="w-full"
+          appendTo="body"
+          [class.ng-invalid]="paymentForm.get('payment_method')?.invalid && paymentForm.get('payment_method')?.touched">
+        </p-select>
+        <small class="p-error" *ngIf="paymentForm.get('payment_method')?.invalid && paymentForm.get('payment_method')?.touched">
+          Payment method is required
+        </small>
+      </div>
+
+      <div class="form-field full-width">
+        <label class="form-label">Reference Number</label>
+        <input 
+          pInputText 
+          formControlName="reference_number"
+          placeholder="Transaction/Cheque reference"
+          class="w-full" />
+      </div>
+
+      <div class="form-field full-width">
+        <label class="form-label">Notes</label>
+        <textarea 
+          pInputTextarea 
+          formControlName="notes"
+          rows="2"
+          placeholder="Payment notes (optional)"
+          class="w-full">
+        </textarea>
+      </div>
+    </div>
+  </form>
+
+  <ng-template pTemplate="footer">
+    <div class="dialog-footer">
+      <p-button 
+        label="Cancel" 
+        icon="pi pi-times" 
+        (onClick)="hideDialog()"
+        styleClass="p-button-text">
+      </p-button>
+      <p-button 
+        label="Record Payment" 
+        icon="pi pi-check" 
+        (onClick)="recordPayment()"
+        [loading]="loading">
+      </p-button>
+    </div>
+  </ng-template>
+</p-dialog>
+
+<!-- View Details Dialog -->
+<p-dialog 
+  [(visible)]="displayDetailsDialog" 
+  header="Purchase Details"
+  [modal]="true" 
+  [style]="{width: '45vw'}" 
+  [breakpoints]="{'960px': '75vw', '640px': '90vw'}">
+  
+  <div *ngIf="selectedPurchase" class="purchase-details">
+    <p-accordion [activeIndex]="0">
+      <p-accordion-panel header="Purchase Information">
+        <div class="detail-grid">
+          <div class="detail-item">
+            <label>Invoice Number</label>
+            <span>{{ selectedPurchase.invoice_number }}</span>
+          </div>
+          <div class="detail-item">
+            <label>Vendor</label>
+            <span>{{ selectedPurchase.vendor_name }}</span>
+          </div>
+          <div class="detail-item">
+            <label>Category</label>
+            <span>{{ selectedPurchase.category_name }}</span>
+          </div>
+          <div class="detail-item">
+            <label>Purchase Date</label>
+            <span>{{ selectedPurchase.purchase_date | date: 'dd MMM yyyy' }}</span>
+          </div>
+          <div class="detail-item full-width">
+            <label>Description</label>
+            <span>{{ selectedPurchase.description }}</span>
+          </div>
+          <div class="detail-item">
+            <label>Amount</label>
+            <span>{{ formatCurrency(selectedPurchase.amount) }}</span>
+          </div>
+          <div class="detail-item">
+            <label>Tax Amount</label>
+            <span>{{ formatCurrency(selectedPurchase.tax_amount) }}</span>
+          </div>
+          <div class="detail-item highlight">
+            <label>Total Amount</label>
+            <span class="total">{{ formatCurrency(selectedPurchase.total_amount) }}</span>
+          </div>
+          <div class="detail-item">
+            <label>Payment Status</label>
+            <p-tag 
+              [value]="selectedPurchase.payment_status" 
+              [severity]="getStatusSeverity(selectedPurchase.payment_status)">
+            </p-tag>
+          </div>
+          <div class="detail-item full-width" *ngIf="selectedPurchase.notes">
+            <label>Notes</label>
+            <span>{{ selectedPurchase.notes }}</span>
+          </div>
+        </div>
+      </p-accordion-panel>
+
+      <p-accordion-panel header="Payment History" *ngIf="selectedPurchase.payments && selectedPurchase.payments.length > 0">
+        <p-timeline [value]="selectedPurchase.payments" align="alternate">
+          <ng-template pTemplate="content" let-payment>
+            <p-card>
+              <div class="payment-card">
+                <div class="payment-header">
+                  <span class="payment-amount">{{ formatCurrency(payment.amount) }}</span>
+                  <p-chip [label]="getPaymentMethodLabel(payment.payment_method)"></p-chip>
+                </div>
+                <div class="payment-date">
+                  <i class="pi pi-calendar"></i>
+                  {{ payment.payment_date | date: 'dd MMM yyyy' }}
+                </div>
+                <div *ngIf="payment.reference_number" class="payment-ref">
+                  <i class="pi pi-hashtag"></i>
+                  {{ payment.reference_number }}
+                </div>
+                <div *ngIf="payment.notes" class="payment-notes">
+                  {{ payment.notes }}
+                </div>
+              </div>
+            </p-card>
+          </ng-template>
+        </p-timeline>
+      </p-accordion-panel>
+    </p-accordion>
+  </div>
+
+  <ng-template pTemplate="footer">
+    <p-button 
+      label="Close" 
+      icon="pi pi-times" 
+      (onClick)="hideDialog()"
+      styleClass="p-button-text">
+    </p-button>
+    <p-button 
+      label="Record Payment" 
+      icon="pi pi-wallet" 
+      (onClick)="openPaymentDialog(selectedPurchase!); displayDetailsDialog = false"
+      *ngIf="selectedPurchase?.payment_status !== 'paid'">
+    </p-button>
+  </ng-template>
+</p-dialog>
+
+<p-dialog
+  [(visible)]="displayCategoryDialog"
+  header="Add Expense Category"
+  [modal]="true"
+  [style]="{ width: '35vw' }"
+  [breakpoints]="{ '960px': '75vw', '640px': '90vw' }">
+
+  <form [formGroup]="categoryForm" class="category-form">
+    <div class="form-grid">
+      <div class="form-field full-width">
+        <label class="form-label required">Category Name</label>
+        <input
+          pInputText
+          formControlName="name"
+          placeholder="e.g. Office Supplies"
+          class="w-full" />
+      </div>
+
+      <div class="form-field full-width">
+        <label class="form-label">Description</label>
+        <textarea
+          pInputTextarea
+          formControlName="description"
+          rows="3"
+          placeholder="Optional description"
+          class="w-full">
+        </textarea>
+      </div>
+    </div>
+  </form>
+
+  <ng-template pTemplate="footer">
+    <p-button
+      label="Cancel"
+      icon="pi pi-times"
+      (onClick)="displayCategoryDialog = false"
+      styleClass="p-button-text">
+    </p-button>
+  </ng-template>
+</p-dialog>

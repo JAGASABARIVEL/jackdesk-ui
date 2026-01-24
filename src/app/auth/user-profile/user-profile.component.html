@@ -1,22 +1,144 @@
-<div class="card">
-    <p-tabs value="0">
-        <p-tablist>
-            <p-tab value="0">
-                <i class="pi pi-user"></i>
-                <span>Profile</span>
-            </p-tab>
-            <p-tab value="1" *ngIf="profile?.user.role === 'owner'">
-                <i class="pi pi-user-plus"></i>
-                <span>Settings</span>
-            </p-tab>
-        </p-tablist>
-        <p-tabpanels>
-            <p-tabpanel value="0">
-                <app-user-profile-settings></app-user-profile-settings>
-            </p-tabpanel>
-            <p-tabpanel value="1" *ngIf="profile?.user.role === 'owner'">
-                <app-admin-settings></app-admin-settings>
-            </p-tabpanel>
-        </p-tabpanels>
-    </p-tabs>
-</div>
+    <div class="profile-avatar-container" 
+         (mouseenter)="onMouseEnter()" 
+         (mouseleave)="onMouseLeave()">
+      
+      <!-- Avatar Button -->
+      <div class="avatar-wrapper" [class.active]="showDropdown">
+        <p-avatar 
+          [image]="profile?.user?.image" 
+          [label]="getInitials()" 
+          shape="circle" 
+          size="large"
+          [style]="{'cursor': 'pointer', 'border': showDropdown ? '2px solid var(--primary-color)' : '2px solid var(--primary-color)'}"
+        ></p-avatar>
+        
+        <!-- Verification Badge -->
+        <!--span class="verification-badge" 
+              [class.verified]="profile?.user?.is_registration_complete"
+              [class.unverified]="!profile?.user?.is_registration_complete">
+          <i [class]="profile?.user?.is_registration_complete ? 'pi pi-check' : 'pi pi-times'"></i>
+        </span-->
+      </div>
+
+      <!-- Dropdown Panel -->
+      <div class="profile-dropdown" 
+           *ngIf="showDropdown" 
+           @slideDown
+           (mouseenter)="onMouseEnter()" 
+           (mouseleave)="onMouseLeave()">
+        <div class="profile-header">
+          <img [src]="profile?.user?.image" [alt]="profile?.user?.username" class="profile-image">
+          <div class="profile-info">
+            <h3>{{ profile?.user?.username }}</h3>
+            <span class="verification-status" 
+                  [class.verified]="profile?.user?.is_registration_complete">
+              <i [class]="profile?.user?.is_registration_complete ? 'pi pi-check-circle' : 'pi pi-times-circle'"></i>
+              {{ profile?.user?.is_registration_complete ? 'Verified' : 'Unverified' }}
+            </span>
+          </div>
+        </div>
+
+        <!-- Version Info -->
+        <div class="version-info">
+          <div class="version-header">
+            <div class="version-badge">
+              <i class="pi pi-graduation-cap"></i>
+              <span>{{ currentVersion }}</span>
+            </div>
+            <p-button 
+              label="Release Notes" 
+              icon="pi pi-book"
+              [text]="true"
+              size="small"
+              (onClick)="showReleaseNotes = true; showDropdown = false"
+            ></p-button>
+          </div>
+        </div>
+
+        <!-- Profile Details -->
+        <div class="profile-details">
+          <div class="detail-item">
+            <i class="pi pi-at"></i>
+            <span>{{ profile?.user?.email }}</span>
+          </div>
+          <div class="detail-item">
+            <i class="pi pi-user"></i>
+            <span class="role-badge">{{ formatRole(profile?.user?.role) }}</span>
+          </div>
+          <div class="detail-item" *ngIf="profile?.user?.role !== 'individual'">
+            <i class="pi pi-briefcase"></i>
+            <span>{{ org_name }}</span>
+          </div>
+        </div>
+
+        <p-divider></p-divider>
+
+        <!-- Action Buttons -->
+        <div class="profile-actions">
+          <p-button 
+            *ngIf="!profile?.user?.is_registration_complete"
+            label="Complete Registration" 
+            severity="warn"
+            icon="pi pi-exclamation-triangle"
+            [text]="true"
+            styleClass="w-full"
+            (onClick)="takeToLoginScreen()"
+          ></p-button>
+
+          <p-button 
+            *ngIf="profile?.user?.role === 'owner'"
+            label="Settings" 
+            icon="pi pi-cog"
+            [text]="true"
+            styleClass="w-full"
+            (onClick)="navigateToSettings()"
+          ></p-button>
+
+          <p-button 
+            label="Logout" 
+            icon="pi pi-sign-out"
+            severity="danger"
+            [text]="true"
+            styleClass="w-full"
+            (onClick)="logout()"
+          ></p-button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Release Notes Dialog -->
+    <p-dialog 
+      [(visible)]="showReleaseNotes" 
+      [modal]="true"
+      [style]="{width: '50vw'}"
+      [breakpoints]="{'960px': '75vw', '640px': '90vw'}"
+      [header]="'Release Notes'"
+      [dismissableMask]="true">
+      
+      <p-accordion [activeIndex]="activeAccordionIndex">
+        <p-accordionTab *ngFor="let version of versions; let i = index" [header]="version">
+          <div class="release-content">
+            <div class="release-meta">
+              <span class="version-label">{{ version }}</span>
+              <span class="release-type" [class.current]="version === currentVersion">
+                {{ version === currentVersion ? 'Current Version' : 'Previous Version' }}
+              </span>
+            </div>
+            
+            <div class="features-list">
+              <h4>✨ What's New
+              <span class="release-type" [class.current]="1">
+                {{ releaseNotes[version]['releasedate'] }}
+              </span>
+              </h4>
+              <ul>
+                <li *ngFor="let feature of releaseNotes[version]['features']">
+                  <i class="pi pi-check-circle"></i>
+                  <span>{{ feature }}</span>
+                </li>
+              </ul>
+            </div>
+          </div>
+        </p-accordionTab>
+      </p-accordion>
+    </p-dialog>

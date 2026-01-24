@@ -1,5 +1,5 @@
 <div class="layout-topbar">
-    <a class="layout-topbar-logo" [routerLink]="'../'">
+    <a class="layout-topbar-logo" (click)="onClickLogo()">
         <img src="assets/Icons/Schedule/logo.png" style="margin-top: 10px; width: 4rem; height: 4rem;"
             alt="logo">
     </a>
@@ -53,7 +53,7 @@
                     tooltipPosition="bottom">
                     <i class="pi pi-briefcase text-2xl"></i>
                     <span class="notification-badge" *ngIf="layoutService.newTaskmessages().length > 0">
-                        {{ layoutService.newTaskmessages().length > 99 ? '99+' : layoutService.newTaskmessages().length }}
+                        {{ layoutService.totalNewMessageRecords > 10 ? '10+' : layoutService.newTaskmessages().length }}
                     </span>
                 </button>
 
@@ -66,7 +66,7 @@
                             <i class="pi pi-briefcase mr-2"></i>
                             New Conversations
                         </h3>
-                        <span class="notification-count">{{ layoutService.newTaskmessages().length }}</span>
+                        <span class="notification-count">{{ layoutService.totalNewMessageRecords }}</span>
                     </div>
 
                     <div class="notification-content">
@@ -222,12 +222,13 @@
             </div>
 
             <!-- Profile Menu -->
-            <p-splitButton 
+            <!--p-splitButton 
                 *ngIf="layoutService.menuItemsCache().length > 0" 
                 icon="pi pi-spin pi-cog" 
                 [outlined]="true"
                 [model]="items" 
-                (click)="profileViewButton()" />
+                (click)="profileViewButton()" /-->
+            <app-user-profile *ngIf="this.profile?.user.role" [profile]="profile" (logoutEvent)="resetProfile()"></app-user-profile>
         </div>
     </div>
 </div>

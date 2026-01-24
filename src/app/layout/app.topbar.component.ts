@@ -1,4 +1,4 @@
-import { Component, ElementRef, OnDestroy, OnInit, ViewChild, HostListener } from '@angular/core';
+import { Component, ElementRef, OnDestroy, OnInit, ViewChild, HostListener, AfterViewInit } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import { MenuItem } from 'primeng/api';
 import { formatDate } from '@angular/common';
@@ -7,7 +7,7 @@ import { LayoutService } from "./service/app.layout.service";
 import { SplitButtonModule } from 'primeng/splitbutton';
 import { OverlayBadgeModule } from 'primeng/overlaybadge';
 import { CommonModule } from '@angular/common';
-import { Subscription } from 'rxjs';
+import { Subject, Subscription, takeUntil } from 'rxjs';
 import { SocketService } from '../shared/services/socketio.service';
 import { AvatarModule } from 'primeng/avatar';
 import { ButtonModule } from 'primeng/button';
@@ -15,10 +15,13 @@ import { MeterGroup } from 'primeng/metergroup';
 import { CardModule } from 'primeng/card';
 import { ProductivityService } from '../shared/services/productivity.service';
 
-import { ACTIVE_TIME_POLLING_DURATION, PLATFORM_NOTIFICATION_POLLING_DURATION } from '../../environment'
+import { ACTIVE_TIME_POLLING_DURATION, DEFAULT_EMPLOYEE_ENTERPRISE_DASHBOARD_LANDING_APP, DEFAULT_EMPLOYEE_ENTERPRISE_LANDING_APP, DEFAULT_OWNER_ENTERPRISE_LANDING_APP, PLATFORM_NEW_TASK_NOTIFICATION_POLLING_DURATION, PLATFORM_NOTIFICATION_POLLING_DURATION } from '../../environment'
 import { SocialAuthService } from '@abacritt/angularx-social-login';
 import { CUstomEventService } from '../shared/services/Events/custom-events.service';
 import { PlatformManagerService } from '../shared/services/platform-manager.service';
+import { UserProfileComponent } from '../auth/user-profile/user-profile.component';
+import { ChatManagerService } from '../shared/services/chat-manager.service';
+
 
 declare const google: any;
 
@@ -35,12 +38,14 @@ declare const google: any;
         AvatarModule,
         ButtonModule,
         MeterGroup,
-        CardModule
+        CardModule,
+        UserProfileComponent,
     ]
 })
-export class AppTopBarComponent implements OnInit, OnDestroy {
+export class AppTopBarComponent implements OnInit, OnDestroy, AfterViewInit {
 
     items!: MenuItem[];
+    private destroy$ = new Subject<void>();
 
     @ViewChild('menubutton') menuButton!: ElementRef;
     @ViewChild('topbarmenubutton') topbarMenuButton!: ElementRef;
@@ -71,7 +76,8 @@ export class AppTopBarComponent implements OnInit, OnDestroy {
         private socketService: SocketService, 
         private localEventService: CUstomEventService, 
         private productivityService: ProductivityService, 
-        private platformManagerService: PlatformManagerService
+        private platformManagerService: PlatformManagerService,
+        private conversationService: ChatManagerService,
     ) {
         this.items = [
             {
@@ -92,24 +98,53 @@ export class AppTopBarComponent implements OnInit, OnDestroy {
         ];
     }
 
+    private viewInitialized = false;
+
+    ngAfterViewInit(): void {
+        this.viewInitialized = true;
+        
+        // Initialize socket and background tasks AFTER view is ready
+        if (!this.socketService.isSocketConnected) {
+            this.layoutService.addNotification(
+                { 'severity': 'error', 'app': 'Socket', 'text': 'Socket connection not available for new notification. Please contact Engineering' }
+            );
+        } else {
+            this.initDate();
+            this.subscribeToLocalEvents();
+            this.subscribeToWebSocketChatMessages();
+            this.initBackgroundFtech();
+        }
+    }
+
     @HostListener('document:click', ['$event'])
     onDocumentClick(event: MouseEvent) {
+        // Don't process clicks until ViewChildren are ready
+
+        if (!this.viewInitialized) {
+            return;
+        }
+
+        const target = event.target as HTMLElement;
+        
         // Close new tasks dropdown if clicking outside
-        if (this.showNewTasks && this.newTasksDropdown && 
-            !this.newTasksDropdown.nativeElement.contains(event.target)) {
-            this.showNewTasks = false;
+        if (this.showNewTasks && this.newTasksDropdown?.nativeElement) {
+            if (!this.newTasksDropdown.nativeElement.contains(target)) {
+                this.showNewTasks = false;
+            }
         }
 
         // Close unresponded messages dropdown if clicking outside
-        if (this.showUnrespondedMessages && this.unrespondedDropdown && 
-            !this.unrespondedDropdown.nativeElement.contains(event.target)) {
-            this.showUnrespondedMessages = false;
+        if (this.showUnrespondedMessages && this.unrespondedDropdown?.nativeElement) {
+            if (!this.unrespondedDropdown.nativeElement.contains(target)) {
+                this.showUnrespondedMessages = false;
+            }
         }
 
         // Close system notifications dropdown if clicking outside
-        if (this.showSystemNotifications && this.systemNotificationDropdown && 
-            !this.systemNotificationDropdown.nativeElement.contains(event.target)) {
-            this.showSystemNotifications = false;
+        if (this.showSystemNotifications && this.systemNotificationDropdown?.nativeElement) {
+            if (!this.systemNotificationDropdown.nativeElement.contains(target)) {
+                this.showSystemNotifications = false;
+            }
         }
     }
 
@@ -125,6 +160,8 @@ export class AppTopBarComponent implements OnInit, OnDestroy {
     }
 
     ngOnDestroy(): void {
+        this.destroy$.next();
+        this.destroy$.complete();
         this.loginNotificationSubscription?.unsubscribe();
         this.messageSubscription?.unsubscribe();
         this.fetchActiveTimeSubscription?.unsubscribe();
@@ -132,22 +169,31 @@ export class AppTopBarComponent implements OnInit, OnDestroy {
     }
 
     ngOnInit(): void {
-        if (!this.socketService.isSocketConnected) {
-            this.layoutService.addNotification(
-                { 'severity': 'error', 'app': 'Socket', 'text': 'Socket connection not available for new notification. Please contact Engineering' }
-            );
+        if (!this.profile?.user?.role) {
+            this.profile = JSON.parse(localStorage.getItem("profile"));
         }
-        else {
-            this.initDate();
-            this.subscribeToLocalEvents();
-            this.subscribeToWebSocketChatMessages();
-            this.initBackgroundFtech();
-        }
+        //if (!this.socketService.isSocketConnected) {
+        //    this.layoutService.addNotification(
+        //        { 'severity': 'error', 'app': 'Socket', 'text': 'Socket connection not available for new notification. Please contact Engineering' }
+        //    );
+        //}
+        //else {
+        //    this.initDate();
+        //    this.subscribeToLocalEvents();
+        //    this.subscribeToWebSocketChatMessages();
+        //    this.initBackgroundFtech();
+        //}
     }
 
     initBackgroundFtech() {
+        setTimeout(this.fetchActiveTime.bind(this), 0);
+        setTimeout(this.fetchPlatformNotifications.bind(this), 0);
+        setTimeout(this.refreshNewConversationNotifications.bind(this), 0)
+        setTimeout(this.refreshUnrespondedConversationNotifications.bind(this), 0)
         setInterval(this.fetchActiveTime.bind(this), ACTIVE_TIME_POLLING_DURATION);
         setInterval(this.fetchPlatformNotifications.bind(this), PLATFORM_NOTIFICATION_POLLING_DURATION);
+        setInterval(this.refreshNewConversationNotifications.bind(this), PLATFORM_NEW_TASK_NOTIFICATION_POLLING_DURATION);
+        setInterval(this.refreshUnrespondedConversationNotifications.bind(this), PLATFORM_NEW_TASK_NOTIFICATION_POLLING_DURATION)
     }
 
     private fetchActiveTimeSubscription: Subscription | undefined;
@@ -203,11 +249,78 @@ export class AppTopBarComponent implements OnInit, OnDestroy {
     }
 
     playNotificationSound() {
-        const audio = new Audio("../../assets/media/new_conversation_notofication.mp3");
+        const audio = new Audio("../../assets/media/new_message.mp3");
         audio.play();
     }
 
-    profile = { user: { is_productivity_enable: false } };
+    refreshUnrespondedConversationNotifications(): void {
+        if (!this.layoutService.isLoggedIn()) {
+            return
+        }
+    this.conversationService.list_notification('chat')
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (data: any) => {
+          this.layoutService.unrespondedConversationNotification.update(() => data);
+        },
+        error: (err) => {
+          console.error('Failed to refresh notifications:', err);
+        }
+      });
+  }
+
+    refreshNewConversationNotifications() {
+        if (!this.layoutService.isLoggedIn()) {
+            return
+        }
+        this.loadConversations();
+    }
+
+    conversations = []
+    loadConversations() {
+        
+  this.conversationService.list_new_conversations("non-chat", 1, 15)
+    .pipe(takeUntil(this.destroy$))
+    .subscribe({
+      next: (result) => {
+        // Normalize response
+        let data: any[];
+        // Always expect DRF pagination
+        if (!result || !Array.isArray(result.results)) {
+          console.error("Unexpected response format:", data);
+          this.conversations = [];
+          this.layoutService.totalNewMessageRecords = 0;
+          return;
+        }
+        data = result.results;
+        
+        // Always assign an array
+        this.conversations = data;
+        this.layoutService.totalNewMessageRecords = result.count ?? data.length; // DRF count or fallback
+
+        // Update messages for layout
+        const newParsedMessages = data.map((unparsed) => ({
+          customerName: unparsed?.contact?.name || unparsed?.contact?.phone,
+          text: unparsed?.messages?.[0]?.message_body,
+          total_count: result.count // TODO: Including the count in every payload until we add pagination to notification topbar
+        }));
+        this.layoutService.newTaskmessages.update(() => newParsedMessages);
+        this.layoutService.newTaskUpdateToken.set(true);
+      },
+      error: (err) => {
+        this.layoutService.newTaskUpdateToken.set(true);
+        console.error("List conversation | Error getting conversations", err);
+        this.conversations = [];
+      }
+    });
+}
+
+    profile = { user: { is_productivity_enable: false, role: null } };
+    resetProfile() {
+        this.profile = { user: { is_productivity_enable: false, role: null } };
+    }
+
+    
     private loginNotificationSubscription: Subscription | undefined;
     subscribeToLocalEvents() {
         this.loginNotificationSubscription = this.localEventService.loginSuccessNotification$.subscribe(
@@ -225,7 +338,7 @@ export class AppTopBarComponent implements OnInit, OnDestroy {
     private messageSubscription: Subscription | undefined;
     subscribeToWebSocketChatMessages(): void {
         this.messageSubscription = this.socketService.getMessages().subscribe((message) => {
-            if (message.msg_from_type === "CUSTOMER" && this.layoutService.newTaskUpdateToken()) {
+            if (["CUSTOMER", "INTERNAL"].includes(message.msg_from_type) && this.layoutService.newTaskUpdateToken()) {
                 this.layoutService.newTaskUpdateToken.set(false);
                 if (message.is_conversation_new) {
                     this.layoutService.newTaskmessages.update((prev) => [...prev, { 
@@ -256,11 +369,31 @@ export class AppTopBarComponent implements OnInit, OnDestroy {
         this.showSystemNotifications = false;
     }
 
+    onClickLogo() {
+        if (!this.profile?.user?.role) {
+            this.profile = JSON.parse(localStorage.getItem("profile"));
+            if (this.profile?.user?.role === 'owner') {
+                this.router.navigate([DEFAULT_OWNER_ENTERPRISE_LANDING_APP])
+                return
+            }
+            else {
+                this.router.navigate([DEFAULT_EMPLOYEE_ENTERPRISE_DASHBOARD_LANDING_APP])
+                return
+            }
+        }
+    }
+
+    
     toggleSystemNotifications(event: Event) {
         event.stopPropagation();
-        this.showSystemNotifications = !this.showSystemNotifications;
-        this.showNewTasks = false;
-        this.showUnrespondedMessages = false;
+        event.preventDefault();
+        
+        // Use setTimeout to ensure the click event completes before toggling
+        setTimeout(() => {
+            this.showSystemNotifications = !this.showSystemNotifications;
+            this.showNewTasks = false;
+            this.showUnrespondedMessages = false;
+        }, 0);
     }
 
     navigateToConversation(conversationId: number, contactId: number) {
@@ -309,17 +442,29 @@ export class AppTopBarComponent implements OnInit, OnDestroy {
     }
 
     profileViewButton() {
+        if (!this.profile?.user?.role) {
+            this.profile = JSON.parse(localStorage.getItem("profile"));
+        }
         this.router.navigate(['/apps/profile']);
         return;
     }
 
+    invokelogout() {
+        localStorage.clear();
+        this.router.navigate(['/apps/login']);
+        this.layoutService.menuItemsCache.update((prev) => []);
+    }
+
     logoutButton() {
         let googleLoginDetails = JSON.parse(localStorage.getItem("googleLoginDetails"))
-        const user = googleLoginDetails.user;
+        const user = googleLoginDetails?.user || null;
+        if (!user) {
+            this.invokelogout();
+            return;
+        }
         google.accounts.id.revoke(user.email, () => {
-            localStorage.clear();
-            this.layoutService.menuItemsCache.update((prev) => []);
-            this.router.navigate(['/apps/login']);
+            this.invokelogout();
+            return;
         });
     }
 }

@@ -132,6 +132,7 @@ export class ConversationDashboardComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit(): void {
+    this.layoutService.state.staticMenuDesktopInactive = true;
     this.loadProfile();
     this.initializePeriods();
     this.initializeDateRange();
@@ -191,6 +192,7 @@ export class ConversationDashboardComponent implements OnInit, OnDestroy {
             color: this.getUniqueRandomColor(),
             active: 0,
             closed: 0,
+            zombie: 0,
             resolutiontime: 0,
             responsetime: 0,
             closeRate: 0
@@ -239,6 +241,7 @@ export class ConversationDashboardComponent implements OnInit, OnDestroy {
       new: data.total_new || 0,
       active: data.total_active || 0,
       closed: data.total_closed || 0,
+      zombie: data.total_zombie || 0,
       resolutionrate: (data.user_performance_stats_avg?.average_resolution_rate || 0),
       resolutiontime: this.convertSecondsToHours(data.user_performance_stats_avg?.average_resolution_time || 0),
       responsetime: this.convertSecondsToHours(data.user_performance_stats_avg?.average_response_time || 0),
@@ -246,39 +249,38 @@ export class ConversationDashboardComponent implements OnInit, OnDestroy {
     };
 
     // Employee Performance
-    if (data.user_performance_stats && this.employees) {
-      data.user_performance_stats.forEach((user_stat: any) => {
+    if (data.agents && this.employees) {
+      data.agents.forEach((user_stat: any) => {
         const foundIndex = this.employees.findIndex(
-          (employee) => employee.details.id === user_stat.assigned_user_id
+          (employee) => employee.details.id === user_stat.agent_id
         );
         if (foundIndex !== -1) {
-          this.employees[foundIndex].active = user_stat.total_active || 0;
+          this.employees[foundIndex].active = user_stat.total_assigned - user_stat.total_closed || 0;
           this.employees[foundIndex].closed = user_stat.total_closed || 0;
-          this.employees[foundIndex].closeRate = user_stat.total_assigned > 0
-            ? Math.round((user_stat.total_closed / user_stat.total_assigned) * 100)
-            : 0;
+          this.employees[foundIndex].zombie = user_stat.total_zombie || 0;
+          this.employees[foundIndex].closeRate = user_stat.close_rate;
         }
       });
 
       // Resolution Time
-      data.user_performance_stats_avg?.resolution_time_per_employee?.forEach((user_stat: any) => {
-        const foundIndex = this.employees.findIndex(
-          (employee) => employee.details.id === user_stat.assigned_user_id
-        );
-        if (foundIndex !== -1) {
-          this.employees[foundIndex].resolutiontime = this.convertSecondsToHours(user_stat.avg || 0);
-        }
-      });
+      //data.user_performance_stats_avg?.resolution_time_per_employee?.forEach((user_stat: any) => {
+      //  const foundIndex = this.employees.findIndex(
+      //    (employee) => employee.details.id === user_stat.assigned_user_id
+      //  );
+      //  if (foundIndex !== -1) {
+      //    this.employees[foundIndex].resolutiontime = this.convertSecondsToHours(user_stat.avg || 0);
+      //  }
+      //});
 
       // Response Time
-      data.user_performance_stats_avg?.response_time_per_employee?.forEach((user_stat: any) => {
-        const foundIndex = this.employees.findIndex(
-          (employee) => employee.details.id === user_stat.assigned_user_id
-        );
-        if (foundIndex !== -1) {
-          this.employees[foundIndex].responsetime = this.convertSecondsToHours(user_stat.avg || 0);
-        }
-      });
+      //data.user_performance_stats_avg?.response_time_per_employee?.forEach((user_stat: any) => {
+      //  const foundIndex = this.employees.findIndex(
+      //    (employee) => employee.details.id === user_stat.assigned_user_id
+      //  );
+      //  if (foundIndex !== -1) {
+      //    this.employees[foundIndex].responsetime = this.convertSecondsToHours(user_stat.avg || 0);
+      //  }
+      //});
     }
 
     this.loadMyStats();
@@ -287,7 +289,7 @@ export class ConversationDashboardComponent implements OnInit, OnDestroy {
   loadMyStats(): void {
     this.myStats = this.employees.find(
       (emp) => emp.details.id === this.profile.user.id
-    ) || { active: 0, closed: 0, resolutiontime: 0, responsetime: 0, closeRate: 0 };
+    ) || { active: 0, closed: 0, zombie: 0, resolutiontime: 0, responsetime: 0, closeRate: 0 };
   }
 
   buildQuickStats(): void {
@@ -320,6 +322,18 @@ export class ConversationDashboardComponent implements OnInit, OnDestroy {
         subtitle: 'In progress',
         clickable: true,
         filter: 'active'
+      },
+      {
+        label: 'Zombie',
+        value: isOwner 
+          ? this.organizationConversationPerformance.zombie 
+          : this.myStats?.zombie,
+        icon: 'pi-bullseye',
+        color: '#f5420bff',
+        bgColor: '#d1b3a5ff',
+        subtitle: 'In progress',
+        clickable: true,
+        filter: ''
       },
       {
         label: 'Resolved',
@@ -653,7 +667,8 @@ export class ConversationDashboardComponent implements OnInit, OnDestroy {
   onStatClick(stat: QuickStat): void {
     if (stat.clickable) {
       this.filter_status_report = stat.filter || '';
-      this.reportAllConversationVisible = true;
+      // Disabled report dialog for now
+      this.reportAllConversationVisible = false;
     }
   }
 

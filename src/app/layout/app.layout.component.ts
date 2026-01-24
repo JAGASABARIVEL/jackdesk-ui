@@ -1,14 +1,13 @@
-import { Component, OnDestroy, OnInit, Renderer2, ViewChild } from '@angular/core';
+// app.layout.component.ts
+import { Component, OnDestroy, OnInit, Renderer2, ViewChild, AfterViewInit } from '@angular/core';
 import { NavigationEnd, Router, RouterModule } from '@angular/router';
 import { filter, Subscription } from 'rxjs';
 import { LayoutService } from "./service/app.layout.service";
 import { AppSidebarComponent } from "./app.sidebar.component";
 import { AppTopBarComponent } from './app.topbar.component';
 import { CommonModule } from '@angular/common';
-import { BrowserModule } from '@angular/platform-browser';
 import { FormsModule } from '@angular/forms';
 import { HttpClientModule } from '@angular/common/http';
-import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 import { InputTextModule } from 'primeng/inputtext';
 import { SidebarModule } from 'primeng/sidebar';
 import { BadgeModule } from 'primeng/badge';
@@ -40,28 +39,39 @@ import { AppFooterComponent } from './app.footer.component';
         AppSidebarComponent,
     ]
 })
-export class AppLayoutComponent implements OnInit, OnDestroy {
+export class AppLayoutComponent implements OnInit, OnDestroy, AfterViewInit {
 
     overlayMenuOpenSubscription: Subscription;
-
     menuOutsideClickListener: any;
-
     profileMenuOutsideClickListener: any;
+    private layoutInitialized = false;
 
     @ViewChild(AppSidebarComponent) appSidebar!: AppSidebarComponent;
-
     @ViewChild(AppTopBarComponent) appTopbar!: AppTopBarComponent;
 
     constructor(
         public layoutService: LayoutService,
         public renderer: Renderer2,
         public router: Router
-    ) {
+    ) {        
         this.overlayMenuOpenSubscription = this.layoutService.overlayOpen$.subscribe(() => {
+            if (!this.layoutInitialized) {
+                console.warn('Layout not initialized yet, skipping overlay menu setup');
+                return;
+            }
+            
             if (!this.menuOutsideClickListener) {
                 this.menuOutsideClickListener = this.renderer.listen('document', 'click', event => {
-                    const isOutsideClicked = !(this.appSidebar.el.nativeElement.isSameNode(event.target) || this.appSidebar.el.nativeElement.contains(event.target) 
-                        || this.appTopbar.menuButton.nativeElement.isSameNode(event.target) || this.appTopbar.menuButton.nativeElement.contains(event.target));
+                    if (!this.appSidebar?.el?.nativeElement || !this.appTopbar?.menuButton?.nativeElement) {
+                        return;
+                    }
+                    
+                    const isOutsideClicked = !(
+                        this.appSidebar.el.nativeElement.isSameNode(event.target) || 
+                        this.appSidebar.el.nativeElement.contains(event.target) ||
+                        this.appTopbar.menuButton.nativeElement.isSameNode(event.target) || 
+                        this.appTopbar.menuButton.nativeElement.contains(event.target)
+                    );
                     
                     if (isOutsideClicked) {
                         this.hideMenu();
@@ -71,8 +81,16 @@ export class AppLayoutComponent implements OnInit, OnDestroy {
 
             if (!this.profileMenuOutsideClickListener) {
                 this.profileMenuOutsideClickListener = this.renderer.listen('document', 'click', event => {
-                    const isOutsideClicked = !(this.appTopbar.menu.nativeElement.isSameNode(event.target) || this.appTopbar.menu.nativeElement.contains(event.target)
-                        || this.appTopbar.topbarMenuButton.nativeElement.isSameNode(event.target) || this.appTopbar.topbarMenuButton.nativeElement.contains(event.target));
+                    if (!this.appTopbar?.menu?.nativeElement || !this.appTopbar?.topbarMenuButton?.nativeElement) {
+                        return;
+                    }
+                    
+                    const isOutsideClicked = !(
+                        this.appTopbar.menu.nativeElement.isSameNode(event.target) || 
+                        this.appTopbar.menu.nativeElement.contains(event.target) ||
+                        this.appTopbar.topbarMenuButton.nativeElement.isSameNode(event.target) || 
+                        this.appTopbar.topbarMenuButton.nativeElement.contains(event.target)
+                    );
 
                     if (isOutsideClicked) {
                         this.hideProfileMenu();
@@ -91,14 +109,29 @@ export class AppLayoutComponent implements OnInit, OnDestroy {
                 this.hideProfileMenu();
             });
     }
-    ngOnInit(): void {
-        let me = localStorage.getItem('profile')
-        if (me) {
-            const profile = JSON.parse(me);
-        }
-        else {
+
+    ngOnInit(): void {        
+        const profile = localStorage.getItem('profile');
+        if (!profile) {
+            console.warn('No profile found, redirecting to login');
             this.router.navigate(['/apps/login']);
             return;
+        }
+        
+        // Ensure logged in state is set
+        if (!this.layoutService.isLoggedIn()) {
+            this.layoutService.isLoggedIn.set(true);
+        }
+    }
+
+    ngAfterViewInit(): void {        
+        // Mark layout as initialized
+        this.layoutInitialized = true;
+        
+        // Verify child components are loaded
+        if (this.appSidebar && this.appTopbar) {
+        } else {
+            console.warn('Child components not properly initialized');
         }
     }
 
@@ -124,8 +157,7 @@ export class AppLayoutComponent implements OnInit, OnDestroy {
     blockBodyScroll(): void {
         if (document.body.classList) {
             document.body.classList.add('blocked-scroll');
-        }
-        else {
+        } else {
             document.body.className += ' blocked-scroll';
         }
     }
@@ -133,10 +165,11 @@ export class AppLayoutComponent implements OnInit, OnDestroy {
     unblockBodyScroll(): void {
         if (document.body.classList) {
             document.body.classList.remove('blocked-scroll');
-        }
-        else {
-            document.body.className = document.body.className.replace(new RegExp('(^|\\b)' +
-                'blocked-scroll'.split(' ').join('|') + '(\\b|$)', 'gi'), ' ');
+        } else {
+            document.body.className = document.body.className.replace(
+                new RegExp('(^|\\b)' + 'blocked-scroll'.split(' ').join('|') + '(\\b|$)', 'gi'), 
+                ' '
+            );
         }
     }
 
@@ -155,12 +188,17 @@ export class AppLayoutComponent implements OnInit, OnDestroy {
     }
 
     ngOnDestroy() {
+        
         if (this.overlayMenuOpenSubscription) {
             this.overlayMenuOpenSubscription.unsubscribe();
         }
 
         if (this.menuOutsideClickListener) {
             this.menuOutsideClickListener();
+        }
+        
+        if (this.profileMenuOutsideClickListener) {
+            this.profileMenuOutsideClickListener();
         }
     }
 }

@@ -90,50 +90,188 @@
         </div>
 
         <!-- Step 3: Select Recipients -->
-        <div *ngIf="selected_contact_type?.value === 'individual'" class="form-card animate-in">
-            <div class="card-header">
-                <i class="pi pi-user header-icon"></i>
-                <h3>Select User</h3>
-            </div>
-            <p-floatLabel>
-                <p-select
-                    id="user_contact_list"
-                    styleClass="modern-select"
-                    [options]="contacts"
-                    [(ngModel)]="selected_contacts"
-                    optionLabel="name"
-                    [filter]="true"
-                    filterBy="name"
-                    [showClear]="true"
-                    [virtualScroll]="true" 
-                    [virtualScrollItemSize]="10"
-                />
-                <label for="user_contact_list">Choose a user</label>
-            </p-floatLabel>
-        </div>
+        <!-- Replace the Select User and Select Group sections with these updated versions -->
 
-        <div *ngIf="selected_contact_type?.value === 'group'" class="form-card animate-in">
-            <div class="card-header">
-                <i class="pi pi-users header-icon"></i>
-                <h3>Select Group</h3>
-            </div>
-            <p-floatLabel>
-                <p-select
-                    id="contact_list"
-                    styleClass="modern-select"
-                    [options]="contacts" 
-                    [(ngModel)]="selected_contacts" 
-                    optionLabel="name" 
-                    [filter]="true" 
-                    filterBy="name" 
-                    [showClear]="true" 
-                    [virtualScroll]="true" 
-                    [virtualScrollItemSize]="10" 
-                    (onChange)="onContactSelected()"
-                />
-                <label for="contact_list">Choose a group</label>
-            </p-floatLabel>
-        </div>
+<!-- Step 3: Select Recipients - USER (UPDATED) -->
+<div *ngIf="selected_contact_type?.value === 'individual'" class="form-card animate-in">
+    <div class="card-header">
+        <i class="pi pi-user header-icon"></i>
+        <h3>Select User</h3>
+        <span class="contact-count" *ngIf="totalContacts > 0">
+            {{ totalContacts }} total
+        </span>
+    </div>
+    <p-floatLabel>
+        <p-select
+            id="user_contact_list"
+            styleClass="modern-select"
+            [options]="contacts"
+            [(ngModel)]="selected_contacts"
+            optionLabel="name"
+            [filter]="true"
+            filterBy="name"
+            [showClear]="true"
+            [virtualScroll]="true"
+            [virtualScrollItemSize]="38"
+            [lazy]="true"
+            (onLazyLoad)="onContactsLazyLoad($event)"
+            (onFilter)="onContactSearch($event)"
+            [loading]="loadingContacts"
+            appendTo="body">
+            
+            <!-- Custom selected item template -->
+            <ng-template pTemplate="selectedItem" let-contact>
+                <div class="selected-contact">
+                    <i class="pi pi-user"></i>
+                    <span>{{ contact.name }}</span>
+                    <span class="contact-phone">{{ contact.phone }}</span>
+                </div>
+            </ng-template>
+
+            <!-- Custom dropdown item template -->
+            <ng-template let-contact pTemplate="item">
+                <div class="contact-option">
+                    <div class="contact-main">
+                        <i class="pi pi-user"></i>
+                        <span class="contact-name">{{ contact.name }}</span>
+                    </div>
+                    <div class="contact-details">
+                        <span class="contact-phone">{{ contact.phone }}</span>
+                        <span class="contact-platform" *ngIf="contact.user_platform_name">
+                            {{ contact.user_platform_name }}
+                        </span>
+                    </div>
+                </div>
+            </ng-template>
+
+            <!-- Loading template -->
+            <ng-template pTemplate="loader">
+                <div class="loading-container">
+                    <i class="pi pi-spin pi-spinner"></i>
+                    <span>Loading contacts...</span>
+                </div>
+            </ng-template>
+
+            <!-- Empty message template -->
+            <ng-template pTemplate="empty">
+                <div class="empty-container">
+                    <i class="pi pi-users"></i>
+                    <span>No contacts found</span>
+                </div>
+            </ng-template>
+
+            <!-- Footer showing count -->
+            <ng-template pTemplate="footer">
+                <div class="select-footer" *ngIf="contacts?.length > 0">
+                    <span>Showing {{ contacts.length }} of {{ totalContacts }}</span>
+                    <span class="load-more-hint" *ngIf="hasMoreContacts">
+                        <i class="pi pi-arrow-down"></i> Scroll for more
+                    </span>
+                </div>
+            </ng-template>
+        </p-select>
+        <label for="user_contact_list">Choose a user</label>
+    </p-floatLabel>
+
+    <!-- Search hint -->
+    <small class="search-hint" *ngIf="!loadingContacts && totalContacts > contactsPageSize">
+        <i class="pi pi-info-circle"></i>
+        Type to search through {{ totalContacts }} contacts
+    </small>
+</div>
+
+<!-- Step 3: Select Recipients - GROUP (UPDATED) -->
+<div *ngIf="selected_contact_type?.value === 'group'" class="form-card animate-in">
+    <div class="card-header">
+        <i class="pi pi-users header-icon"></i>
+        <h3>Select Group</h3>
+        <span class="contact-count" *ngIf="totalGroups > 0">
+            {{ totalGroups }} total
+        </span>
+    </div>
+    <p-floatLabel>
+        <p-select
+            id="contact_list"
+            styleClass="modern-select"
+            [options]="contacts"
+            [(ngModel)]="selected_contacts"
+            optionLabel="name"
+            [filter]="true"
+            filterBy="name"
+            [showClear]="true"
+            [virtualScroll]="true"
+            [virtualScrollItemSize]="38"
+            [lazy]="true"
+            (onLazyLoad)="onGroupsLazyLoad($event)"
+            (onFilter)="onGroupSearch($event)"
+            [loading]="loadingGroups"
+            appendTo="body"
+            (onChange)="onContactSelected()">
+            
+            <!-- Custom selected item template -->
+            <ng-template pTemplate="selectedItem" let-group>
+                <div class="selected-contact">
+                    <i class="pi pi-users"></i>
+                    <span>{{ group.name }}</span>
+                    <span class="group-count" *ngIf="group.members_count">
+                        {{ group.members_count }} members
+                    </span>
+                </div>
+            </ng-template>
+
+            <!-- Custom dropdown item template -->
+            <ng-template let-group pTemplate="item">
+                <div class="contact-option">
+                    <div class="contact-main">
+                        <i class="pi pi-users"></i>
+                        <span class="contact-name">{{ group.name }}</span>
+                    </div>
+                    <div class="contact-details">
+                        <span class="group-members" *ngIf="group.members_count">
+                            {{ group.members_count }} members
+                        </span>
+                        <span class="contact-platform" *ngIf="group.category">
+                            {{ group.category }}
+                        </span>
+                    </div>
+                </div>
+            </ng-template>
+
+            <!-- Loading template -->
+            <ng-template pTemplate="loader">
+                <div class="loading-container">
+                    <i class="pi pi-spin pi-spinner"></i>
+                    <span>Loading groups...</span>
+                </div>
+            </ng-template>
+
+            <!-- Empty message template -->
+            <ng-template pTemplate="empty">
+                <div class="empty-container">
+                    <i class="pi pi-users"></i>
+                    <span>No groups found</span>
+                </div>
+            </ng-template>
+
+            <!-- Footer showing count -->
+            <ng-template pTemplate="footer">
+                <div class="select-footer" *ngIf="contacts?.length > 0">
+                    <span>Showing {{ contacts.length }} of {{ totalGroups }}</span>
+                    <span class="load-more-hint" *ngIf="hasMoreGroups">
+                        <i class="pi pi-arrow-down"></i> Scroll for more
+                    </span>
+                </div>
+            </ng-template>
+        </p-select>
+        <label for="contact_list">Choose a group</label>
+    </p-floatLabel>
+
+    <!-- Search hint -->
+    <small class="search-hint" *ngIf="!loadingGroups && totalGroups > groupsPageSize">
+        <i class="pi pi-info-circle"></i>
+        Type to search through {{ totalGroups }} groups
+    </small>
+</div>
 
         <!-- Step 4: Schedule Date & Frequency -->
         <div *ngIf="selected_contacts != undefined" class="form-card animate-in">

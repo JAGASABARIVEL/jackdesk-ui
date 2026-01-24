@@ -1,7 +1,5 @@
 import { Component, EventEmitter, OnDestroy, OnInit, Output } from '@angular/core';
 import { ConfirmationService, MessageService } from 'primeng/api';
-//import { Product } from '@domain/product';
-//import { ProductService } from '@service/productservice';
 import { Table, TableModule } from 'primeng/table';
 import { DialogModule } from 'primeng/dialog';
 import { RippleModule } from 'primeng/ripple';
@@ -25,8 +23,16 @@ import { GroupModel } from './groups.model';
 import { MultiSelectModule } from 'primeng/multiselect';
 import { ContactManagerService } from '../../../shared/services/contact-manager.service';
 import { LayoutService } from '../../../layout/service/app.layout.service';
-import { Subject, takeUntil } from 'rxjs';
+import { Subject, debounceTime, distinctUntilChanged, takeUntil } from 'rxjs';
 
+interface PaginationState {
+  page: number;
+  pageSize: number;
+  totalRecords: number;
+  search?: string;
+  sortField?: string;
+  sortOrder?: number;
+}
 
 @Component({
   selector: 'app-groups',
@@ -51,7 +57,6 @@ import { Subject, takeUntil } from 'rxjs';
     InputTextModule,
     AvatarModule,
     MultiSelectModule,
-
     InputGroupModule,
     InputGroupAddonModule
   ],
@@ -65,12 +70,38 @@ export class GroupsComponent implements OnInit, OnDestroy {
   loading = true;
   dialogProgress = false;
   productDialog: boolean = false;
+  
+  // Group data
   products!: GroupModel[];
   product!: any;
   selectedProducts!: any[] | null;
   submitted: boolean = false;
-  statuses!: any[];
+  
+  // Group pagination state
+  groupPagination: PaginationState = {
+    page: 1,
+    pageSize: 10,
+    totalRecords: 0
+  };
+
+  // Contact data for member selection
+  availableContacts: any[] = [];
+  contactsLoading = false;
+  
+  // Contact pagination state (for add members modal)
+  contactPagination: PaginationState = {
+    page: 1,
+    pageSize: 50, // Larger size for multi-select
+    totalRecords: 0
+  };
+
+  // Member management
+  add_members_modal_visible = false;
+  selected_contacts_for_creating_group: any[] = [];
+  members_not_part_of_this_group: any[] = [];
+
   private destroy$ = new Subject<void>();
+  private contactSearchSubject$ = new Subject<string>();
 
   constructor(
     private router: Router,
@@ -78,12 +109,12 @@ export class GroupsComponent implements OnInit, OnDestroy {
     private confirmationService: ConfirmationService,
     private layoutService: LayoutService,
     private contactService: ContactManagerService
-    ) {}
+  ) {}
 
-    ngOnDestroy(): void {
-  this.destroy$.next();
-  this.destroy$.complete();
-}
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
+  }
 
   ngOnInit() {
     this.profile = JSON.parse(localStorage.getItem('profile'));
@@ -91,128 +122,149 @@ export class GroupsComponent implements OnInit, OnDestroy {
       this.router.navigate(['/apps/login']);
       return;
     }
-    else {
-      this.layoutService.state.staticMenuDesktopInactive = true;
-      this.loadContactGroups();
-      this.loading = false;
-    }
+    this.layoutService.state.staticMenuDesktopInactive = true;
+    this.loadContactGroups();
+    this.loading = false;
+    
+    // Setup contact search with debouncing
+    this.contactSearchSubject$
+      .pipe(
+        debounceTime(400),
+        distinctUntilChanged(),
+        takeUntil(this.destroy$)
+      )
+      .subscribe(searchTerm => {
+        this.loadAvailableContacts(searchTerm);
+      });
   }
 
-  validateGroupName() {
-    let groupNames = [];
-    this.products.forEach((prod) => {
-      groupNames.push(prod.name);
-    });
-    if (groupNames.includes(this.product.name)) {
-      this.product = {};
-      let error = "Group name is already present. Please choose a different name";
-      this.messageService.add({ severity: 'error', summary: 'Success', detail: error, sticky: true });
-    }
-  }
+  // ========== GROUP OPERATIONS ==========
 
-  individual_contacts !: any;
-  loadUserContacts(successCallback=undefined) {
+  loadContactGroups(
+    page?: number, 
+    pageSize?: number, 
+    search?: string, 
+    sortField?: string, 
+    sortOrder?: number
+  ) {
     this.loading = true;
-    this.contactService.list_contact().pipe(takeUntil(this.destroy$)).subscribe(
-      (data) => {
-        this.individual_contacts = data;
-        this.individual_contacts.forEach((individual_contact)=> {
-          individual_contact.name = individual_contact.name === ''? individual_contact.phone : individual_contact.name;
-        });
-        this.loading = false;
-        if (successCallback) {
-          successCallback();
+    
+    // Use provided params or fall back to current state
+    const currentPage = page ?? this.groupPagination.page;
+    const currentPageSize = pageSize ?? this.groupPagination.pageSize;
+    const currentSearch = search ?? this.groupPagination.search;
+    
+    // Handle sort field mapping
+    const mappedSortField = sortField === 'user_platform_name' ? 'platform_name' : sortField;
+    const ordering = sortOrder === -1 ? `-${mappedSortField}` : mappedSortField;
+    
+    this.contactService.list_groups(currentPage, currentPageSize, currentSearch, ordering)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(
+        (result: any) => {
+          if (!result || !Array.isArray(result.results)) {
+            console.error("Unexpected response format:", result);
+            this.products = [];
+            this.groupPagination.totalRecords = 0;
+            this.loading = false;
+            return;
+          }
+          
+          this.products = result.results;
+          this.groupPagination = {
+            page: currentPage,
+            pageSize: currentPageSize,
+            totalRecords: result.count ?? result.results.length,
+            search: currentSearch,
+            sortField: mappedSortField,
+            sortOrder
+          };
+          
+          this.loading = false;
+          this.totalGroups.emit(this.groupPagination.totalRecords);
+        },
+        (err) => {
+          this.loading = false;
+          console.error("Groups | Error loading groups:", err);
+          this.messageService.add({ 
+            severity: 'error', 
+            summary: 'Error', 
+            detail: 'Failed to load groups', 
+            sticky: true 
+          });
         }
-      },
-      (err) => {
-        console.error("Compose Message | Error getting contacts ", err);
-        this.loading = false;
-      }
-     )
+      );
   }
 
-  loadGroupCallback = () => {
-    this.totalGroups.emit(this.products.length);
-    this.messageService.add({ severity: 'success', summary: 'Successful', detail: 'Groups Loaded', life: 3000 });
-  }
-
-  loadContactGroups() {
-    this.loading = true;
-    this.contactService.list_groups().pipe(takeUntil(this.destroy$)).subscribe(
-      (data: any) => {
-        this.products = data;
-        this.loadUserContacts(this.loadGroupCallback);
-      },
-      (err) => {
-        this.loading = false;
-        console.error("Contacts | Error getting contacts ", err);
-        this.messageService.add({ severity: 'error', summary: 'Error', detail: 'Groups Not Loaded', sticky: true });
-      }
-    );
+  onGroupPageChange(event: any) {
+    const page = event.first / event.rows + 1;
+    const pageSize = event.rows;
+    const sortField = event.sortField;
+    const sortOrder = event.sortOrder;
+    
+    this.loadContactGroups(page, pageSize, this.groupPagination.search, sortField, sortOrder);
   }
 
   onSearchInput(event: Event, dt: Table): void {
     const inputElement = event.target as HTMLInputElement;
     const searchValue = inputElement.value;
-    dt.filterGlobal(searchValue, 'contains');
+    
+    // Reset to first page on new search
+    this.loadContactGroups(1, this.groupPagination.pageSize, searchValue);
   }
 
-  onSearchMemeberInput(event: Event, dt: Table): void {
-    const inputElement = event.target as HTMLInputElement;
-    const searchValue = inputElement.value;
-    dt.filterGlobal(searchValue, 'contains');
+  validateGroupName() {
+    const groupNames = this.products.map(prod => prod.name.toLowerCase());
+    
+    if (groupNames.includes(this.product.name?.toLowerCase())) {
+      this.product.name = '';
+      this.messageService.add({ 
+        severity: 'error', 
+        summary: 'Duplicate Name', 
+        detail: 'Group name already exists. Please choose a different name', 
+        life: 5000 
+      });
+    }
   }
 
-  members_not_part_of_this_group;
   openNew() {
-    this.product = {};
-    this.members_not_part_of_this_group = this.individual_contacts;
+    this.product = { members: [] };
     this.submitted = false;
+    this.selected_contacts_for_creating_group = [];
     this.productDialog = true;
+    
+    // Load contacts for adding members
+    this.loadAvailableContacts();
   }
 
-
-  deleteSelectedProducts() {
-    this.confirmationService.confirm({
-        message: 'Are you sure you want to delete the selected contacts?',
-        header: 'Confirm',
-        icon: 'pi pi-exclamation-triangle',
-        accept: () => {
-            this.loading = true;
-            let groupIds = [];
-            for (let group of this.selectedProducts) {
-              groupIds.push(group.id);
-            }
-            this.contactService.delete_groups(groupIds).pipe(takeUntil(this.destroy$)).subscribe(
-              (data) => {
-                this.selectedProducts = null;
-                this.messageService.add({ severity: 'success', summary: 'Successful', detail: 'Contact Deleted', life: 3000 });
-                this.loadContactGroups();
-              },
-              (err) => {
-                console.error("Contacts | Error deleting contact ", err);
-                this.selectedProducts = null;
-                this.loading = false;
-                this.messageService.add({ severity: 'error', summary: 'Error', detail: 'Contact Not Deleted', sticky: true });
-              }
-            );
-        }
-    });
+  editProduct(product: any) {
+    this.product = { ...product, members: [...(product.members || [])] };
+    this.submitted = false;
+    this.selected_contacts_for_creating_group = [];
+    this.productDialog = true;
+    
+    // Load contacts excluding current members
+    this.loadAvailableContacts();
   }
 
   deleteProduct(product: any) {
     this.confirmationService.confirm({
-      message: 'Are you sure you want to delete ' + product.name + '?',
-      header: 'Confirm',
+      message: `Are you sure you want to delete "${product.name}"?`,
+      header: 'Confirm Deletion',
       icon: 'pi pi-exclamation-triangle',
       accept: () => {
-          this.loading = true;
-          this.contactService.delete_group(product.id).pipe(takeUntil(this.destroy$)).subscribe(
-            (data) => {
-              this.product = {};
-              this.loading = false;
-              this.messageService.add({ severity: 'success', summary: 'Successful', detail: 'Contact Deleted', life: 3000 });
-              this.loadContactGroups()
+        this.loading = true;
+        this.contactService.delete_group(product.id)
+          .pipe(takeUntil(this.destroy$))
+          .subscribe(
+            () => {
+              this.messageService.add({ 
+                severity: 'success', 
+                summary: 'Deleted', 
+                detail: 'Group deleted successfully', 
+                life: 3000 
+              });
+              this.loadContactGroups();
             },
             (err) => {
               console.error('Groups | Error deleting group:', err);
@@ -220,267 +272,423 @@ export class GroupsComponent implements OnInit, OnDestroy {
               this.messageService.add({
                 severity: 'error',
                 summary: 'Error',
-                detail: 'Group Not Deleted',
+                detail: 'Failed to delete group',
                 sticky: true,
               });
-            });
-          }
+            }
+          );
+      }
     });
   }
 
-
-
-  confirmDeletion(product: any) {
-    
-  }
-  
-
-  hideDialog() {
-    this.productDialog = false;
-    this.submitted = false;
-  }
-
-  editProduct(product: any) {
-    this.product = { ...product };
-    this.members_not_part_of_this_group = this.individual_contacts.filter((individual_contact) => !this.product.members.some((actual_member => individual_contact.phone === actual_member.contact.phone)))
-    this.productDialog = true;
-  }
-
-  refreshMemebersContactList() {
-    this.selected_contacts_for_creating_group = [];
-    this.members_not_part_of_this_group = this.individual_contacts.filter((individual_contact) => !this.product.members.some((actual_member => individual_contact.phone === actual_member.contact.phone)))
-  }
-  
-  add_members_modal_visible = false;
-  selected_contacts_for_creating_group !: any;
-  //newMemberToGroup!: AddContactToGroupModel;
-
-  //async addMemebersToExistingGroup(patch=false) {
-  //  this.newMemberToGroup = {
-  //    contact_id: -1,
-  //    organization_id: this.profile.organization,
-  //    group_id: this.product.id
-  //  }
-  //  let created_contacts = 0;
-//
-  //  // Handle if there are no members selected for new or all members unselected in existing groups.
-  //  if (!this.product.members || this.product.members?.length === 0) {
-  //    if (patch) {
-  //      this.groupService.patchGroupDetails(this.product).subscribe(
-  //        (data) => {
-  //          this.product.total = this.product.members.length;
-  //          this.products[this.findIndexById(this.product.id)] = this.product;
-  //          this.products = [...this.products];
-  //          this.product = {};
-  //          this.dialogProgress = false;
-  //          this.productDialog = false;
-  //          this.messageService.add({ severity: 'success', summary: 'Successful', detail: 'Group Updated', life: 3000 });
-  //        },
-  //        (err) => {
-  //          this.product = {};
-  //          this.dialogProgress = false;
-  //          this.productDialog = false;
-  //          this.messageService.add({ severity: 'error', summary: 'Error', detail: 'Group Not Updated', sticky: true });
-  //        }
-  //      );
-  //    }
-  //    else {
-  //      this.product.members = []; // This would initialize members if empty group is selected which would help while editing.
-  //      this.product.total = this.product.members.length;
-  //      this.products.push(this.product);
-  //      this.dialogProgress = false;
-  //      this.productDialog = false;
-  //      this.messageService.add({ severity: 'success', summary: 'Successful', detail: 'Group Created', life: 3000 });
-  //    }
-  //  }
-  //  else {
-  //    for (let contact of this.product.members) {
-  //      this.newMemberToGroup.contact_id = contact.contact_id;
-  //      // New group would not be having 'group_id' initialized
-  //      this.newMemberToGroup.group_id = this.product.id;
-  //      this.groupService.addMembers(this.newMemberToGroup).subscribe(
-  //        (data) => {
-  //          created_contacts += 1;
-  //          let foundIndex =  this.product.members.findIndex((member) => member.contact_id === contact.contact_id)
-  //          this.product.members[foundIndex].id = data.member_id;
-  //          if (created_contacts == this.product.members.length) {
-  //            this.messageService.add({ severity: 'success', summary: 'Success', detail: 'Memember Got Added' });
-  //            if (patch) {
-  //                  this.groupService.patchGroupDetails(this.product).subscribe(
-  //                    (data) => {
-  //                      this.product.total = this.product.members.length;
-  //                      this.products[this.findIndexById(this.product.id)] = this.product;
-  //                      this.products = [...this.products];
-  //                      this.product = {};
-  //                      this.dialogProgress = false;
-  //                      this.productDialog = false;
-  //                      this.messageService.add({ severity: 'success', summary: 'Successful', detail: 'Group Updated', life: 3000 });
-  //                    },
-  //                    (err) => {
-  //                      this.product = {};
-  //                      this.dialogProgress = false;
-  //                      this.productDialog = false;
-  //                      this.messageService.add({ severity: 'error', summary: 'Error', detail: 'Group Not Updated', sticky: true });
-  //                    }
-  //                  );
-  //            }
-  //            else {
-  //              this.product.total = this.product.members.length;
-  //              this.products.push(this.product);
-  //              this.dialogProgress = false;
-  //              this.productDialog = false;
-  //              this.messageService.add({ severity: 'success', summary: 'Successful', detail: 'Group Created', life: 3000 });
-  //            }
-  //          }
-  //        },
-  //        (err) => {
-  //            this.messageService.add( { severity: 'error', summary: 'Error', detail: 'Group Member addition failed'} );
-  //        });
-  //    }
-  //  }
-  //}
-
-  addMembers() {
-    if (this.product.id) {
-      const temp = this.product.members;
-      this.product.members = [];
-      for (let temp_existing_contact of temp) {
-        this.product.members.push(temp_existing_contact);
+  deleteSelectedProducts() {
+    this.confirmationService.confirm({
+      message: 'Are you sure you want to delete the selected groups?',
+      header: 'Confirm Deletion',
+      icon: 'pi pi-exclamation-triangle',
+      accept: () => {
+        this.loading = true;
+        const groupIds = this.selectedProducts.map(group => group.id);
+        
+        this.contactService.delete_groups(groupIds)
+          .pipe(takeUntil(this.destroy$))
+          .subscribe(
+            () => {
+              this.selectedProducts = null;
+              this.messageService.add({ 
+                severity: 'success', 
+                summary: 'Deleted', 
+                detail: 'Groups deleted successfully', 
+                life: 3000 
+              });
+              this.loadContactGroups();
+            },
+            (err) => {
+              console.error("Groups | Error deleting groups:", err);
+              this.selectedProducts = null;
+              this.loading = false;
+              this.messageService.add({ 
+                severity: 'error', 
+                summary: 'Error', 
+                detail: 'Failed to delete groups', 
+                sticky: true 
+              });
+            }
+          );
       }
-      for (let contact of this.selected_contacts_for_creating_group) {
-        this.product.members.push({'contact': {'id': contact.id, 'name': contact.name, 'phone': contact.phone}});
-      }
-      this.product.members = this.product.members;
-    }
-    else {
-      this.product.members = [];
-      // Do not do anything unless group is created.
-      for (let contact of this.selected_contacts_for_creating_group) {
-        this.product.members.push({'contact' : {'id': contact.id, 'name': contact.name, 'phone': contact.phone}});
-      }
-    }
-    this.refreshMemebersContactList();
-    this.add_members_modal_visible = false;
-  }
-
-  saveGroupSuccessCall() {
-    this.dialogProgress = false;
-    this.productDialog = false;
-    this.loadContactGroups();
-  }
-
-  saveSelectedProduct() {
-    let memberIds = [];
-    if (this.product.members) {
-      for (let member of this.product.members) {
-        memberIds.push(member.contact.id);
-      }
-    }
-    let oldGroupPayload: GroupModel = {
-      id: this.product.id,
-      name: this.product.name,
-      member_ids: memberIds,
-      description: this.product.description,
-      category: this.product.category,
-      member_count: this.product?.member_count,
-      members: []
-    }
-    this.contactService.update_group(oldGroupPayload).pipe(takeUntil(this.destroy$)).subscribe(
-      (data: any) => {
-        this.saveGroupSuccessCall();
-      },
-      (err) => {
-        console.error("Groups | Error creating Group ", err);
-        this.product = {};
-        this.dialogProgress = false;
-        this.productDialog = false;
-        this.messageService.add({ severity: 'error', summary: 'Error', detail: 'Group Not Created', sticky: true });
-      }
-    );
-  }
-
-  saveNewProduct() {
-    let memberIds = [];
-    if (this.product.members) {
-      for (let member of this.product.members) {
-        memberIds.push(member.contact.id);
-      }
-    }
-    let newGroupPayload: GroupModel = {
-      id: -1, // Dummy since the id would be generated from service
-      name: this.product.name,
-      member_ids: memberIds,
-      description: this.product.description,
-      category: this.product.category,
-      member_count: this.product?.member_count,
-      members: []
-    }
-    this.contactService.create_group(newGroupPayload).pipe(takeUntil(this.destroy$)).subscribe(
-      (data: any) => {
-        this.product.id = data.id;
-        this.saveGroupSuccessCall();
-      },
-      (err) => {
-        console.error("Groups | Error creating Group ", err);
-        this.product = {};
-        this.dialogProgress = false;
-        this.productDialog = false;
-        this.messageService.add({ severity: 'error', summary: 'Error', detail: 'Group Not Created', sticky: true });
-      }
-    );
+    });
   }
 
   saveProduct() {
     this.submitted = true;
+    
+    if (!this.product.name?.trim()) {
+      this.messageService.add({ 
+        severity: 'warn', 
+        summary: 'Validation Error', 
+        detail: 'Group name is required', 
+        life: 3000 
+      });
+      return;
+    }
+    
     this.dialogProgress = true;
+    
     if (this.product.id) {
-      this.saveSelectedProduct();
-    }
-    else {
-      this.saveNewProduct();
+      this.updateGroup();
+    } else {
+      this.createGroup();
     }
   }
 
-  findIndexById(id: any): number {
-    let index = -1;
-    for (let i = 0; i < this.products.length; i++) {
-        if (this.products[i].id === id) {
-            index = i;
-            break;
+  private createGroup() {
+    const memberIds = this.product.members?.map(m => m.contact.id) || [];
+    
+    const newGroupPayload: GroupModel = {
+      id: -1,
+      name: this.product.name.trim(),
+      member_ids: memberIds,
+      description: this.product.description?.trim() || '',
+      category: this.product.category || '',
+      member_count: memberIds.length,
+      members: []
+    };
+    
+    this.contactService.create_group(newGroupPayload)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(
+        (data: any) => {
+          this.messageService.add({ 
+            severity: 'success', 
+            summary: 'Created', 
+            detail: 'Group created successfully', 
+            life: 3000 
+          });
+          this.closeDialog();
+          this.loadContactGroups();
+        },
+        (err) => {
+          console.error("Groups | Error creating group:", err);
+          this.dialogProgress = false;
+          this.messageService.add({ 
+            severity: 'error', 
+            summary: 'Error', 
+            detail: 'Failed to create group', 
+            sticky: true 
+          });
         }
-    }
-
-    return index;
+      );
   }
 
-  createId(): string {
-    let id = '';
-    var chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-    for (var i = 0; i < 5; i++) {
-        id += chars.charAt(Math.floor(Math.random() * chars.length));
-    }
-    return id;
+  private updateGroup() {
+    const memberIds = this.product.members?.map(m => m.contact.id) || [];
+    
+    const updatePayload: GroupModel = {
+      id: this.product.id,
+      name: this.product.name.trim(),
+      member_ids: memberIds,
+      description: this.product.description?.trim() || '',
+      category: this.product.category || '',
+      member_count: memberIds.length,
+      members: []
+    };
+    
+    this.contactService.update_group(updatePayload)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(
+        () => {
+          this.messageService.add({ 
+            severity: 'success', 
+            summary: 'Updated', 
+            detail: 'Group updated successfully', 
+            life: 3000 
+          });
+          this.closeDialog();
+          this.loadContactGroups();
+        },
+        (err) => {
+          console.error("Groups | Error updating group:", err);
+          this.dialogProgress = false;
+          this.messageService.add({ 
+            severity: 'error', 
+            summary: 'Error', 
+            detail: 'Failed to update group', 
+            sticky: true 
+          });
+        }
+      );
   }
+
+  hideDialog() {
+    this.closeDialog();
+  }
+
+  private closeDialog() {
+    this.productDialog = false;
+    this.dialogProgress = false;
+    this.submitted = false;
+    this.product = {};
+    this.selected_contacts_for_creating_group = [];
+    this.availableContacts = [];
+  }
+
+  // ========== CONTACT/MEMBER OPERATIONS ==========
+
+  loadAvailableContacts(search?: string) {
+    this.contactsLoading = true;
+    
+    // If searching, use search with reasonable limit
+    // Otherwise, load all contacts by fetching pages until we have them all
+    if (search && search.trim()) {
+      this.loadContactsWithSearch(search);
+    } else {
+      this.loadAllContacts();
+    }
+  }
+
+  private loadContactsWithSearch(search: string) {
+    // When searching, load a larger page to capture most results
+    // The backend should handle the search filtering
+    this.contactService.list_contact(1, 200, search)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(
+        (result) => {
+          this.processContactsResponse(result);
+        },
+        (err) => {
+          console.error("Groups | Error loading contacts with search:", err);
+          this.contactsLoading = false;
+        }
+      );
+  }
+
+  private loadAllContacts() {
+    // Load all contacts by fetching page by page
+    const pageSize = 2;
+    let allContacts: any[] = [];
+    
+    const loadPage = (page: number) => {
+      this.contactService.list_contact(page, pageSize)
+        .pipe(takeUntil(this.destroy$))
+        .subscribe(
+          (result) => {
+            if (!result || !Array.isArray(result.results)) {
+              console.error("Unexpected contacts response format:", result);
+              this.processAllContacts(allContacts);
+              return;
+            }
+            
+            allContacts = allContacts.concat(result.results);
+            const totalRecords = result.count ?? result.results.length;
+            
+            // Check if we need to load more pages
+            if (allContacts.length < totalRecords) {
+              loadPage(page + 1);
+            } else {
+              this.processAllContacts(allContacts);
+            }
+          },
+          (err) => {
+            console.error("Groups | Error loading contacts page:", err);
+            // Use whatever we've loaded so far
+            this.processAllContacts(allContacts);
+          }
+        );
+    };
+    
+    loadPage(1);
+  }
+
+  private processAllContacts(contacts: any[]) {
+    // Normalize contact names
+    const normalizedContacts = contacts.map(contact => ({
+      ...contact,
+      name: contact.name || contact.phone
+    }));
+    
+    // Filter out members already in the group
+    this.availableContacts = this.filterAvailableContacts(normalizedContacts);
+    this.members_not_part_of_this_group = this.availableContacts;
+    this.contactsLoading = false;
+  }
+
+  private processContactsResponse(result: any) {
+    if (!result || !Array.isArray(result.results)) {
+      console.error("Unexpected contacts response format:", result);
+      this.availableContacts = [];
+      this.contactsLoading = false;
+      return;
+    }
+    
+    // Normalize contact names
+    const contacts = result.results.map(contact => ({
+      ...contact,
+      name: contact.name || contact.phone
+    }));
+    
+    // Filter out members already in the group
+    this.availableContacts = this.filterAvailableContacts(contacts);
+    this.members_not_part_of_this_group = this.availableContacts;
+    this.contactsLoading = false;
+  }
+
+  private filterAvailableContacts(contacts: any[]): any[] {
+    if (!this.product.members || this.product.members.length === 0) {
+      return contacts;
+    }
+    
+    const memberPhones = new Set(
+      this.product.members.map(m => m.contact.phone)
+    );
+    
+    return contacts.filter(contact => !memberPhones.has(contact.phone));
+  }
+
+  showAddMembersModal() {
+    this.selected_contacts_for_creating_group = [];
+    this.add_members_modal_visible = true;
+    this.loadAvailableContacts();
+  }
+
+  onContactSearch(event: any) {
+    // PrimeNG multiselect filter event
+    const searchValue = event.filter || '';
+    this.contactSearchSubject$.next(searchValue);
+  }
+
+  addMembers() {
+    if (!this.selected_contacts_for_creating_group || 
+        this.selected_contacts_for_creating_group.length === 0) {
+      return;
+    }
+    
+    // Initialize members array if needed
+    if (!this.product.members) {
+      this.product.members = [];
+    }
+    
+    // Add new members
+    for (const contact of this.selected_contacts_for_creating_group) {
+      // Check if already exists
+      const exists = this.product.members.some(
+        m => m.contact.id === contact.id
+      );
+      
+      if (!exists) {
+        this.product.members.push({
+          contact: {
+            id: contact.id,
+            name: contact.name,
+            phone: contact.phone
+          }
+        });
+      }
+    }
+    
+    // Refresh available contacts list
+    this.availableContacts = this.filterAvailableContacts(this.availableContacts);
+    this.members_not_part_of_this_group = this.availableContacts;
+    
+    // Close modal and reset selection
+    this.add_members_modal_visible = false;
+    this.selected_contacts_for_creating_group = [];
+  }
+
+  removeMember(index: number) {
+    if (!this.product.members || index < 0 || index >= this.product.members.length) {
+      return;
+    }
+    
+    // Remove member at index
+    this.product.members.splice(index, 1);
+    
+    // Refresh available contacts to include the removed member
+    this.loadAvailableContacts();
+  }
+
+  removeSelectedMembers() {
+    if (!this.product.members || this.product.members.length === 0) {
+      return;
+    }
+    
+    // Filter out selected members
+    const selectedIds = new Set(
+      this.product.members
+        .filter(m => m.selected)
+        .map(m => m.contact.id)
+    );
+    
+    this.product.members = this.product.members.filter(
+      m => !selectedIds.has(m.contact.id)
+    );
+    
+    // Refresh available contacts
+    this.loadAvailableContacts();
+  }
+
+  onSearchMemberInput(event: Event, dt: Table): void {
+    const inputElement = event.target as HTMLInputElement;
+    const searchValue = inputElement.value;
+    dt.filterGlobal(searchValue, 'contains');
+  }
+
+  // ========== UTILITY METHODS ==========
 
   getSeverity(status: string) {
     switch (status) {
-        case 'Individual':
-            return 'info';
-        case 'Micro Enterprise':
-            return 'success';
-        case 'Small Enterprise':
-            return 'warn';
-        case 'Medium Enterprise':
-            return 'danger';
+      case 'Individual':
+        return 'info';
+      case 'Micro Enterprise':
+        return 'success';
+      case 'Small Enterprise':
+        return 'warn';
+      case 'Medium Enterprise':
+        return 'danger';
+      default:
+        return 'info';
     }
-    return 'danger';
   }
 
   onBulkUpload(event: any, fileUpload: any): void {
-
+    // Implement bulk upload logic
   }
 
-showAddContactDialog() {
+  showAddContactDialog() {
+    // Implement add contact dialog logic
+  }
+}
 
-}
-}
+// ========== HTML TEMPLATE UPDATES ==========
+/*
+Key changes in the template (groups.component.html):
+
+1. Update the main table lazy loading:
+   [totalRecords]="groupPagination.totalRecords"
+   [first]="(groupPagination.page - 1) * groupPagination.pageSize"
+   [rows]="groupPagination.pageSize"
+   (onLazyLoad)="onGroupPageChange($event)"
+
+2. Update the Add Members button in dialog:
+   <button pButton class="modern-btn modern-btn-primary btn-sm" 
+           icon="pi pi-user-plus" 
+           label="Add Members" 
+           (click)="showAddMembersModal()">
+   </button>
+
+3. Update multiselect in Add Members modal:
+   [options]="members_not_part_of_this_group"
+   [(ngModel)]="selected_contacts_for_creating_group"
+   [loading]="contactsLoading"
+
+4. Update table summary:
+   Total: <strong>{{ groupPagination.totalRecords }}</strong> groups
+
+5. Optional: Add remove members button in the members table header:
+   <button pButton 
+           icon="pi pi-trash" 
+           label="Remove Selected"
+           class="modern-btn modern-btn-danger btn-sm"
+           [disabled]="!product.members || product.members.length === 0"
+           (click)="removeSelectedMembers()">
+   </button>
+*/

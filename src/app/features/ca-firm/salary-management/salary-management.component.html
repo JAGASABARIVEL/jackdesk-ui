@@ -1,0 +1,534 @@
+<!-- src/app/pages/salary-management/salary-management.component.html -->
+<p-toast></p-toast>
+<p-confirmDialog></p-confirmDialog>
+
+<div class="salary-management-container">
+  <!-- Header Section -->
+  <div class="header-section">
+    <div class="header-content">
+      <div class="title-section">
+        <h1 class="page-title">
+          <i class="pi pi-money-bill"></i>
+          Salary Management
+        </h1>
+        <p class="page-subtitle">Manage employee salaries, allowances, and payment tracking</p>
+      </div>
+      
+      <div class="header-actions">
+        <p-button 
+          label="Export" 
+          icon="pi pi-download" 
+          (onClick)="exportToExcel()"
+          styleClass="p-button-outlined">
+        </p-button>
+        <p-button 
+          label="Generate for Month" 
+          icon="pi pi-calendar-plus" 
+          (onClick)="generateSalariesForMonth()"
+          styleClass="p-button-outlined p-button-success">
+        </p-button>
+        <p-button 
+          label="New Salary Record" 
+          icon="pi pi-plus" 
+          (onClick)="openModal()"
+          styleClass="p-button-primary">
+        </p-button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Stats Cards -->
+  <div class="stats-grid">
+    <p-card styleClass="stat-card primary-card">
+      <div class="stat-content">
+        <div class="stat-icon">
+          <i class="pi pi-wallet"></i>
+        </div>
+        <div class="stat-info">
+          <div class="stat-label">Total Net Salary</div>
+          <div class="stat-value">{{ formatCurrency(summary.total_net) }}</div>
+        </div>
+      </div>
+    </p-card>
+
+    <p-card styleClass="stat-card success-card">
+      <div class="stat-content">
+        <div class="stat-icon">
+          <i class="pi pi-check-circle"></i>
+        </div>
+        <div class="stat-info">
+          <div class="stat-label">Total Paid</div>
+          <div class="stat-value">{{ formatCurrency(summary.total_paid) }}</div>
+        </div>
+      </div>
+    </p-card>
+
+    <p-card styleClass="stat-card warning-card">
+      <div class="stat-content">
+        <div class="stat-icon">
+          <i class="pi pi-clock"></i>
+        </div>
+        <div class="stat-info">
+          <div class="stat-label">Total Pending</div>
+          <div class="stat-value">{{ formatCurrency(summary.total_pending) }}</div>
+        </div>
+      </div>
+    </p-card>
+
+    <p-card styleClass="stat-card info-card">
+      <div class="stat-content">
+        <div class="stat-icon">
+          <i class="pi pi-users"></i>
+        </div>
+        <div class="stat-info">
+          <div class="stat-label">Total Records</div>
+          <div class="stat-value">{{ totalRecords }}</div>
+        </div>
+      </div>
+    </p-card>
+  </div>
+
+  <!-- Filters Section -->
+  <p-card styleClass="filters-card">
+    <div class="filters-section">
+      <div class="filter-group">
+        <span class="p-input-icon-left flex-1">
+          <i class="pi pi-search"></i>
+          <input 
+            pInputText 
+            type="text" 
+            [(ngModel)]="searchTerm"
+            (input)="onSearchChange()"
+            placeholder="Search by employee..."
+            class="w-full" />
+        </span>
+        
+        <p-select
+          [options]="employees"
+          [(ngModel)]="selectedEmployee"
+          optionLabel="user_details.username"
+          optionValue="user_details.id"
+          placeholder="Filter by Employee"
+          [showClear]="true"
+          [filter]="true"
+          (onChange)="onFilterChange()"
+          styleClass="filter-select">
+        </p-select>
+        
+        <p-select
+          [options]="months"
+          [(ngModel)]="selectedMonth"
+          optionLabel="label"
+          optionValue="value"
+          placeholder="Month"
+          [showClear]="true"
+          (onChange)="onFilterChange()"
+          styleClass="filter-select">
+        </p-select>
+
+        <p-select
+          [options]="years"
+          [(ngModel)]="selectedYear"
+          placeholder="Year"
+          [showClear]="true"
+          (onChange)="onFilterChange()"
+          styleClass="filter-select">
+        </p-select>
+
+        <p-select
+          [options]="paymentStatuses"
+          [(ngModel)]="selectedStatus"
+          optionLabel="label"
+          optionValue="value"
+          placeholder="Status"
+          [showClear]="true"
+          (onChange)="onFilterChange()"
+          styleClass="filter-select">
+        </p-select>
+
+        <p-button 
+          icon="pi pi-refresh" 
+          (onClick)="clearFilters()"
+          [rounded]="true"
+          [text]="true"
+          pTooltip="Clear Filters">
+        </p-button>
+      </div>
+    </div>
+  </p-card>
+
+  <!-- Salaries Table -->
+  <p-card styleClass="table-card">
+    <p-table 
+      #dt
+      [value]="salaries" 
+      [loading]="loading"
+      [lazy]="true"
+      [paginator]="true" 
+      [rows]="pageSize"
+      [first]="first"
+      [totalRecords]="totalRecords"
+      [showCurrentPageReport]="true"
+      [rowsPerPageOptions]="[10, 25, 50]"
+      currentPageReportTemplate="Showing {first} to {last} of {totalRecords} salary records"
+      styleClass="p-datatable-gridlines p-datatable-striped"
+      responsiveLayout="scroll"
+      (onLazyLoad)="onPageChange($event)"
+      [customSort]="true">
+      
+      <ng-template pTemplate="header">
+        <tr>
+          <th pSortableColumn="employee_details.username" [pSortableColumnDisabled]="loading">
+            Employee <p-sortIcon field="employee_details.username"></p-sortIcon>
+          </th>
+          <th>Department</th>
+          <th pSortableColumn="month" [pSortableColumnDisabled]="loading">
+            Month <p-sortIcon field="month"></p-sortIcon>
+          </th>
+          <th pSortableColumn="year" [pSortableColumnDisabled]="loading">
+            Year <p-sortIcon field="year"></p-sortIcon>
+          </th>
+          <th class="text-right" pSortableColumn="basic_salary" [pSortableColumnDisabled]="loading">
+            Basic Salary <p-sortIcon field="basic_salary"></p-sortIcon>
+          </th>
+          <th class="text-right">Allowances</th>
+          <th class="text-right">Deductions</th>
+          <th class="text-right" pSortableColumn="net_salary" [pSortableColumnDisabled]="loading">
+            Net Salary <p-sortIcon field="net_salary"></p-sortIcon>
+          </th>
+          <th pSortableColumn="payment_date" [pSortableColumnDisabled]="loading">
+            Payment Date <p-sortIcon field="payment_date"></p-sortIcon>
+          </th>
+          <th pSortableColumn="payment_status" [pSortableColumnDisabled]="loading">
+            Status <p-sortIcon field="payment_status"></p-sortIcon>
+          </th>
+          <th style="width: 10rem">Actions</th>
+        </tr>
+      </ng-template>
+      
+      <ng-template pTemplate="body" let-salary>
+        <tr>
+          <td>
+            <div class="employee-cell">
+              <div class="employee-name">{{ salary.employee_details?.username || 'N/A' }}</div>
+              <div class="employee-email text-sm text-gray-500">{{ salary.employee_details?.email }}</div>
+            </div>
+          </td>
+          <td>
+            <p-chip 
+              [label]="salary.employee_details?.department_name || 'N/A'" 
+              icon="pi pi-briefcase"
+              styleClass="department-chip">
+            </p-chip>
+          </td>
+          <td>
+            <span class="month-label">{{ getMonthName(salary.month) }}</span>
+          </td>
+          <td>
+            <span class="year-label">{{ salary.year }}</span>
+          </td>
+          <td class="text-right">
+            <span class="amount-value">{{ formatCurrency(salary.basic_salary) }}</span>
+          </td>
+          <td class="text-right">
+            <span class="amount-value success-amount">{{ formatCurrency(salary.allowances) }}</span>
+          </td>
+          <td class="text-right">
+            <span class="amount-value danger-amount">{{ formatCurrency(salary.deductions) }}</span>
+          </td>
+          <td class="text-right">
+            <span class="net-salary">{{ formatCurrency(salary.net_salary) }}</span>
+          </td>
+          <td>{{ formatDate(salary.payment_date) }}</td>
+          <td>
+            <p-tag 
+              [value]="salary.payment_status" 
+              [severity]="getStatusSeverity(salary.payment_status)">
+            </p-tag>
+          </td>
+          <td>
+            <div class="action-buttons">
+              <p-button 
+                icon="pi pi-pencil" 
+                (onClick)="editSalary(salary)"
+                [rounded]="true"
+                [text]="true"
+                severity="info"
+                pTooltip="Edit"
+                tooltipPosition="top">
+              </p-button>
+              <p-button 
+                icon="pi pi-trash" 
+                (onClick)="deleteSalary(salary.id!)"
+                [rounded]="true"
+                [text]="true"
+                severity="danger"
+                pTooltip="Delete"
+                tooltipPosition="top">
+              </p-button>
+            </div>
+          </td>
+        </tr>
+      </ng-template>
+
+      <ng-template pTemplate="footer">
+        <tr *ngIf="salaries.length > 0" class="totals-row">
+          <td colspan="4" class="text-right"><strong>Page Totals:</strong></td>
+          <td class="text-right">
+            <strong>{{ formatCurrency(summary.total_basic) }}</strong>
+          </td>
+          <td class="text-right">
+            <strong class="success-amount">{{ formatCurrency(summary.total_allowances) }}</strong>
+          </td>
+          <td class="text-right">
+            <strong class="danger-amount">{{ formatCurrency(summary.total_deductions) }}</strong>
+          </td>
+          <td class="text-right">
+            <strong class="net-total">{{ formatCurrency(summary.total_net) }}</strong>
+          </td>
+          <td colspan="3"></td>
+        </tr>
+      </ng-template>
+      
+      <ng-template pTemplate="emptymessage">
+        <tr>
+          <td colspan="11" class="text-center">
+            <div class="empty-state">
+              <i class="pi pi-money-bill" style="font-size: 3rem; color: #cbd5e1;"></i>
+              <p class="empty-text">No salary records found</p>
+              <p-button 
+                label="Create First Record" 
+                icon="pi pi-plus" 
+                (onClick)="openModal()"
+                styleClass="p-button-sm">
+              </p-button>
+            </div>
+          </td>
+        </tr>
+      </ng-template>
+    </p-table>
+  </p-card>
+</div>
+
+<!-- Add/Edit Salary Dialog -->
+<p-dialog 
+  [(visible)]="showModal" 
+  [header]="isEditMode ? 'Edit Salary Record' : 'New Salary Record'"
+  [modal]="true" 
+  [style]="{width: '50vw'}" 
+  [breakpoints]="{'960px': '75vw', '640px': '90vw'}"
+  [draggable]="false"
+  [resizable]="false">
+  
+  <form [formGroup]="salaryForm" class="salary-form">
+    <div class="form-grid">
+      <div class="form-field full-width">
+        <label for="employee" class="form-label required">Employee</label>
+        <p-select
+          id="employee"
+          formControlName="employee"
+          [options]="employees"
+          optionLabel="user_details.username"
+          optionValue="user"
+          placeholder="Select employee"
+          [filter]="true"
+          appendTo="body"
+          styleClass="w-full"
+          (onChange)="onEmployeeChange()"
+          [class.ng-invalid]="salaryForm.get('employee')?.invalid && salaryForm.get('employee')?.touched">
+          <ng-template let-emp pTemplate="item">
+            <div class="employee-option">
+              <div class="emp-name">{{ emp.user_details?.username }}</div>
+              <div class="emp-designation">{{ emp.designation }} - {{ emp.employee_id }}</div>
+            </div>
+          </ng-template>
+        </p-select>
+        <small class="p-error" *ngIf="salaryForm.get('employee')?.invalid && salaryForm.get('employee')?.touched">
+          Employee is required
+        </small>
+      </div>
+
+      <div class="form-field">
+        <label for="month" class="form-label required">Month</label>
+        <p-select
+          id="month"
+          formControlName="month"
+          [options]="months"
+          optionLabel="label"
+          optionValue="value"
+          placeholder="Select month"
+          styleClass="w-full"
+          appendTo="body"
+          [class.ng-invalid]="salaryForm.get('month')?.invalid && salaryForm.get('month')?.touched">
+        </p-select>
+        <small class="p-error" *ngIf="salaryForm.get('month')?.invalid && salaryForm.get('month')?.touched">
+          Month is required
+        </small>
+      </div>
+
+      <div class="form-field">
+        <label for="year" class="form-label required">Year</label>
+        <p-select
+          id="year"
+          formControlName="year"
+          [options]="years"
+          placeholder="Select year"
+          styleClass="w-full"
+          appendTo="body"
+          [class.ng-invalid]="salaryForm.get('year')?.invalid && salaryForm.get('year')?.touched">
+        </p-select>
+        <small class="p-error" *ngIf="salaryForm.get('year')?.invalid && salaryForm.get('year')?.touched">
+          Year is required
+        </small>
+      </div>
+
+      <div class="form-field">
+        <label for="basic_salary" class="form-label required">Basic Salary (₹)</label>
+        <p-inputNumber
+          id="basic_salary"
+          formControlName="basic_salary"
+          mode="currency"
+          currency="INR"
+          locale="en-IN"
+          [minFractionDigits]="2"
+          placeholder="50000.00"
+          styleClass="w-full"
+          [class.ng-invalid]="salaryForm.get('basic_salary')?.invalid && salaryForm.get('basic_salary')?.touched">
+        </p-inputNumber>
+        <small class="p-error" *ngIf="salaryForm.get('basic_salary')?.invalid && salaryForm.get('basic_salary')?.touched">
+          Valid basic salary is required
+        </small>
+      </div>
+
+      <div class="form-field">
+        <label for="allowances" class="form-label">Allowances (₹)</label>
+        <p-inputNumber
+          id="allowances"
+          formControlName="allowances"
+          mode="currency"
+          currency="INR"
+          locale="en-IN"
+          [minFractionDigits]="2"
+          placeholder="0.00"
+          styleClass="w-full">
+        </p-inputNumber>
+      </div>
+
+      <div class="form-field">
+        <label for="deductions" class="form-label">Deductions (₹)</label>
+        <p-inputNumber
+          id="deductions"
+          formControlName="deductions"
+          mode="currency"
+          currency="INR"
+          locale="en-IN"
+          [minFractionDigits]="2"
+          placeholder="0.00"
+          styleClass="w-full">
+        </p-inputNumber>
+      </div>
+
+      <!-- Net Salary Calculator -->
+      <div class="form-field full-width" *ngIf="salaryForm.get('basic_salary')?.value">
+        <div class="salary-calculator">
+          <div class="calc-row">
+            <span class="calc-label">Basic Salary:</span>
+            <span class="calc-value">{{ formatCurrency(salaryForm.get('basic_salary')?.value) }}</span>
+          </div>
+          <div class="calc-row">
+            <span class="calc-label">Allowances:</span>
+            <span class="calc-value success-amount">+ {{ formatCurrency(salaryForm.get('allowances')?.value || 0) }}</span>
+          </div>
+          <div class="calc-row">
+            <span class="calc-label">Deductions:</span>
+            <span class="calc-value danger-amount">- {{ formatCurrency(salaryForm.get('deductions')?.value || 0) }}</span>
+          </div>
+          <div class="calc-row total">
+            <span class="calc-label">Net Salary:</span>
+            <span class="calc-value">{{ formatCurrency(salaryForm.get('net_salary')?.value) }}</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="form-field">
+        <label for="payment_status" class="form-label required">Payment Status</label>
+        <p-select
+          id="payment_status"
+          formControlName="payment_status"
+          [options]="paymentStatuses"
+          optionLabel="label"
+          optionValue="value"
+          placeholder="Select status"
+          appendTo="body"
+          styleClass="w-full">
+        </p-select>
+      </div>
+
+      <div class="form-field">
+        <label for="payment_date" class="form-label">Payment Date</label>
+        <p-calendar
+          id="payment_date"
+          formControlName="payment_date"
+          [showIcon]="true"
+          dateFormat="yy-mm-dd"
+          placeholder="Select date"
+          styleClass="w-full">
+        </p-calendar>
+      </div>
+
+      <div class="form-field">
+        <label for="payment_method" class="form-label">Payment Method</label>
+        <p-select
+          id="payment_method"
+          formControlName="payment_method"
+          [options]="paymentMethods"
+          optionLabel="label"
+          optionValue="value"
+          placeholder="Select method"
+          appendTo="body"
+          styleClass="w-full">
+        </p-select>
+      </div>
+
+      <div class="form-field">
+        <label for="payment_reference" class="form-label">Payment Reference</label>
+        <input 
+          pInputText 
+          id="payment_reference" 
+          formControlName="payment_reference"
+          placeholder="Transaction reference"
+          class="w-full" />
+      </div>
+
+      <div class="form-field full-width">
+        <label for="notes" class="form-label">Notes</label>
+        <textarea 
+          pInputTextarea 
+          id="notes" 
+          formControlName="notes"
+          rows="3"
+          placeholder="Additional notes"
+          class="w-full">
+        </textarea>
+      </div>
+    </div>
+  </form>
+
+  <ng-template pTemplate="footer">
+    <div class="dialog-footer">
+      <p-button 
+        label="Cancel" 
+        icon="pi pi-times" 
+        (onClick)="closeModal()"
+        styleClass="p-button-text">
+      </p-button>
+      <p-button 
+        [label]="isEditMode ? 'Update' : 'Create'" 
+        icon="pi pi-check" 
+        (onClick)="saveSalary()"
+        [loading]="loading"
+        [disabled]="salaryForm.invalid">
+      </p-button>
+    </div>
+  </ng-template>
+</p-dialog>

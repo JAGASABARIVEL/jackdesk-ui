@@ -1,0 +1,1006 @@
+// src/app/features/ca-firm/customers/customers.component.scss
+// Production-Ready Styles - Clean and Stable
+
+.customers-container {
+  padding: 1.5rem;
+  background: #f8f9fa;
+  min-height: 100vh;
+}
+
+// ========== Header Section ==========
+.header-section {
+  margin-bottom: 2rem;
+
+  .header-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 1rem;
+  }
+
+  .title-section {
+    .page-title {
+      font-size: 2rem;
+      font-weight: 700;
+      color: #1e293b;
+      margin: 0 0 0.5rem 0;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+
+      i {
+        color: #667eea;
+      }
+    }
+
+    .page-subtitle {
+      color: #64748b;
+      margin: 0;
+      font-size: 1rem;
+    }
+  }
+
+  .header-actions {
+    display: flex;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+  }
+}
+
+// ========== Summary Cards ==========
+.summary-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+::ng-deep {
+  .summary-card {
+    border-radius: 12px;
+    border: none;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+    transition: all 0.2s ease;
+
+    &:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+    }
+
+    .p-card-body {
+      padding: 1.5rem;
+    }
+
+    .summary-content {
+      display: flex;
+      align-items: center;
+      gap: 1.5rem;
+
+      .summary-icon {
+        width: 64px;
+        height: 64px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.75rem;
+        flex-shrink: 0;
+
+        &.primary {
+          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+          color: white;
+        }
+
+        &.success {
+          background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+          color: white;
+        }
+
+        &.warning {
+          background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+          color: white;
+        }
+      }
+
+      .summary-info {
+        flex: 1;
+
+        .summary-label {
+          font-size: 0.875rem;
+          color: #64748b;
+          font-weight: 500;
+          margin-bottom: 0.5rem;
+          text-transform: uppercase;
+          letter-spacing: 0.03em;
+        }
+
+        .summary-value {
+          font-size: 1.75rem;
+          font-weight: 700;
+          color: #1e293b;
+          line-height: 1.2;
+        }
+
+        .summary-subtext {
+          font-size: 0.75rem;
+          color: #94a3b8;
+          margin-top: 0.25rem;
+        }
+      }
+    }
+  }
+
+  // ========== Filter Card ==========
+  .filter-card {
+    margin-bottom: 1.5rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+    border-radius: 12px;
+    border: none;
+
+    .p-card-body {
+      padding: 1.25rem 1.5rem;
+    }
+  }
+
+  .filter-section {
+    .filter-group {
+      display: flex;
+      gap: 1rem;
+      flex-wrap: wrap;
+      align-items: center;
+
+      .p-input-icon-left {
+        flex: 1;
+        min-width: 250px;
+
+        input {
+          border-radius: 8px;
+          border: 1px solid #e2e8f0;
+          padding: 0.625rem 1rem 0.625rem 2.5rem;
+
+          &:focus {
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+          }
+        }
+      }
+
+      .filter-select {
+        min-width: 180px;
+      }
+    }
+  }
+
+  // ========== Table Card ==========
+  .table-card {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+    border-radius: 12px;
+    border: none;
+    overflow: hidden;
+
+    .p-card-body {
+      padding: 0;
+    }
+
+    .p-datatable {
+      .p-datatable-thead > tr > th {
+        background: #f8fafc;
+        color: #475569;
+        font-weight: 600;
+        padding: 1rem;
+        border-bottom: 2px solid #e2e8f0;
+        text-transform: uppercase;
+        font-size: 0.75rem;
+        letter-spacing: 0.03em;
+      }
+
+      .p-datatable-tbody > tr {
+        transition: background-color 0.15s;
+
+        &:hover {
+          background: #f8fafc;
+        }
+
+        > td {
+          padding: 1rem;
+          border-bottom: 1px solid #f1f5f9;
+          vertical-align: middle;
+        }
+      }
+    }
+  }
+
+  // ========== Table Cell Styling ==========
+  .customer-info {
+    .customer-name {
+      font-weight: 600;
+      color: #1e293b;
+      margin-bottom: 0.25rem;
+      font-size: 0.9375rem;
+    }
+
+    .customer-notes {
+      font-size: 0.8125rem;
+      color: #64748b;
+      display: flex;
+      align-items: center;
+      gap: 0.375rem;
+
+      i {
+        font-size: 0.75rem;
+      }
+    }
+  }
+
+  .tax-details {
+    .tax-item {
+      display: flex;
+      gap: 0.5rem;
+      margin-bottom: 0.25rem;
+      font-size: 0.875rem;
+
+      .tax-label {
+        color: #64748b;
+        font-weight: 500;
+      }
+
+      .tax-value {
+        color: #1e293b;
+        font-family: 'Courier New', monospace;
+        font-weight: 600;
+      }
+    }
+
+    .no-tax {
+      color: #94a3b8;
+      font-style: italic;
+      font-size: 0.875rem;
+    }
+  }
+
+  .contacts-summary {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+
+  .contacts-chip {
+    background: #dbeafe;
+    color: #1e40af;
+    font-size: 0.8125rem;
+  }
+
+  .no-contacts {
+    color: #94a3b8;
+    font-size: 0.875rem;
+    font-style: italic;
+  }
+
+  .employee-chip {
+    background: #dbeafe;
+    color: #1e40af;
+  }
+
+  .unassigned-chip {
+    background: #f1f5f9;
+    color: #64748b;
+  }
+
+  .action-buttons {
+    display: flex;
+    gap: 0.25rem;
+    flex-wrap: wrap;
+  }
+
+  .empty-state {
+    padding: 3rem 1rem;
+    text-align: center;
+
+    i {
+      color: #cbd5e1;
+    }
+
+    .empty-text {
+      font-size: 1.125rem;
+      color: #64748b;
+      margin: 1rem 0;
+    }
+  }
+
+  // ========== Dialog Styles ==========
+  .customer-dialog,
+  .details-dialog,
+  .contacts-dialog,
+  .add-contacts-dialog {
+    .p-dialog {
+      border-radius: 12px;
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+
+      .p-dialog-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 1.25rem 1.5rem;
+        border-radius: 12px 12px 0 0;
+
+        .p-dialog-title {
+          font-weight: 600;
+          font-size: 1.125rem;
+        }
+
+        .p-dialog-header-icon {
+          color: white;
+          transition: all 0.2s;
+
+          &:hover {
+            background: rgba(255, 255, 255, 0.15);
+          }
+        }
+      }
+
+      .p-dialog-content {
+        padding: 1.75rem;
+      }
+    }
+  }
+
+  // ========== Customer Form ==========
+  .customer-form {
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 1.25rem;
+    }
+
+    .form-field {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+
+      &.full-width {
+        grid-column: 1 / -1;
+      }
+
+      .form-label {
+        font-weight: 600;
+        color: #475569;
+        font-size: 0.875rem;
+
+        &.required::after {
+          content: ' *';
+          color: #ef4444;
+        }
+      }
+
+      input,
+      textarea {
+        border-radius: 6px;
+        border: 1px solid #e2e8f0;
+        padding: 0.625rem 0.875rem;
+        font-size: 0.9375rem;
+
+        &:focus {
+          border-color: #667eea;
+          outline: none;
+          box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        &.ng-invalid.ng-touched {
+          border-color: #ef4444;
+        }
+      }
+
+      textarea {
+        resize: vertical;
+        min-height: 80px;
+      }
+
+      .p-error {
+        color: #ef4444;
+        font-size: 0.8125rem;
+        margin-top: 0.125rem;
+      }
+    }
+  }
+
+  // ========== Customer Details ==========
+  .customer-details {
+    .detail-header {
+      display: flex;
+      align-items: center;
+      gap: 1.25rem;
+      padding-bottom: 1.25rem;
+      border-bottom: 2px solid #e2e8f0;
+      margin-bottom: 1.5rem;
+
+      .detail-icon {
+        width: 72px;
+        height: 72px;
+        border-radius: 12px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 2rem;
+        flex-shrink: 0;
+      }
+
+      .detail-header-info {
+        flex: 1;
+
+        h3 {
+          margin: 0 0 0.375rem 0;
+          font-size: 1.375rem;
+          color: #1e293b;
+          font-weight: 700;
+        }
+
+        .file-no {
+          margin: 0 0 0.625rem 0;
+          color: #64748b;
+          font-size: 0.9375rem;
+          font-family: 'Courier New', monospace;
+        }
+      }
+    }
+
+    .detail-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 1.25rem;
+
+      .detail-item {
+        &.full-width {
+          grid-column: 1 / -1;
+        }
+
+        label {
+          display: block;
+          font-weight: 600;
+          color: #64748b;
+          font-size: 0.75rem;
+          text-transform: uppercase;
+          letter-spacing: 0.03em;
+          margin-bottom: 0.5rem;
+        }
+
+        span {
+          display: block;
+          color: #1e293b;
+          font-size: 0.9375rem;
+          line-height: 1.5;
+
+          &.notes-text {
+            background: #f8fafc;
+            padding: 0.75rem;
+            border-radius: 6px;
+            border: 1px solid #e2e8f0;
+          }
+        }
+      }
+    }
+  }
+
+  // ========== Contacts Management ==========
+  .contacts-management {
+    .customer-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-bottom: 1rem;
+      border-bottom: 2px solid #e2e8f0;
+      margin-bottom: 1.25rem;
+      gap: 1rem;
+
+      .customer-info-header {
+        h3 {
+          margin: 0 0 0.25rem 0;
+          color: #1e293b;
+          font-size: 1.25rem;
+        }
+
+        .file-no {
+          margin: 0;
+          color: #64748b;
+          font-size: 0.875rem;
+          font-family: 'Courier New', monospace;
+        }
+      }
+
+      .header-actions-group {
+        display: flex;
+        gap: 0.5rem;
+        align-items: center;
+      }
+    }
+
+    .contacts-list {
+      margin-top: 1rem;
+    }
+  }
+
+  .contact-name-cell {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+
+    .contact-name {
+      font-weight: 600;
+      color: #1e293b;
+    }
+
+    .primary-badge {
+      font-size: 0.625rem;
+      padding: 0.25rem 0.5rem;
+    }
+  }
+
+  .platform-chip {
+    background: #f1f5f9;
+    color: #475569;
+    font-size: 0.8125rem;
+  }
+
+  .no-role {
+    color: #94a3b8;
+    font-style: italic;
+    font-size: 0.875rem;
+  }
+
+  .loading-contacts {
+    text-align: center;
+    padding: 3rem;
+    color: #64748b;
+
+    i {
+      font-size: 2.5rem;
+      margin-bottom: 1rem;
+      color: #667eea;
+    }
+
+    p {
+      margin: 0;
+      font-size: 1rem;
+    }
+  }
+
+  .empty-state-small {
+    padding: 2.5rem 1rem;
+    text-align: center;
+
+    i {
+      font-size: 2.5rem;
+      color: #cbd5e1;
+      margin-bottom: 0.75rem;
+    }
+
+    .empty-text {
+      font-size: 1rem;
+      color: #64748b;
+      margin: 0.75rem 0 1rem;
+    }
+  }
+
+  // ========== Add Contacts Dialog ==========
+  .add-contacts-container {
+    .search-section {
+      margin-bottom: 1.25rem;
+
+      input {
+        border-radius: 6px;
+        padding: 0.625rem 0.875rem 0.625rem 2.5rem;
+      }
+    }
+
+    .contacts-selection {
+      .empty-message {
+        padding: 2rem 1rem;
+        color: #64748b;
+      }
+    }
+  }
+
+  // ========== Dialog Footer ==========
+  .dialog-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.75rem;
+    padding: 1.25rem 1.75rem;
+    background: #f8fafc;
+    border-top: 1px solid #e2e8f0;
+    margin: 1.75rem -1.75rem -1.75rem;
+  }
+
+  // ========== Button Overrides ==========
+  .p-button {
+    border-radius: 6px;
+    font-weight: 600;
+    transition: all 0.2s ease;
+    font-size: 0.875rem;
+
+    &:hover:not(:disabled) {
+      transform: translateY(-1px);
+    }
+
+    &.p-button-primary {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      border: none;
+
+      &:enabled:hover {
+        background: linear-gradient(135deg, #5568d3 0%, #6a3e91 100%);
+      }
+    }
+
+    &.p-button-outlined {
+      border-width: 2px;
+    }
+  }
+
+  .p-chip {
+    border-radius: 6px;
+    padding: 0.4375rem 0.75rem;
+    font-weight: 500;
+    font-size: 0.8125rem;
+  }
+
+  .p-tag {
+    border-radius: 4px;
+    padding: 0.375rem 0.625rem;
+    font-weight: 600;
+    font-size: 0.75rem;
+  }
+
+  // ========== Unmapped Row Highlighting ==========
+  .p-datatable {
+    .unmapped-row {
+      background: #fef3c7 !important;
+      
+      &:hover {
+        background: #fde68a !important;
+      }
+    }
+  }
+
+  // ========== Clickable Summary Card ==========
+  .summary-card.clickable {
+    cursor: pointer;
+    
+    &:hover {
+      transform: translateY(-6px);
+      box-shadow: 0 12px 20px rgba(0, 0, 0, 0.15);
+    }
+  }
+
+  // ========== Header Actions Group ==========
+  .header-actions-group {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+
+  // ========== Customer Notes in Table ==========
+  .customer-notes {
+    font-size: 0.8125rem;
+    color: #64748b;
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+    margin-top: 0.25rem;
+
+    i {
+      font-size: 0.75rem;
+    }
+  }
+
+  // ========== Tax Items in Table ==========
+  .tax-item {
+    font-size: 0.875rem;
+    margin-bottom: 0.125rem;
+
+    .tax-label {
+      color: #64748b;
+      font-weight: 500;
+      margin-right: 0.25rem;
+    }
+  }
+
+  // ========== Primary Badge ==========
+  .primary-badge {
+    font-size: 0.625rem !important;
+    padding: 0.25rem 0.5rem !important;
+    margin-left: 0.5rem;
+  }
+
+  // ========== Loading Contacts State ==========
+  .loading-contacts {
+    text-align: center;
+    padding: 2rem;
+    color: #64748b;
+
+    i {
+      font-size: 2rem;
+      margin-bottom: 0.75rem;
+      color: #667eea;
+    }
+
+    p {
+      margin: 0;
+    }
+  }
+
+  // ========== Customer Header in Dialog ==========
+  .customer-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-bottom: 1rem;
+    border-bottom: 2px solid #e2e8f0;
+    margin-bottom: 1.25rem;
+    gap: 1rem;
+
+    h3 {
+      margin: 0 0 0.25rem 0;
+      color: #1e293b;
+      font-size: 1.25rem;
+    }
+
+    p {
+      margin: 0;
+      color: #64748b;
+      font-size: 0.875rem;
+      font-family: 'Courier New', monospace;
+    }
+
+    .header-actions-group {
+      display: flex;
+      gap: 0.5rem;
+      align-items: center;
+    }
+  }
+
+  // ========== Empty State Small ==========
+  .empty-state-small {
+    padding: 2rem 1rem;
+    text-align: center;
+
+    i {
+      font-size: 2rem;
+      color: #cbd5e1;
+      margin-bottom: 0.5rem;
+    }
+
+    p {
+      font-size: 0.9375rem;
+      color: #64748b;
+      margin: 0.5rem 0;
+    }
+  }
+
+  // ========== Responsive Updates ==========
+  @media (max-width: 768px) {
+    .customer-header {
+      flex-direction: column;
+      align-items: stretch;
+
+      .header-actions-group {
+        width: 100%;
+        justify-content: center;
+      }
+    }
+
+    .header-actions {
+      width: 100%;
+      
+      .p-button {
+        flex: 1;
+      }
+    }
+
+    .filter-group {
+      .p-button {
+        width: 100%;
+      }
+    }
+  }
+}
+
+// ========== WhatsApp Phone Number Group ==========
+::ng-deep {
+  .whatsapp-phone-group {
+    display: flex;
+    gap: 0.75rem;
+    align-items: flex-start;
+
+    .country-code-select {
+      flex: 0 0 180px;
+      min-width: 180px;
+
+      .p-select {
+        width: 100%;
+      }
+    }
+
+    .phone-number-input {
+      flex: 1;
+      border-radius: 6px;
+      border: 1px solid #e2e8f0;
+      padding: 0.625rem 0.875rem;
+      font-size: 0.9375rem;
+      font-family: 'Courier New', monospace;
+      letter-spacing: 0.5px;
+
+      &:focus {
+        border-color: #667eea;
+        outline: none;
+        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+      }
+
+      &:disabled {
+        background: #f1f5f9;
+        cursor: not-allowed;
+        color: #94a3b8;
+      }
+
+      &::placeholder {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        letter-spacing: normal;
+      }
+    }
+  }
+
+  // Country Code Item (Selected)
+  .country-code-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.25rem 0;
+
+    .flag {
+      font-size: 1.25rem;
+      line-height: 1;
+    }
+
+    .code {
+      font-weight: 600;
+      color: #1e293b;
+      font-family: 'Courier New', monospace;
+    }
+  }
+
+  // Country Code Option (Dropdown)
+  .country-code-option {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.5rem 0.75rem;
+
+    .flag {
+      font-size: 1.25rem;
+      flex-shrink: 0;
+    }
+
+    .name {
+      flex: 1;
+      color: #1e293b;
+      font-weight: 500;
+    }
+
+    .code {
+      color: #64748b;
+      font-family: 'Courier New', monospace;
+      font-weight: 600;
+      font-size: 0.875rem;
+    }
+
+    &:hover {
+      background: #f8fafc;
+    }
+  }
+
+  // Phone Preview
+  .phone-preview {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-top: 0.5rem;
+    padding: 0.625rem 0.875rem;
+    background: #f8fafc;
+    border-radius: 6px;
+    border: 1px solid #e2e8f0;
+
+    i {
+      font-size: 1rem;
+      
+      &.success {
+        color: #10b981;
+      }
+
+      &.error {
+        color: #ef4444;
+      }
+    }
+
+    .preview-text {
+      font-size: 0.875rem;
+      color: #64748b;
+
+      strong {
+        color: #1e293b;
+        font-family: 'Courier New', monospace;
+        letter-spacing: 0.5px;
+      }
+    }
+  }
+
+  // Help Text
+  .help-text {
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+    color: #64748b;
+    font-size: 0.8125rem;
+    margin-top: 0.375rem;
+
+    i {
+      font-size: 0.75rem;
+    }
+  }
+
+  // Error State for Phone Group
+  .form-field {
+    .whatsapp-phone-group {
+      &.has-error {
+        .phone-number-input {
+          border-color: #ef4444;
+        }
+
+        .country-code-select .p-select {
+          border-color: #ef4444;
+        }
+      }
+    }
+  }
+
+  // Responsive Design
+  @media (max-width: 576px) {
+    .whatsapp-phone-group {
+      flex-direction: column;
+
+      .country-code-select {
+        flex: 1;
+        width: 100%;
+        min-width: unset;
+      }
+
+      .phone-number-input {
+        width: 100%;
+      }
+    }
+  }
+
+  // PrimeNG Select Customization for Country Code
+  .p-select-overlay {
+    .country-code-option {
+      cursor: pointer;
+    }
+  }
+
+  // WhatsApp Icon Color
+  .pi-whatsapp {
+    color: #25d366;
+  }
+
+  // Make sure the label with icon aligns properly
+  .form-label {
+    display: flex;
+    align-items: center;
+
+    .pi {
+      margin-right: 0.375rem;
+    }
+  }
+}

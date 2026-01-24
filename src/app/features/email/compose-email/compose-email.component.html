@@ -1,8 +1,0 @@
-<p-dialog header="Compose Email" [(visible)]="visible" [modal]="true" [style]="{width: '50vw'}" (onHide)="onClose()">
-      <div class="flex flex-col gap-3">
-        <input type="text" [(ngModel)]="to" placeholder="To" pInputText />
-        <input type="text" [(ngModel)]="subject" placeholder="Subject" pInputText />
-        <p-editor [(ngModel)]="body" [style]="{height:'200px'}"></p-editor>
-        <button pButton type="button" label="Send" icon="pi pi-send" (click)="sendEmail()" class="p-button-success"></button>
-      </div>
-    </p-dialog>

@@ -27,14 +27,14 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
             router.navigate([""]);
           }
           else if (profile.user.is_registration_complete && !profile.user.is_subscription_complete && !profile.user.is_payment_complete) {
-            router.navigate(["/apps/subscribe"]);
+            router.navigate(["subscribe"]);
           }
           else {
-            router.navigate(["/apps/unauthorized"]);
+            router.navigate(["unauthorized"]);
           }
         }
         else {
-          router.navigate(["/apps/unauthorized"]);
+          router.navigate(["unauthorized"]);
         }
       }
       else if ([401].includes(error.status)) {

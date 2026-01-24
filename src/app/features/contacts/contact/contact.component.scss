@@ -516,3 +516,31 @@
         font-size: 3rem;
     }
 }
+
+.import-instructions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1rem;
+  background-color: var(--blue-50);
+  border-left: 3px solid var(--blue-500);
+  border-radius: 4px;
+  margin-bottom: 1.5rem;
+
+  i {
+    color: var(--blue-500);
+    font-size: 1.25rem;
+  }
+
+  p {
+    margin: 0;
+    color: var(--text-color);
+    font-size: 0.9rem;
+  }
+}
+
+.import-actions {
+  margin: 1.5rem 0;
+  display: flex;
+  justify-content: center;
+}

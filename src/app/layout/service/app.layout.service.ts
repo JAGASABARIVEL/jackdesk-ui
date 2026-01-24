@@ -79,6 +79,7 @@ export class LayoutService {
     configUpdate$ = this.configUpdate.asObservable();
 
     overlayOpen$ = this.overlayOpen.asObservable();
+    totalNewMessageRecords = 0;
 
 
     menuItemsCache = signal<any[]>([]);

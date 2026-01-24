@@ -4,7 +4,7 @@ import { ConversationDashboardComponent } from './conversation-dashboard/convers
 import { Router } from '@angular/router';
 import { TabsModule } from 'primeng/tabs';
 import { ChatManagerService } from '../../shared/services/chat-manager.service';
-import { ConversationNotificationTemplate, LayoutService } from '../../layout/service/app.layout.service';
+import { LayoutService } from '../../layout/service/app.layout.service';
 import { Subject, takeUntil } from 'rxjs';
 import { EnhancedConversationDashboardComponent } from './enhanced-conversation-dashboard/enhanced-conversation-dashboard.component';
 
@@ -47,7 +47,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
   refreshUnrespondedConversationNotifications() {
         this.conversationService.list_notification("non-chat").pipe(takeUntil(this.destroy$)).subscribe({
-            next: (notificationData: ConversationNotificationTemplate) => {
+            next: (notificationData: any) => {
                 this.layoutService.unrespondedConversationNotification.update((prev) => notificationData)
             },
             error: (err) => {console.error(`Could not get the conversation notifications ${err}`)}

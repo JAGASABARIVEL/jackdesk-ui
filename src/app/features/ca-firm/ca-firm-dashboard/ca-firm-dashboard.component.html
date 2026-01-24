@@ -1,0 +1,298 @@
+<!-- src/app/features/ca-firm/ca-firm-dashboard/ca-firm-dashboard.component.html -->
+<p-toast></p-toast>
+
+<div class="dashboard-container">
+  <!-- Header Section -->
+  <div class="header-section">
+    <div class="header-content">
+      <div class="title-section">
+        <h1 class="page-title">
+          <i class="pi pi-chart-bar"></i>
+          Financial Dashboard
+        </h1>
+        <p class="page-subtitle" *ngIf="dashboardData">
+          {{ dashboardData.period.start_date | date: 'MMM dd, yyyy' }} - 
+          {{ dashboardData.period.end_date | date: 'MMM dd, yyyy' }}
+        </p>
+      </div>
+      
+      <div class="header-actions">
+        <p-select
+          [(ngModel)]="selectedFinancialYear"
+          [options]="financialYears"
+          (onChange)="onFinancialYearChange()"
+          placeholder="Select FY"
+          appendTo="body"
+          styleClass="fy-select">
+        </p-select>
+        <p-button 
+          icon="pi pi-refresh" 
+          (onClick)="refreshDashboard()"
+          [loading]="loading"
+          styleClass="p-button-outlined">
+        </p-button>
+        <p-button 
+          label="Export Report" 
+          icon="pi pi-download" 
+          (onClick)="exportReport()"
+          styleClass="p-button-primary">
+        </p-button>
+      </div>
+    </div>
+  </div>
+
+  <div *ngIf="loading" class="loading-overlay">
+    <i class="pi pi-spin pi-spinner" style="font-size: 3rem"></i>
+  </div>
+
+  <div *ngIf="!loading && dashboardData" class="dashboard-content">
+    <!-- Key Metrics Row -->
+    <div class="metrics-grid">
+      <p-card styleClass="metric-card revenue">
+        <div class="metric-content">
+          <div class="metric-icon">
+            <i class="pi pi-dollar"></i>
+          </div>
+          <div class="metric-details">
+            <div class="metric-label">Total Revenue</div>
+            <div class="metric-value">{{ formatCurrency(dashboardData.revenue.total_revenue) }}</div>
+            <div class="metric-sub">
+              <span class="received">Received: {{ formatCurrency(dashboardData.revenue.total_received) }}</span>
+              <span class="dues">Due: {{ formatCurrency(dashboardData.revenue.customer_dues) }}</span>
+            </div>
+          </div>
+        </div>
+      </p-card>
+
+      <p-card styleClass="metric-card expenses">
+        <div class="metric-content">
+          <div class="metric-icon">
+            <i class="pi pi-wallet"></i>
+          </div>
+          <div class="metric-details">
+            <div class="metric-label">Total Expenses</div>
+            <div class="metric-value">{{ formatCurrency(dashboardData.expenses.total_running_costs) }}</div>
+            <div class="metric-sub">
+              <span class="office">Office: {{ formatCurrency(dashboardData.expenses.office_expenses) }}</span>
+              <span class="salary">Salary: {{ formatCurrency(dashboardData.expenses.salary_cost) }}</span>
+            </div>
+          </div>
+        </div>
+      </p-card>
+
+      <p-card styleClass="metric-card profit">
+        <div class="metric-content">
+          <div class="metric-icon">
+            <i class="pi pi-chart-line"></i>
+          </div>
+          <div class="metric-details">
+            <div class="metric-label">Gross Profit</div>
+            <div class="metric-value">{{ formatCurrency(dashboardData.profit.gross_profit) }}</div>
+            <div class="metric-sub">
+              <span class="margin">Margin: {{ formatPercentage(dashboardData.profit.profit_margin) }}</span>
+            </div>
+          </div>
+        </div>
+        <div class="profit-gauge">
+          <p-knob 
+            [(ngModel)]="dashboardData.profit.profit_margin" 
+            [readonly]="true" 
+            [size]="80"
+            [strokeWidth]="8"
+            valueColor="#10b981">
+          </p-knob>
+        </div>
+      </p-card>
+
+      <p-card styleClass="metric-card dues">
+        <div class="metric-content">
+          <div class="metric-icon">
+            <i class="pi pi-clock"></i>
+          </div>
+          <div class="metric-details">
+            <div class="metric-label">Outstanding Dues</div>
+            <div class="metric-value">{{ formatCurrency(dashboardData.dues.total_receivables) }}</div>
+            <div class="metric-sub">
+              <span class="customers">Customers: {{ dashboardData.customers.customers_with_dues }}</span>
+            </div>
+          </div>
+        </div>
+      </p-card>
+    </div>
+
+    <!-- Charts Row -->
+    <div class="charts-grid">
+      <p-card *ngIf="dashboardData?.revenue?.total_revenue" styleClass="chart-card" header="Revenue vs Expenses">
+        <div class="chart-container">
+          <p-chart 
+            type="doughnut" 
+            [data]="revenueExpenseChart" 
+            [options]="chartOptions"
+            [style]="{'height': '300px'}">
+          </p-chart>
+        </div>
+      </p-card>
+
+      <p-card *ngIf="dashboardData?.monthly_trends && dashboardData.monthly_trends.length > 0" styleClass="chart-card" header="Monthly Trends">
+        <div class="chart-container">
+          <p-chart 
+            type="line" 
+            [data]="profitTrendChart" 
+            [options]="chartOptions"
+            [style]="{'height': '300px'}">
+          </p-chart>
+        </div>
+      </p-card>
+
+      <p-card *ngIf="dashboardData.expenses.by_category && this.dashboardData.expenses.by_category.length > 0" styleClass="chart-card" header="Expense Breakdown">
+        <div class="chart-container">
+          <p-chart 
+            type="pie" 
+            [data]="categoryBreakdownChart" 
+            [options]="chartOptions"
+            [style]="{'height': '300px'}">
+          </p-chart>
+        </div>
+      </p-card>
+    </div>
+
+    <!-- Tables Row -->
+    <div class="tables-grid">
+      <!-- Top Customers -->
+      <p-card styleClass="table-card p-4" header="Top Customers">
+        <p-table 
+          [value]="dashboardData.customers.top_customers" 
+          [paginator]="false"
+          styleClass="p-datatable-sm">
+          <ng-template pTemplate="header">
+            <tr>
+              <th>Customer</th>
+              <th>Total Revenue</th>
+              <th>Dues</th>
+            </tr>
+          </ng-template>
+          <ng-template pTemplate="body" let-customer>
+            <tr>
+              <td>
+                <div class="customer-cell">
+                  <strong>{{ customer.name }}</strong>
+                  <small>{{ customer.file_no }}</small>
+                </div>
+              </td>
+              <td>{{ formatCurrency(customer.total_purchase) }}</td>
+              <td>
+                <p-tag
+                  [value]="formatCurrency(customer.total_due)" 
+                  [severity]="getDueSeverity(customer.total_due)">
+                </p-tag>
+              </td>
+            </tr>
+          </ng-template>
+          <ng-template pTemplate="emptymessage">
+            <tr>
+              <td colspan="4" class="text-center">No customers found</td>
+            </tr>
+          </ng-template>
+        </p-table>
+      </p-card>
+
+      <!-- Revenue by Product -->
+      <p-card styleClass="table-card p-4" header="Revenue by Product/Service">
+        <p-table 
+          [value]="dashboardData.revenue.by_product" 
+          [paginator]="false"
+          styleClass="p-datatable-sm">
+          <ng-template pTemplate="header">
+            <tr>
+              <th>Product/Service</th>
+              <th>Quantity</th>
+              <th>Revenue</th>
+              <th>Progress</th>
+            </tr>
+          </ng-template>
+          <ng-template pTemplate="body" let-product>
+            <tr>
+              <td>
+                <div class="product-cell">
+                  <strong>{{ product.product }}</strong>
+                  <small>{{ product.type }}</small>
+                </div>
+              </td>
+              <td>{{ product.count }}</td>
+              <td>{{ formatCurrency(product.total) }}</td>
+              <td>
+                <p-progressBar 
+                  [value]="(product.total / dashboardData!.revenue.total_revenue) * 100" 
+                  [showValue]="false"
+                  [style]="{'height': '8px'}">
+                </p-progressBar>
+              </td>
+            </tr>
+          </ng-template>
+          <ng-template pTemplate="emptymessage">
+            <tr>
+              <td colspan="4" class="text-center">No products found</td>
+            </tr>
+          </ng-template>
+        </p-table>
+      </p-card>
+
+      <!-- Salary Breakdown -->
+      <p-card styleClass="table-card p-4" header="Salary Breakdown">
+        <p-table 
+          [value]="dashboardData.salary_breakdown" 
+          [paginator]="false"
+          styleClass="p-datatable-sm">
+          <ng-template pTemplate="header">
+            <tr>
+              <th>Employee</th>
+              <th>Salary</th>
+              <th>Paid</th>
+              <th>Pending</th>
+            </tr>
+          </ng-template>
+          <ng-template pTemplate="body" let-salaries>
+            <tr>
+              <td>{{ salaries.employee }}</td>
+              <td>{{salaries.total_salary}}</td>
+              <td>{{ formatCurrency(salaries.paid) }}</td>
+              <td>
+                <p-tag
+                  [value]="salaries.pending" 
+                  [severity]="getDueSeverity(salaries.pending)">
+                </p-tag>
+              </td>
+            </tr>
+          </ng-template>
+          <ng-template pTemplate="emptymessage">
+            <tr>
+              <td colspan="4" class="text-center">No salary data found</td>
+            </tr>
+          </ng-template>
+        </p-table>
+      </p-card>
+    </div>
+
+    <!-- Conversations Summary -->
+    <p-card styleClass="conversations-card" header="Conversations Overview">
+      <div class="conversations-grid">
+        <div class="conversation-stat">
+          <div class="stat-value">{{ dashboardData.conversations.total }}</div>
+          <div class="stat-label">Total</div>
+        </div>
+        <div class="conversation-stat new">
+          <div class="stat-value">{{ dashboardData.conversations.new }}</div>
+          <div class="stat-label">New</div>
+        </div>
+        <div class="conversation-stat active">
+          <div class="stat-value">{{ dashboardData.conversations.active }}</div>
+          <div class="stat-label">Active</div>
+        </div>
+        <div class="conversation-stat closed">
+          <div class="stat-value">{{ dashboardData.conversations.closed }}</div>
+          <div class="stat-label">Closed</div>
+        </div>
+      </div>
+    </p-card>
+  </div>
+</div>

@@ -2,7 +2,7 @@ import { ChangeDetectorRef, Component, OnDestroy, OnInit } from '@angular/core';
 import { SocialAuthService, GoogleLoginProvider, SocialUser } from '@abacritt/angularx-social-login';
 import { HttpClient } from '@angular/common/http';
 import { SocialLoginModule } from '@abacritt/angularx-social-login';
-import { DEFAULT_ENTERPRISE_LANDING_APP, DEFAULT_INDIVIDUAL_LANDING_APP, environment } from '../../../environment';
+import { DEFAULT_OWNER_ENTERPRISE_LANDING_APP, DEFAULT_INDIVIDUAL_LANDING_APP, environment, DEFAULT_EMPLOYEE_ENTERPRISE_DASHBOARD_LANDING_APP, DEFAULT_EMPLOYEE_ENTERPRISE_LANDING_APP } from '../../../environment';
 import { FormBuilder, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
@@ -20,6 +20,7 @@ import { LayoutService } from '../../layout/service/app.layout.service';
 import { SocketService } from '../../shared/services/socketio.service';
 import { Subject, takeUntil } from 'rxjs';
 import { CUstomEventService } from '../../shared/services/Events/custom-events.service';
+import { AppInitializationService } from '../../shared/services/init.services';
 
 
 declare var google: any;  // Add this at the top
@@ -54,6 +55,15 @@ export class LoginComponent implements OnInit, OnDestroy {
   step = 0;
   private destroy$ = new Subject<void>();
 
+  // OTP Login properties
+  otpLoginStep: 'email' | 'otp' | null = null;
+  otpEmail: string = '';
+  otpCode: string = '';
+  otpLoading: boolean = false;
+  otpTimer: number = 0;
+  otpTimerInterval: any;
+  attemptsRemaining: number = 3;
+
 
   constructor(
     private cdRef: ChangeDetectorRef,
@@ -67,18 +77,22 @@ export class LoginComponent implements OnInit, OnDestroy {
     private localEventService: CUstomEventService,
     private userManagerService: UserManagerService,
     private layoutService: LayoutService,
+    private appInitService: AppInitializationService
     
   ) {
   }
 
   ngOnDestroy(): void {
-  this.destroy$.next();
-  this.destroy$.complete();
-}
-
+    this.destroy$.next();
+    this.destroy$.complete();
+    if (this.otpTimerInterval) {
+      clearInterval(this.otpTimerInterval);
+    }
+  }
 
   ngOnInit(): void {
     this.layoutService.clearMenuItems()
+    this.appInitService.reset();
     localStorage.clear();
     this.initRegistartionForm();
     this.profile = JSON.parse(localStorage.getItem("profile"));
@@ -90,7 +104,6 @@ export class LoginComponent implements OnInit, OnDestroy {
       else {
         this.validateToken();
       }
-
       this.routeAppropriate();
     }
     else {
@@ -102,25 +115,131 @@ export class LoginComponent implements OnInit, OnDestroy {
       }
     });
     }
-
-    
-    
-
-
     setTimeout(() => {  // Ensure Google is loaded before calling renderButton
-
       google.accounts.id.disableAutoSelect();
-
       google.accounts.id.initialize({
         client_id: environment.googleClientId,
         callback: (response: any) => this.handleGoogleResponse(response),
+        use_fedcm_for_prompt: true
       });
-
       google.accounts.id.renderButton(
         document.getElementById("googleSignInDiv"),
         { theme: "outline", size: "large" }
       );
     }, 1000);
+  }
+
+  showOTPLogin(): void {
+    this.otpLoginStep = 'email';
+    this.otpEmail = '';
+    this.otpCode = '';
+    this.attemptsRemaining = 3;
+  }
+
+  cancelOTPLogin(): void {
+    this.otpLoginStep = null;
+    this.otpEmail = '';
+    this.otpCode = '';
+    if (this.otpTimerInterval) {
+      clearInterval(this.otpTimerInterval);
+    }
+  }
+
+  requestOTP(): void {
+    if (!this.otpEmail || !this.otpEmail.includes('@')) {
+      this.showError('Please enter a valid email address');
+      return;
+    }
+
+    this.otpLoading = true;
+
+    this.http.post(`${HOST}/users/login/otp/request`, { email: this.otpEmail })
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (response: any) => {
+          this.otpLoading = false;
+          this.otpLoginStep = 'otp';
+          this.showSuccess(response.message || 'OTP sent to your email');
+          this.startOTPTimer();
+        },
+        error: (err) => {
+          this.otpLoading = false;
+          const errorMsg = err.error?.error || 'Failed to send OTP';
+          this.showError(errorMsg);
+        }
+      });
+  }
+
+  verifyOTP(): void {
+    if (!this.otpCode || this.otpCode.length !== 6) {
+      this.showError('Please enter the 6-digit OTP');
+      return;
+    }
+
+    this.otpLoading = true;
+
+    this.http.post(`${HOST}/users/login/otp/verify`, {
+      email: this.otpEmail,
+      otp: this.otpCode
+    })
+    .pipe(takeUntil(this.destroy$))
+    .subscribe({
+      next: (profile: any) => {
+        this.otpLoading = false;
+        this.cancelOTPLogin();
+        
+        // Same flow as Google/Zoho login
+        this.socketService.initSocket(profile).then(() => {
+          this.setupLoginOrRegistrationProcess(profile);
+        }).catch((err) => {
+          console.error("Socket connection failed", err);
+          this.layoutService.addNotification({
+            'severity': 'error',
+            'app': 'Login',
+            'text': 'Socket connection failed. Please engage Engineering.'
+          });
+          this.router.navigate(['/login']);
+        });
+      },
+      error: (err) => {
+        this.otpLoading = false;
+        const errorMsg = err.error?.error || 'Invalid OTP';
+        this.attemptsRemaining = err.error?.attempts_remaining || this.attemptsRemaining - 1;
+        this.showError(errorMsg);
+        
+        if (this.attemptsRemaining <= 0) {
+          this.showError('Too many failed attempts. Please request a new OTP.');
+          this.cancelOTPLogin();
+        }
+      }
+    });
+  }
+
+  startOTPTimer(): void {
+    this.otpTimer = 300; // 5 minutes in seconds
+    
+    if (this.otpTimerInterval) {
+      clearInterval(this.otpTimerInterval);
+    }
+
+    this.otpTimerInterval = setInterval(() => {
+      this.otpTimer--;
+      if (this.otpTimer <= 0) {
+        clearInterval(this.otpTimerInterval);
+        this.showError('OTP expired. Please request a new one.');
+        this.cancelOTPLogin();
+      }
+    }, 1000);
+  }
+
+  getOTPTimerDisplay(): string {
+    const minutes = Math.floor(this.otpTimer / 60);
+    const seconds = this.otpTimer % 60;
+    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+  }
+
+  resendOTP(): void {
+    this.requestOTP();
   }
 
   validateToken() {
@@ -138,11 +257,15 @@ export class LoginComponent implements OnInit, OnDestroy {
 
   routeAppropriate() {
     if (this.profile.user.role === 'individual') {
-      this.router.navigate([DEFAULT_INDIVIDUAL_LANDING_APP])
+      this.router.navigate([DEFAULT_INDIVIDUAL_LANDING_APP]);
+      return;
+    }
+    else if (this.profile.user.role === 'owner') {
+      this.router.navigate([DEFAULT_OWNER_ENTERPRISE_LANDING_APP]);
       return;
     }
     else {
-      this.router.navigate([DEFAULT_ENTERPRISE_LANDING_APP])
+      this.router.navigate([DEFAULT_EMPLOYEE_ENTERPRISE_LANDING_APP]);
       return;
     }
   }
@@ -174,26 +297,105 @@ export class LoginComponent implements OnInit, OnDestroy {
 
   getDashboardLinkItems(profile) {
     if (profile?.user.role === "owner") {
-      return [
-                  {
-                    label: 'Conversation',
-                    icon: 'pi pi-comments',
-                    routerLink: ['/apps'],
-                  },
-                  {
-                    label: 'Productivity',
-                    icon: 'pi pi-stopwatch',
-                    routerLink: ['/apps/productivity'],
-                  }
-                ]
+      return {
+        label: 'My Firm',
+        icon: 'pi pi-home',
+        items: [
+          {
+            label: 'Dasboard',
+            icon: 'pi pi-briefcase',
+            items: [
+              {
+                label: 'Finance',
+                icon: 'pi pi-chart-bar',
+                routerLink: ['/apps/ca-firm/dashboard']
+              },
+              {
+                label: 'Tickets',
+                icon: 'pi pi-comments',
+                routerLink: ['/apps'],
+              },
+              {
+                label: 'Productivity',
+                icon: 'pi pi-stopwatch',
+                routerLink: ['/apps/productivity'],
+              },
+            ]
+          },
+          {
+            label: 'Manage',
+            icon: 'pi pi-list',
+            items: [
+              {
+                label: 'Employees',
+                icon: 'pi pi-users',
+                routerLink: ['/apps/ca-firm/employees']
+              },
+              {
+                label: 'Departments',
+                icon: 'pi pi-sitemap',
+                routerLink: ['/apps/ca-firm/departments']
+              },
+              {
+                label: 'Salary',
+                icon: 'pi pi-wallet',
+                routerLink: ['/apps/ca-firm/salaries']
+              },
+              {
+                label: 'Products & Services',
+                icon: 'pi pi-box',
+                routerLink: ['/apps/ca-firm/products']
+              },
+              {
+                label: 'Expense',
+                icon: 'pi pi-shopping-cart',
+                routerLink: ['/apps/ca-firm/office-purchases']
+              },
+              {
+                label: 'Sales',
+                icon: 'pi pi-dollar',
+                routerLink: ['/apps/ca-firm/customer-purchases']
+              },
+            ]
+          }
+        ]
+      }
     }
-    return [
-      {
-        label: 'Conversation',
-        icon: 'pi pi-comments',
-        routerLink: ['/apps'],
-      },
-    ]
+    else {
+    return {
+        label: 'My Firm',
+        icon: 'pi pi-home',
+        items: [
+          {
+            label: 'Dasboard',
+            icon: 'pi pi-briefcase',
+            items: [
+              {
+                label: 'Tickets',
+                icon: 'pi pi-comments',
+                routerLink: ['/apps'],
+              },
+            ]
+          },
+          {
+            label: 'Manage',
+            icon: 'pi pi-list',
+            items: [
+              {
+                label: 'Expense',
+                icon: 'pi pi-shopping-cart',
+                routerLink: ['/apps/ca-firm/office-purchases']
+              },
+              {
+                label: 'Sales',
+                icon: 'pi pi-dollar',
+                routerLink: ['/apps/ca-firm/customer-purchases']
+              },
+            ]
+          }
+        ]
+      }
+    }
   }
 
   getCampaignLinkItems(profile) {
@@ -202,12 +404,12 @@ export class LoginComponent implements OnInit, OnDestroy {
       icon: 'pi pi-megaphone',
       items: [
         {
-          label: 'Journal',
+          label: 'Reports',
           icon: 'pi pi-history',
           routerLink: ['/apps/history'],
         },
         {
-          label: 'Schedules',
+          label: 'Jobs',
           icon: 'pi pi-calendar-clock',
           routerLink: ['/apps/schedules'],
         },
@@ -224,12 +426,12 @@ export class LoginComponent implements OnInit, OnDestroy {
       icon: 'pi pi-megaphone',
       items: [
         {
-          label: 'Journal',
+          label: 'Reports',
           icon: 'pi pi-history',
           routerLink: ['/apps/history'],
         },
         {
-          label: 'Schedules',
+          label: 'Jobs',
           icon: 'pi pi-calendar-clock',
           routerLink: ['/apps/schedules'],
         },
@@ -269,16 +471,21 @@ export class LoginComponent implements OnInit, OnDestroy {
 
   getContactLink(profile) {
     let contactItems = {
-                label: 'Contact',
-                icon: 'pi pi-address-book',
+                label: 'Customer',
+                icon: 'pi pi-users',
                 items: [
                   {
-                    label: 'User',
+                    label: 'Customers',
+                    icon: 'pi pi-address-book',
+                    routerLink: ['/apps/ca-firm/customers']
+                  },
+                  {
+                    label: 'Contacts',
                     icon: 'pi pi-user',
                     routerLink: ['/apps/user'],
                   },
                   {
-                    label: 'Group',
+                    label: 'Groups',
                     icon: 'pi pi-users',
                     routerLink: ['/apps/group'],
                   }
@@ -291,6 +498,7 @@ export class LoginComponent implements OnInit, OnDestroy {
     
   }
 
+
   initLayoutMenu(profile) {
     let individualMenuItems = [
             {
@@ -300,22 +508,13 @@ export class LoginComponent implements OnInit, OnDestroy {
             }
         ]
         let enterpriseMenuItems = [
-            {
-                label: 'Dashboard',
-                icon: 'pi pi-chart-bar',
-                items: this.getDashboardLinkItems(profile)
-            },
+            this.getDashboardLinkItems(profile),
             this.getContactLink(profile),
             this.getCampaignLinkItems(profile),
             {
-                label: 'Conversation',
+                label: 'Tickets',
                 icon: 'pi pi-comment',
                 items: [
-                  {
-                    label: 'Journal',
-                    icon: 'pi pi-ticket',
-                    routerLink: ['/apps/ticketing'],
-                  },
                   {
                     label: 'Chat',
                     icon: 'pi pi-comment',
@@ -327,20 +526,25 @@ export class LoginComponent implements OnInit, OnDestroy {
                     routerLink: ['/apps/chat-active'],
                   },
                   {
-                    label: 'Usage',
-                    icon: 'pi pi-chart-bar',
-                    routerLink: ['/apps/chat-usage-cost'],
-                  }
+                    label: 'Reports (WIP)',
+                    icon: 'pi pi-ticket',
+                    routerLink: ['/apps/ticketing'],
+                  },
+                  //{
+                  //  label: 'Usage',
+                  //  icon: 'pi pi-chart-bar',
+                  //  routerLink: ['/apps/chat-usage-cost'],
+                  //}
                 ]
             },
-            this.getStorageLink(profile),
+            //this.getStorageLink(profile),
         ];
 
         if (profile.user.role !== 'individual') {
             this.layoutService.menuItemsCache.update((prev)=>[...prev, {items: enterpriseMenuItems}])
         }
         if (profile.user.role === 'individual') {
-            this.layoutService.menuItemsCache.update((prev)=>[...prev, {items: individualMenuItems}])
+            //this.layoutService.menuItemsCache.update((prev)=>[...prev, {items: individualMenuItems}])
         }
   }
 
@@ -350,6 +554,7 @@ export class LoginComponent implements OnInit, OnDestroy {
   }
 
   setupLoginOrRegistrationProcess(profile) {
+    this.appInitService.reset();
     this.initSates();
     this.initLayoutMenu(profile);
         this.profile = profile;
@@ -468,7 +673,7 @@ export class LoginComponent implements OnInit, OnDestroy {
         next: (response: any) => {
           this.showSuccess('Owner registered successfully!');
           this.updateOwnerProfile(response.user.user_type, response.user);
-          this.router.navigate([DEFAULT_ENTERPRISE_LANDING_APP]);
+          this.router.navigate([DEFAULT_OWNER_ENTERPRISE_LANDING_APP]);
           return;
         },
         error: () => { this.showError('Failed to register owner.'); this.router.navigate(['/apps/login']); return; },
@@ -496,5 +701,73 @@ export class LoginComponent implements OnInit, OnDestroy {
     this.messageService.add({ severity: 'error', summary: 'Error', detail: message });
   }
 
+  initiateZohoLogin(): void {
+  const state = this.generateRandomState();
+  const zohoAuthUrl = `${environment.zohoAccountsUrl}/oauth/v2/auth?` +
+    `response_type=code&` +
+    `client_id=${environment.zohoClientId}&` +
+    `scope=AaaServer.profile.READ&` +
+    `redirect_uri=${environment.zohoRedirectUri}&` +
+    `access_type=offline&` +
+    `state=${state}`;
+  
+  // Open popup window
+  const popup = window.open(
+    zohoAuthUrl,
+    'Zoho Login',
+    'width=500,height=600,left=100,top=100'
+  );
+  
+  // Listen for messages from popup
+  window.addEventListener('message', (event) => {
+    // Verify origin for security
+    if (event.origin !== window.location.origin) {
+      return;
+    }
+    
+    if (event.data.type === 'ZOHO_AUTH_SUCCESS') {
+      const code = event.data.code;
+      this.sendZohoCodeToBackend(code);
+      if (popup) {
+        popup.close();
+      }
+    } else if (event.data.type === 'ZOHO_AUTH_ERROR') {
+      this.showError('Zoho authentication failed');
+      if (popup) {
+        popup.close();
+      }
+    }
+  });
+}
+
+private generateRandomState(): string {
+  return Math.random().toString(36).substring(2, 15) + 
+         Math.random().toString(36).substring(2, 15);
+}
+
+sendZohoCodeToBackend(code: string): void {
+  this.http.post(`${HOST}/users/login/zoho`, { code })
+    .pipe(takeUntil(this.destroy$))
+    .subscribe({
+      next: (profile) => {
+        this.socketService.initSocket(profile).then(() => {
+          this.setupLoginOrRegistrationProcess(profile);
+        }).catch((err) => {
+          console.error("Socket connection failed", err);
+          this.layoutService.addNotification(
+            { 'severity': 'error', 'app': 'Login', 'text': 'Socket connection failed. Please engage Engineering.' }
+          );
+          this.router.navigate(['/apps/login']);
+        });
+      },
+      error: (err) => { 
+        console.error("Error sending Zoho code:", err);
+        this.showError('Failed to complete Zoho login');
+      }
+    });
+}
+
 
 }
+
+

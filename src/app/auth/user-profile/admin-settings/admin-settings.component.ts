@@ -25,6 +25,10 @@ import { PlatformManagerService } from '../../../shared/services/platform-manage
 import { environment, HOST } from '../../../../environment';
 import { PlatformModel } from '../profile-settings/profile-settings.component';
 import { LayoutService } from '../../../layout/service/app.layout.service';
+import { TabPanel } from 'primeng/tabs';
+import { TabViewModule } from 'primeng/tabview';
+import { AvatarModule } from 'primeng/avatar';
+import { TextareaModule } from 'primeng/textarea';
 
 @Component({
   selector: 'app-admin-settings',
@@ -46,7 +50,9 @@ import { LayoutService } from '../../../layout/service/app.layout.service';
     CheckboxModule,
     ConfirmDialogModule,
     DialogModule,
-    AccordionModule
+    TabViewModule,
+    AvatarModule,
+    TextareaModule
   ],
   providers: [MessageService, ConfirmationService],
   templateUrl: './admin-settings.component.html',
@@ -57,6 +63,7 @@ export class AdminSettingsComponent implements OnInit, OnDestroy {
   blockDialogVisible = false;
   registeredUsersLoading = false;
   registeredUsers: any = [];
+  activeTabIndex = 0;
   registeredEmployeeTypes = [
   { name: 'intern' },
   { name: 'nontech' },

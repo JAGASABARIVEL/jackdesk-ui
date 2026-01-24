@@ -32,6 +32,7 @@
           <div class="contact-name">
             {{ selectedConversation.contact?.name || selectedConversation.contact?.phone }}
           </div>
+          <div class="flex align-item-center justify-content-between">
           <div class="platform-badge">
             <img *ngIf="selectedConversation.contact?.platform_name === 'webchat'"
                  src="../../../../../assets/Icons/Schedule/webchat.png">
@@ -46,6 +47,10 @@
             <div class="flex align-items-center gap-2" *ngIf="selectedConversation.contact?.platform_name === 'gmessages'">
               <img src="../../../../../assets/Icons/Schedule/gmessages.png">
             </div>
+          </div>
+          <div class="p-2 flex align-items-center gap-2">
+            <p-badge [value]="getConversationStatusBadge().label" [severity]="getConversationStatusBadge().severity"></p-badge>
+          </div>
           </div>
         </div>
       </div>
@@ -68,7 +73,7 @@
   
   <!-- Messages Area -->
   <div #scrollMe 
-       class="chat-window flex-grow-1 overflow-auto"
+       class="chat-window flex-grow-1 overflow-auto message-input-container"
        (dragover)="onDragOver($event)"
        (dragleave)="onDragLeave($event)" 
        (drop)="onFileDrop($event)">
@@ -99,86 +104,146 @@
               {{ message.displayTime }}
             </div>
             <div class="message-content">
-              <!-- Media Content -->
-              <img *ngIf="!message.media_urls?.length && message.message_type !== 'text' && message.message_type !== 'email' && message.message_type.includes('image')"
-                   [src]="message.media_url" 
-                   style="max-width: 300px; max-height: 300px; object-fit: contain;"
-                   (contextmenu)="onRightClick($event, message.status_details, cm, message.media_url)">
-              <video *ngIf="!message.media_urls?.length && message.message_type !== 'text' && message.message_type.includes('video')"
-                     [src]="message.media_url" 
-                     controls
-                     style="max-width: 300px;"
-                     (contextmenu)="onRightClick($event, message.status_details, cm, message.media_url)">
-              </video>
-              <audio *ngIf="!message.media_urls?.length && message.message_type !== 'text' && message.message_type.includes('audio')"
-                     [src]="message.media_url" 
-                     controls
-                     style="width: 100%;"
-                     (contextmenu)="onRightClick($event, message.status_details, cm, message.media_url)">
-              </audio>
-              <img *ngIf="!message.media_urls?.length && (message?.message_type?.includes('spreadsheet'))"
-                   style="width: 100px; height: 100px; cursor: pointer;"
-                   src="../../../../assets/Icons/Schedule/ms-excel.svg"
-                   (contextmenu)="onRightClick($event, message.status_details, cm, message.media_url)" />
-              <iframe *ngIf="!message.media_urls?.length && (message?.message_type?.includes('pdf'))" 
-                      [src]="message.media_url | safeUrl" 
-                      width="100%" 
-                      height="300px"
-                      style="border: none; border-radius: 8px;" 
-                      (contextmenu)="onRightClick($event, message.status_details, cm, message.media_url)">
-              </iframe>
-              <img *ngIf="!message.media_urls?.length && message.message_type !== 'email' && !(message?.message_type?.includes('spreadsheet') || message?.message_type?.includes('pdf') || message?.message_type?.includes('image') || message.message_type.includes('video') || message.message_type.includes('audio') || message?.message_type === 'text')"
-                   style="width: 100px; height: 100px; cursor: pointer;"
-                   src="../../../../assets/Icons/Schedule/file.png"
-                   (contextmenu)="onRightClick($event, message.status_details, cm, message.media_url)" />
               
-              <!-- Text Content -->
-              <div *ngIf="message.message_type !== 'email'">{{ message.message_body }}</div>
-              
-              <!-- Gmail Text and Content Blocks -->
-              <div *ngIf="message.message_type === 'email' || message.media_urls?.length">
-                <ng-container *ngFor="let block of message.content_blocks">
-                  <div *ngIf="block.type === 'html'" [innerHTML]="getSanitizedHtml(block.html)"></div>
-                </ng-container>
+              <!-- 🆕 WhatsApp-Style Single Media (Image/Video/Audio) -->
+              <div *ngIf="!message.media_urls?.length && message.message_type !== 'text' && message.message_type !== 'email'">
+                
+                <!-- Image -->
+                <div *ngIf="message.message_type.includes('image')" class="whatsapp-media-container">
+                  <img [src]="message.media_url" 
+                       class="whatsapp-image"
+                       (click)="openFilePreview(message.media_url, 'image.jpg', message.message_type)" />
+                  <div class="media-overlay">
+                    <button pButton 
+                            icon="pi pi-download" 
+                            class="p-button-rounded p-button-secondary p-button-sm"
+                            (click)="downloadFile(message.media_url, 'image.jpg')"
+                            pTooltip="Download"></button>
+                  </div>
+                </div>
+                
+                <!-- Video -->
+                <div *ngIf="message.message_type.includes('video')" class="whatsapp-media-container">
+                  <video [src]="message.media_url" 
+                         controls
+                         class="whatsapp-video">
+                  </video>
+                </div>
+                
+                <!-- Audio -->
+                <div *ngIf="message.message_type.includes('audio')" class="whatsapp-audio-container">
+                  <audio [src]="message.media_url" controls class="w-full"></audio>
+                </div>
+                
+                <!-- 🆕 Document Files (PDF, Excel, etc.) - WhatsApp Style -->
+                <div *ngIf="message.message_type.includes('pdf') || 
+                            message.message_type.includes('spreadsheet') || 
+                            (!message.message_type.includes('image') && 
+                             !message.message_type.includes('video') && 
+                             !message.message_type.includes('audio') &&
+                             message.message_type !== 'text')" 
+                     class="whatsapp-document-container"
+                     (click)="openFilePreview(message.media_url, message.filename || 'document', message.message_type)">
+                  
+                  <div class="document-icon-container" [style.background-color]="getFileColor(message.message_type)">
+                    <i [class]="'pi ' + getFileIcon(message.message_type)" style="font-size: 2rem; color: white;"></i>
+                  </div>
+                  
+                  <div class="document-info flex-1">
+                    <div class="document-name">{{ message.filename || getFileName(message.media_url) }}</div>
+                    <div class="document-meta">
+                      <span class="document-type">{{ getFileTypeLabel(message.message_type) }}</span>
+                      <span *ngIf="message.file_size" class="document-size"> • {{ formatBytes(message.file_size) }}</span>
+                    </div>
+                  </div>
+                  
+                  <div class="document-actions">
+                    <button pButton 
+                            icon="pi pi-download" 
+                            class="p-button-rounded p-button-text p-button-sm"
+                            (click)="downloadFile(message.media_url, message.filename || 'document'); $event.stopPropagation()"
+                            pTooltip="Download"></button>
+                  </div>
+                </div>
               </div>
               
-              <!-- Media Attachments -->
-              <div *ngIf="message.media_urls?.length" class="media-grid mt-2">
-                <ng-container *ngFor="let media of message.media_urls">
-                  <div class="media-item p-2">
-                    <img *ngIf="media.type.includes('image')" 
-                         [src]="media.url" 
-                         style="width: 150px; height: 150px; object-fit: cover;" 
-                         (contextmenu)="onRightClick($event, message.status_details, cm, media.url)"/>
-                    <video *ngIf="media.type.includes('video')" 
-                           [src]="media.url" 
-                           controls 
-                           style="width: 150px; height: 150px;" 
-                           (contextmenu)="onRightClick($event, message.status_details, cm, media.url)">
-                    </video>
-                    <audio *ngIf="media.type.includes('audio')" 
-                           [src]="media.url" 
-                           controls 
-                           style="width: 100%;" 
-                           (contextmenu)="onRightClick($event, message.status_details, cm, media.url)">
-                    </audio>
-                    <iframe *ngIf="media.type.includes('pdf')" 
-                            [src]="media.url | safeUrl" 
-                            width="150" 
-                            height="150" 
-                            style="border: none; border-radius: 4px;" 
-                            (contextmenu)="onRightClick($event, message.status_details, cm, media.url)">
-                    </iframe>
-                    <img *ngIf="!media.type.includes('application/x-zip-compressed') && !media.type.includes('image') && !media.type.includes('video') && !media.type.includes('audio') && !media.type.includes('pdf')"
-                         src="assets/file.png" 
-                         style="width: 100px; height: 100px; cursor: pointer;" 
-                         (contextmenu)="onRightClick($event, message.status_details, cm, media.url)"/>
-                    <img *ngIf="media.type.includes('application/x-zip-compressed')"
-                         src="../../../../assets/Icons/Schedule/zip-folder.png"
-                         style="width: 100px; height: 100px; cursor: pointer;"
-                         (contextmenu)="onRightClick($event, message.status_details, cm, media.url)">
-                    <p class="text-sm mt-1">{{ media.filename }}</p>
+              <!-- Text Content -->
+              <div *ngIf="message.message_type !== 'email' && message.message_body" class="message-text">
+                {{ message.message_body }}
+              </div>
+              
+              <!-- Gmail Content -->
+              <div *ngIf="message.message_type === 'email' || message.media_urls?.length">
+                <!--ng-container *ngFor="let block of message.content_blocks">
+                  <div *ngIf="block.type === 'html'" [innerHTML]="getSanitizedHtml(block.html)"></div>
+                </ng-container-->
+                <!-- Email Metadata Header -->
+                <div class="email-metadata" *ngIf="getEmailMetadata(message) as metadata">
+                  <div class="metadata-row" *ngIf="metadata.cc && metadata.cc.length > 0">
+                    <span class="label">CC:</span>
+                    <div class="value">
+                      <div class="cc-recipients">
+                        <span *ngFor="let cc of metadata.cc" class="cc-chip">{{ cc }}</span>
+                      </div>
+                    </div>
                   </div>
+                  <div class="metadata-row">
+                    <span class="label">Date:</span>
+                    <span class="value">{{ formatEmailDate(metadata.date) }}</span>
+                  </div>
+                  <div class="metadata-row" *ngIf="metadata.subject">
+                    <span class="label">Subject:</span>
+                    <span class="value font-semibold">{{ metadata.subject }}</span>
+                  </div>
+              </div>
+
+              <!-- Email Content with Enhanced Styling -->
+              <ng-container *ngFor="let block of message.content_blocks">
+                <div *ngIf="block.type === 'html'" class="email-content-wrapper">
+                  <div [innerHTML]="getSanitizedHtml(block.html)"></div>
+                </div>
+              </ng-container>
+              
+              <!-- Reading Time Indicator (Optional) -->
+              <div class="text-xs text-color-secondary mt-2 flex align-items-center gap-2">
+                <i class="pi pi-clock"></i>
+                <span>{{ getEmailReadingTime(message) }}</span>
+              </div>
+              </div>
+              
+              <!-- 🆕 Multiple Media Attachments - WhatsApp Grid Style -->
+              <div *ngIf="message.media_urls?.length" class="whatsapp-media-grid">
+                <ng-container *ngFor="let media of message.media_urls">
+                  
+                  <!-- Image in Grid -->
+                  <div *ngIf="media.type.includes('image')" 
+                       class="media-grid-item"
+                       (click)="openFilePreview(media.url, media.filename, media.type)">
+                    <img [src]="media.url" class="media-grid-image" />
+                    <div class="media-grid-overlay">
+                      <i class="pi pi-search-plus"></i>
+                    </div>
+                  </div>
+                  
+                  <!-- Video in Grid -->
+                  <div *ngIf="media.type.includes('video')" 
+                       class="media-grid-item">
+                    <video [src]="media.url" class="media-grid-video"></video>
+                    <div class="media-grid-overlay">
+                      <i class="pi pi-play"></i>
+                    </div>
+                  </div>
+                  
+                  <!-- Document in Grid -->
+                  <div *ngIf="!media.type.includes('image') && !media.type.includes('video') && !media.type.includes('audio')" 
+                       class="media-grid-document"
+                       (click)="openFilePreview(media.url, media.filename, media.type)">
+                    <div class="grid-doc-icon" [style.background-color]="getFileColor(media.type)">
+                      <i [class]="'pi ' + getFileIcon(media.type)"></i>
+                    </div>
+                    <p class="grid-doc-name">{{ media.filename }}</p>
+                  </div>
+                  
                 </ng-container>
               </div>
             </div>
@@ -186,91 +251,209 @@
         </div>
       </div>
       
-      <!-- Agent Message -->
-      <!-- Agent Message -->
+      <!-- Agent/Organization Message -->
 <div *ngIf="message.type === 'org'" class="message-container agent-message">
   <div class="flex justify-content-end">
-    <div class="flex flex-column align-items-end">
-      <div class="message-bubble">
-        <!-- Template Preview -->
-        <app-message-preview *ngIf="message.template" 
-                             [selectedTemplateForPreview]="message.template" 
-                             [media_url]="message.media_url"
-                             (previewReady)="onTemplatePreviewReadyEvent($event)" 
-                             [messageDetails]="message">
-        </app-message-preview>
-        
-        <!-- Non-Template Message -->
-        <div *ngIf="!message.template">
-          <div class="message-content">
-            <!-- Media Content -->
-            <img *ngIf="message.message_type !== 'text' && message.message_type.includes('image')"
-                 [src]="message.media_url" 
-                 style="max-width: 300px; max-height: 300px; object-fit: contain;"
-                 (contextmenu)="onRightClick($event, message.status_details, cm, message.media_url)">
-            <video *ngIf="message.message_type !== 'text' && message.message_type.includes('video')"
-                   [src]="message.media_url" 
-                   controls
-                   style="max-width: 300px;"
-                   (contextmenu)="onRightClick($event, message.status_details, cm, message.media_url)">
-            </video>
-            <audio *ngIf="message.message_type !== 'text' && message.message_type.includes('audio')"
-                   [src]="message.media_url" 
-                   controls
-                   style="width: 100%;"
-                   (contextmenu)="onRightClick($event, message.status_details, cm, message.media_url)">
-            </audio>
-            <img *ngIf="(message?.message_type?.includes('spreadsheet'))"
-                 style="width: 100px; height: 100px; cursor: pointer;"
-                 src="../../../../assets/Icons/Schedule/ms-excel.svg"
-                 (contextmenu)="onRightClick($event, message.status_details, cm, message.media_url)" />
-            <iframe *ngIf="(message?.message_type?.includes('pdf'))" 
-                    [src]="message.media_url | safeUrl" 
-                    width="100%" 
-                    height="300px"
-                    style="border: none; border-radius: 8px;" 
-                    (contextmenu)="onRightClick($event, message.status_details, cm, message.media_url)">
-            </iframe>
-            <img *ngIf="message?.message_type?.includes('application/zip')"
-                 src="../../../../assets/Icons/Schedule/zip-folder.png"
-                 style="width: 100px; height: 100px; cursor: pointer;"
-                 (contextmenu)="onRightClick($event, message.status_details, cm, message.media_url)">
-            <img *ngIf="!(message?.message_type?.includes('application/zip') || message?.message_type?.includes('spreadsheet') || message?.message_type?.includes('pdf') || message?.message_type?.includes('image') || message.message_type.includes('video') || message.message_type.includes('audio') || message?.message_type === 'text')"
-                 style="width: 100px; height: 100px; cursor: pointer;"
-                 src="../../../../assets/Icons/Schedule/file.png"
-                 (contextmenu)="onRightClick($event, message.status_details, cm, message.media_url)" />
+    <div class="message-bubble">
+      
+      <!-- Template Preview -->
+      <app-message-preview *ngIf="message.template" 
+                           [selectedTemplateForPreview]="message.template" 
+                           [media_url]="message.media_url"
+                           (previewReady)="onTemplatePreviewReadyEvent($event)" 
+                           [messageDetails]="message">
+      </app-message-preview>
+      
+      <!-- Non-Template Message -->
+      <div *ngIf="!message.template">
+        <div class="message-content">
+          
+          <!-- 🆕 WhatsApp-Style Single Media (Image/Video/Audio/Document) -->
+          <div *ngIf="!message.media_urls?.length && message.message_type !== 'text' && message.message_type !== 'email'">
             
-            <!-- Text Content -->
-            <span style="white-space: pre-wrap;">{{ message?.message_body || '' }}</span>
+            <!-- Image -->
+            <div *ngIf="message.message_type.includes('image')" class="whatsapp-media-container">
+              <img [src]="message.media_url" 
+                   [alt]="'image'"
+                   class="whatsapp-image"
+                   (click)="openFilePreview(message.media_url, message.filename || 'image.jpg', message.message_type)" />
+              <div class="media-overlay">
+                <button pButton 
+                        icon="pi pi-download" 
+                        class="p-button-rounded p-button-secondary p-button-sm"
+                        (click)="downloadFile(message.media_url, message.filename || 'image.jpg'); $event.stopPropagation()"
+                        pTooltip="Download"></button>
+              </div>
+            </div>
+            
+            <!-- Video -->
+            <div *ngIf="message.message_type.includes('video')" class="whatsapp-media-container">
+              <video [src]="message.media_url" 
+                     controls
+                     class="whatsapp-video">
+              </video>
+            </div>
+            
+            <!-- Audio -->
+            <div *ngIf="message.message_type.includes('audio')" class="whatsapp-audio-container">
+              <audio [src]="message.media_url" controls class="w-full"></audio>
+            </div>
+            
+            <!-- 🆕 Document Files (PDF, Excel, ZIP, etc.) - WhatsApp Style -->
+            <div *ngIf="message.message_type.includes('pdf') || 
+                        message.message_type.includes('spreadsheet') || 
+                        message.message_type.includes('application/zip') ||
+                        (!message.message_type.includes('image') && 
+                         !message.message_type.includes('video') && 
+                         !message.message_type.includes('audio') &&
+                         message.message_type !== 'text' &&
+                         message.message_type !== 'email')" 
+                 class="whatsapp-document-container"
+                 (click)="openFilePreview(message.media_url, message.filename || getFileName(message.media_url), message.message_type)">
+              
+              <div class="document-icon-container" [style.background-color]="getFileColor(message.message_type)">
+                <i [class]="'pi ' + getFileIcon(message.message_type)" style="font-size: 2rem; color: white;"></i>
+              </div>
+              
+              <div class="document-info flex-1">
+                <div class="document-name">{{ message.filename || getFileName(message.media_url) }}</div>
+                <div class="document-meta">
+                  <span class="document-type">{{ getFileTypeLabel(message.message_type) }}</span>
+                  <span *ngIf="message.file_size" class="document-size"> • {{ formatBytes(message.file_size) }}</span>
+                </div>
+              </div>
+              
+              <div class="document-actions">
+                <button pButton 
+                        icon="pi pi-download" 
+                        class="p-button-rounded p-button-text p-button-sm"
+                        (click)="downloadFile(message.media_url, message.filename || getFileName(message.media_url)); $event.stopPropagation()"
+                        pTooltip="Download"></button>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Text Content -->
+          <div *ngIf="message.message_type === 'text' && message.message_body" class="message-text">
+            <span style="white-space: pre-wrap;">{{ message.message_body }}</span>
+          </div>
+          
+          <!-- Gmail Content -->
+          <div *ngIf="message.message_type === 'email'">
+            <!--ng-container *ngFor="let block of message.content_blocks">
+              <div *ngIf="block.type === 'html'" [innerHTML]="getSanitizedHtml(block.html)"></div>
+            </ng-container-->
+            <!-- Email Metadata Header -->
+            <div class="email-metadata" *ngIf="getEmailMetadata(message) as metadata">
+              <div class="metadata-row">
+                <span class="label">To:</span>
+                <span class="value">{{ selectedConversation.contact?.phone }}</span>
+              </div>
+              <div class="metadata-row" *ngIf="metadata.cc && metadata.cc.length > 0">
+                <span class="label">CC:</span>
+                <div class="value">
+                  <div class="cc-recipients">
+                    <span *ngFor="let cc of metadata.cc" class="cc-chip">{{ cc }}</span>
+                  </div>
+                </div>
+              </div>
+              <div class="metadata-row">
+                <span class="label">Sent:</span>
+                <span class="value">{{ formatEmailDate(metadata.date) }}</span>
+              </div>
+            </div>
+            <!-- Email Content with Enhanced Styling -->
+            <ng-container *ngFor="let block of message.content_blocks">
+              <div *ngIf="block.type === 'html'" class="email-content-wrapper">
+                <div [innerHTML]="getSanitizedHtml(block.html)"></div>
+              </div>
+            </ng-container>
+          </div>
+          
+          <!-- 🆕 Multiple Media Attachments - WhatsApp Grid Style -->
+          <div *ngIf="message.media_urls?.length" class="whatsapp-media-grid">
+            <ng-container *ngFor="let media of message.media_urls">
+              
+              <!-- Image in Grid -->
+              <div *ngIf="media.type.includes('image')" 
+                   class="media-grid-item"
+                   (click)="openFilePreview(media.url, media.filename, media.type)">
+                <img [src]="media.url" class="media-grid-image" />
+                <div class="media-grid-overlay">
+                  <i class="pi pi-search-plus"></i>
+                </div>
+              </div>
+              
+              <!-- Video in Grid -->
+              <div *ngIf="media.type.includes('video')" 
+                   class="media-grid-item"
+                   (click)="openFilePreview(media.url, media.filename, media.type)">
+                <video [src]="media.url" class="media-grid-video"></video>
+                <div class="media-grid-overlay">
+                  <i class="pi pi-play"></i>
+                </div>
+              </div>
+              
+              <!-- Document in Grid -->
+              <div *ngIf="!media.type.includes('image') && !media.type.includes('video') && !media.type.includes('audio')" 
+                   class="media-grid-document"
+                   (click)="openFilePreview(media.url, media.filename, media.type)">
+                <div class="grid-doc-icon" [style.background-color]="getFileColor(media.type)">
+                  <i [class]="'pi ' + getFileIcon(media.type)"></i>
+                </div>
+                <p class="grid-doc-name">{{ media.filename }}</p>
+              </div>
+            </ng-container>
           </div>
         </div>
-        
-        <!-- Message Meta (Sender, Time, Status) - Now shown for ALL messages -->
-        <div class="message-meta">
+      </div>
+      
+      <!-- Message Meta (Sender, Time, Status) -->
+      <div class="message-meta">
+        <div class="message-meta-content">
           <span class="sender-name">
             {{ getEmployeeNameFromId(message.sender)?.details?.username }}
           </span>
           <span class="message-time">{{ message.displayTime }}</span>
           <div class="message-status">
+            <!-- Sending/Processing -->
             <i *ngIf="message.status === 'sent_to_server' || message.status === 'server_processing'" 
-               class="pi pi-check"
-               style="color: #9ca3af;"></i>
+               class="pi pi-check status-icon status-sending"
+               pTooltip="Sending..."
+               tooltipPosition="top"></i>
+            
+            <!-- Sent/Delivered -->
             <i *ngIf="['sent', 'delivered'].includes(message.status)"
-               class="pi pi-check-circle bg-gray-100 text-black border-circle text-md"
-               style="display: inline-flex; width: 1.2rem; height: 1.2rem; justify-content: center; align-items: center;"></i>
+               class="pi pi-check-circle status-icon status-delivered"
+               pTooltip="Delivered"
+               tooltipPosition="top"></i>
+            
+            <!-- Read -->
             <i *ngIf="message.status === 'read'" 
-               class="pi pi-check-circle background-gradient text-white border-circle text-md"
-               style="display: inline-flex; width: 1.2rem; height: 1.2rem; justify-content: center; align-items: center;"></i>
-            <span *ngIf="message.status === 'failed'" [pTooltip]="message.status_details" tooltipPosition="top">
-              <i class="pi pi-times-circle bg-red-400 text-white border-circle text-md"
-                 style="display: inline-flex; width: 1.2rem; height: 1.2rem; justify-content: center; align-items: center;"></i>
-            </span>
+               class="pi pi-check-circle status-icon status-read"
+               pTooltip="Read"
+               tooltipPosition="top"></i>
+            
+            <!-- Failed -->
+            <i *ngIf="message.status === 'failed'" 
+               class="pi pi-times-circle status-icon status-failed"
+               [pTooltip]="message.status_details || 'Message failed to send'"
+               tooltipPosition="top"></i>
           </div>
+        </div>
+        
+        <!-- Failed Message Warning (if status is failed) -->
+        <div *ngIf="message.status === 'failed'" class="message-error-banner">
+          <i class="pi pi-exclamation-triangle"></i>
+          <span>Failed to send</span>
         </div>
       </div>
     </div>
   </div>
 </div>
+
+
+
     </div>
   </div>
 
@@ -284,16 +467,37 @@
        class="flex flex-column border-top-1 surface-border p-2 relative">
     
     <!-- Drop Area Overlay (existing code) -->
-    <div *ngIf="isDragging"
+    <!--div *ngIf="isDragging"
       class="absolute w-full h-full top-0 left-0 bg-black-alpha-50 z-3 flex align-items-center justify-content-center border-dashed border-2 border-primary"
       (drop)="onFileDrop($event)" (dragover)="onDragOver($event)" (dragleave)="onDragLeave($event)">
       <div class="text-white text-lg">Drop file to attach</div>
+    </div-->
+  <div *ngIf="isDragging"
+    class="absolute w-full h-full top-0 left-0 bg-black-alpha-50 z-3 flex align-items-center justify-content-center border-dashed border-2 border-primary"
+    (drop)="onFileDrop($event)" 
+    (dragover)="onDragOver($event)" 
+    (dragleave)="onDragLeave($event)">
+    <div class="text-white text-lg flex flex-column align-items-center gap-2">
+      <i class="pi pi-cloud-upload text-4xl"></i>
+      <span>Drop file to attach</span>
     </div>
+  </div>
+
+  <!-- 🆕 Zombie Warning Banner (if zombie) -->
+  <div *ngIf="conversationStatus.isZombie" class="zombie-input-warning mb-2">
+    <div class="flex align-items-center gap-2 px-3 py-2">
+      <i class="pi pi-exclamation-triangle"></i>
+      <span class="text-sm flex-1">Re-engagement required. Use template button to continue.</span>
+      <button pButton 
+              icon="pi pi-file" 
+              label="Template"
+              class="p-button-sm p-button-warning p-button-outlined"
+              (click)="openSendTemplateDialog()"></button>
+    </div>
+  </div>
     
-    <!-- Attachment Preview (existing code - keep as is) -->
-    <div *ngIf="attachedFile" class="border-round overflow-hidden mb-2 bg-white shadow-2"
+    <!--div *ngIf="attachedFile" class="border-round overflow-hidden mb-2 bg-white shadow-2"
       style="max-width: 100%; position: relative;">
-      <!-- Keep your existing attachment preview code here -->
       <ng-container *ngIf="isImage(attachedFile)">
         <img [src]="previewUrl" class="w-full" style="max-height: 250px; object-fit: cover;" />
         <textarea [(ngModel)]="messageText" rows="2" placeholder="Add a caption..."
@@ -319,11 +523,69 @@
       <button pButton icon="pi pi-times" class="p-button-rounded p-button-sm p-button-danger"
         style="position: absolute; top: 0.5rem; right: 0.5rem; z-index: 2;" (click)="removeAttachment()">
       </button>
+    </div-->
+    <!-- Attachment Preview -->
+  <div *ngIf="attachedFile" class="attachment-preview-container mb-2">
+    <div class="attachment-preview">
+      
+      <!-- Image Preview -->
+      <ng-container *ngIf="isImage(attachedFile)">
+        <div class="image-preview-wrapper">
+          <img [src]="previewUrl" class="attachment-preview-image" />
+          <button pButton 
+                  icon="pi pi-times" 
+                  class="p-button-rounded p-button-sm p-button-danger attachment-remove-btn"
+                  (click)="removeAttachment()"
+                  pTooltip="Remove"></button>
+        </div>
+        <div class="attachment-caption-wrapper">
+          <textarea 
+            #captionTextarea
+            [(ngModel)]="messageText" 
+            placeholder="Add a caption..."
+            class="attachment-caption-input"
+            rows="2"
+            (input)="onCaptionInput($event)"
+            maxlength="1000"></textarea>
+          <span class="char-count">{{ messageText?.length || 0 }}/1000</span>
+        </div>
+      </ng-container>
+      
+      <!-- Document/Other File Preview -->
+      <ng-container *ngIf="!isImage(attachedFile)">
+        <div class="document-preview-wrapper">
+          <div class="document-preview-card">
+            <div class="document-icon" [style.background-color]="getFileColor(attachedFile.type)">
+              <i [class]="'pi ' + getFileIcon(attachedFile.type)" style="font-size: 1.5rem; color: white;"></i>
+            </div>
+            <div class="document-info flex-1">
+              <div class="document-name">{{ attachedFile.name }}</div>
+              <div class="document-size">{{ formatBytes(attachedFile.size) }}</div>
+            </div>
+            <button pButton 
+                    icon="pi pi-times" 
+                    class="p-button-rounded p-button-sm p-button-text p-button-danger"
+                    (click)="removeAttachment()"
+                    pTooltip="Remove"></button>
+          </div>
+          <div class="attachment-caption-wrapper mt-2">
+            <textarea 
+              #captionTextarea
+              [(ngModel)]="messageText" 
+              placeholder="Add a caption..."
+              class="attachment-caption-input"
+              rows="2"
+              (input)="onCaptionInput($event)"
+              maxlength="1000"></textarea>
+            <span class="char-count">{{ messageText?.length || 0 }}/1000</span>
+          </div>
+        </div>
+      </ng-container>
     </div>
+  </div>
     
     <!-- Message Input + Action Buttons -->
-    <div class="flex justify-content-center align-items-center gap-2">
-      <!-- Text Input -->
+    <!--div class="flex justify-content-center align-items-center gap-2">
       <input 
         *ngIf="!attachedFile" 
         pInputText 
@@ -333,9 +595,9 @@
         autoResize="true"
         placeholder="Type a message" 
         class="flex-1 text-sm" 
+        [disabled]="isMessageInputDisabled()"
         (keyup.enter)="sendMessage()"/>
       
-      <!-- 🆕 Template Button (only for WhatsApp) -->
       <button 
         *ngIf="selectedConversation.contact.platform_name === 'whatsapp'"
         pButton 
@@ -346,14 +608,12 @@
         (click)="openSendTemplateDialog()">
       </button>
       
-      <!-- Attach Button -->
       <label for="fileInput" class="p-button p-button-text m-0 p-0" style="cursor: pointer;"
         (dragover)="onDragOver($event)" (drop)="onFileDrop($event)">
         <i class="pi pi-paperclip text-xl"></i>
       </label>
       <input type="file" id="fileInput" hidden (change)="onFileSelected($event)" (click)="resetFileInput($event)">
       
-      <!-- Send Button -->
       <button 
         pButton 
         icon="pi pi-send" 
@@ -361,9 +621,225 @@
         [disabled]="!messageText && !attachedFile" 
         (click)="sendMessage()">
       </button>
+    </div-->
+
+    <!-- 🆕 Enhanced Message Input Area with Auto-Growth -->
+  <div class="message-input-area flex align-items-end gap-2 message-input-container">
+    
+    <!-- Main Input Container -->
+    <div class="message-input-wrapper flex-1">
+      
+      <!-- 🆕 WhatsApp-Style Auto-Growing Textarea -->
+      <div class="input-container" 
+           [class.disabled]="isMessageInputDisabled()"
+           [class.zombie-disabled]="conversationStatus.isZombie">
+        
+        <textarea
+          #messageInput
+          *ngIf="!attachedFile"
+          [(ngModel)]="messageText"
+          [placeholder]="getMessageInputPlaceholder()"
+          [disabled]="isMessageInputDisabled()"
+          class="message-textarea"
+          rows="1"
+          [style.height.px]="textareaHeight"
+          (input)="onMessageInput($event)"
+          (keydown)="onMessageKeyDown($event)"
+          (paste)="onPaste($event)"
+          (focus)="onInputFocus()"
+          (blur)="onInputBlur()"
+          maxlength="4096"
+          spellcheck="true"
+          autocomplete="off"></textarea>
+        
+        <!-- Character Count (show when near limit) -->
+        <div *ngIf="messageText?.length >= 3800" class="char-counter">
+          {{ messageText.length }}/4096
+        </div>
+        
+        <!-- Formatting Hint (show on focus) -->
+        <div *ngIf="showFormattingHint && !messageText" class="formatting-hint">
+          <i class="pi pi-info-circle"></i>
+          <span>Ctrl+Enter for new line, Enter to send</span>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Action Buttons -->
+    <div class="action-buttons flex align-items-center gap-2">
+      
+      <!-- Template Button (WhatsApp only) -->
+      <button 
+        *ngIf="selectedConversation.contact.platform_name === 'whatsapp' && 
+               conversationStatus.canSendTemplate"
+        pButton 
+        icon="pi pi-file" 
+        class="p-button-rounded p-button-text action-btn"
+        [class.p-button-warning]="conversationStatus.isZombie"
+        pTooltip="Send Template Message"
+        tooltipPosition="top"
+        (click)="openSendTemplateDialog()">
+      </button>
+      
+      <!-- Emoji Button (optional - placeholder for future) -->
+      <!-- <button 
+        pButton 
+        icon="pi pi-face-smile" 
+        class="p-button-rounded p-button-text action-btn"
+        pTooltip="Emoji"
+        tooltipPosition="top"
+        (click)="toggleEmojiPicker()">
+      </button> -->
+      
+      <!-- Attach Button -->
+      <label for="fileInput" 
+             class="attach-button p-button-rounded p-button-text action-btn"
+             [class.disabled]="isMessageInputDisabled()"
+             pTooltip="Attach file"
+             tooltipPosition="top">
+        <i class="pi pi-paperclip"></i>
+      </label>
+      <input type="file" 
+             id="fileInput" 
+             hidden 
+             [disabled]="isMessageInputDisabled()"
+             (change)="onFileSelected($event)" 
+             (click)="resetFileInput($event)">
+      
+      <!-- Send Button -->
+      <button 
+        pButton 
+        icon="pi pi-send" 
+        class="p-button-rounded send-button"
+        [disabled]="!canSendCurrentMessage()" 
+        [class.has-content]="messageText || attachedFile"
+        pTooltip="Send message"
+        tooltipPosition="top"
+        (click)="sendMessage()">
+      </button>
     </div>
   </div>
+  </div>
 </div>
+
+<p-dialog 
+  header="Password Protected PDF" 
+  [(visible)]="pdfPasswordDialogVisible" 
+  [modal]="true" 
+  [style]="{ width: '400px' }"
+  [closable]="true"
+  (onHide)="closePdfPasswordDialog()">
+  
+  <div class="flex flex-column gap-3 p-3">
+    <div class="flex align-items-center gap-2 mb-2">
+      <i class="pi pi-lock text-4xl" style="color: #DC2626;"></i>
+      <div>
+        <p class="font-semibold mb-1">This PDF is password protected</p>
+        <p class="text-sm text-color-secondary">Enter the password to view the document</p>
+      </div>
+    </div>
+    
+    <div class="field">
+      <label for="pdfPassword" class="block mb-2">Password</label>
+      <input 
+        type="password" 
+        pInputText 
+        id="pdfPassword" 
+        [(ngModel)]="pdfPassword"
+        placeholder="Enter PDF password"
+        class="w-full"
+        (keyup.enter)="submitPdfPassword()" 
+        autofocus />
+      <small class="p-error" *ngIf="pdfPasswordError">{{ pdfPasswordError }}</small>
+    </div>
+    
+    <p-message severity="info" styleClass="w-full">
+      You'll need to enter this password in the PDF viewer as well
+    </p-message>
+  </div>
+  
+  <ng-template pTemplate="footer">
+    <button 
+      pButton 
+      label="Cancel" 
+      icon="pi pi-times"
+      class="p-button-outlined p-button-secondary" 
+      (click)="closePdfPasswordDialog()">
+    </button>
+    <button 
+      pButton 
+      label="Open PDF" 
+      icon="pi pi-external-link"
+      class="p-button-outlined" 
+      [disabled]="!pdfPassword"
+      (click)="submitPdfPassword()">
+    </button>
+  </ng-template>
+</p-dialog>
+
+<!-- 🆕 File Preview Dialog -->
+<p-dialog 
+  [header]="previewFileName" 
+  [(visible)]="filePreviewDialogVisible" 
+  [modal]="true" 
+  [style]="{ width: '90vw', height: '90vh' }"
+  [maximizable]="true"
+  [closable]="true"
+  (onHide)="closeFilePreview()">
+  
+  <div class="file-preview-container">
+    <!-- PDF Preview -->
+    <iframe *ngIf="previewFileType.includes('pdf')"
+            [src]="previewFileUrl | safeUrl" 
+            width="100%" 
+            height="100%"
+            style="border: none; min-height: 600px;">
+    </iframe>
+    
+    <!-- Image Preview -->
+    <div *ngIf="previewFileType.includes('image')" class="flex justify-content-center align-items-center" style="min-height: 600px;">
+      <img [src]="previewFileUrl" style="max-width: 100%; max-height: 80vh; object-fit: contain;" />
+    </div>
+    
+    <!-- Video Preview -->
+    <div *ngIf="previewFileType.includes('video')" class="flex justify-content-center align-items-center" style="min-height: 600px;">
+      <video [src]="previewFileUrl" controls style="max-width: 100%; max-height: 80vh;"></video>
+    </div>
+    
+    <!-- Other Files -->
+    <div *ngIf="!previewFileType.includes('pdf') && !previewFileType.includes('image') && !previewFileType.includes('video')" 
+         class="flex flex-column align-items-center justify-content-center gap-3" 
+         style="min-height: 600px;">
+      <i [class]="'pi ' + getFileIcon(previewFileType)" style="font-size: 5rem;" [style.color]="getFileColor(previewFileType)"></i>
+      <p class="text-xl font-semibold">{{ previewFileName }}</p>
+      <p class="text-color-secondary">Preview not available for this file type</p>
+      <button 
+        pButton 
+        label="Download File" 
+        icon="pi pi-download"
+        class="p-button-lg"
+        (click)="downloadFile(previewFileUrl, previewFileName)">
+      </button>
+    </div>
+  </div>
+  
+  <ng-template pTemplate="footer">
+    <button 
+      pButton 
+      label="Download" 
+      icon="pi pi-download"
+      class="p-button-outlined" 
+      (click)="downloadFile(previewFileUrl, previewFileName)">
+    </button>
+    <button 
+      pButton 
+      label="Open in New Tab" 
+      icon="pi pi-external-link"
+      class="p-button-outlined" 
+      (click)="viewOrDownloadFileFromUrl(previewFileUrl)">
+    </button>
+  </ng-template>
+</p-dialog>
 
 <ng-template #noConversation>
   <div class="flex flex-column align-items-center justify-content-center" style="height: 80vh;">
@@ -377,15 +853,9 @@
 <p-sidebar [(visible)]="chatdetaildrawerVisible" position="right" [modal]="false" styleClass="wide-sidebar"
   [style]="{width: '80vw', maxWidth: '80vw'}">
   <app-additional-detail-chat-window *ngIf="selectedConversation !== null"
-    [selectedConversation]="selectedConversation" (changeContactInSelectedConversationObject)="editContacDialogVisible=true;"></app-additional-detail-chat-window>
+    [selectedConversation]="selectedConversation" (changeContactInSelectedConversationObject)="editContactDialogVisible=true;"></app-additional-detail-chat-window>
 </p-sidebar>
 
-<!--app-internal-notes 
-  *ngIf="showInternalNotes"
-  [conversationId]="selectedConversation.id"
-  [showInternalNotes]="showInternalNotes"
-  (dialogVisibilityChange)="showInternalNotes=$event">
-</app-internal-notes-->
 
 <!-- Close conversation dialog -->
 <p-dialog header="Close Conversation" [modal]="true" [(visible)]="closeConversationVisible" [style]="{ width: '35rem' }">
@@ -411,20 +881,20 @@
 <p-dialog header="New Message" [modal]="true" [(visible)]="openConversationWhatsappVisible" [style]="{ width: '50rem' }">
   <p-select styleClass="w-full my-4" [options]="registeredPlatforms" [(ngModel)]="selected_platform"
     optionLabel="platform_name" [filter]="true" (onChange)="onPlatformSelected()" filterBy="name" [showClear]="true"
-    placeholder="Select platform" class="w-full md:w-56" [appendTo]="'body'">
+    placeholder="Select Channel" class="w-full md:w-56" [appendTo]="'body'">
     <ng-template #selectedItem let-selectedOption>
       <div class="flex items-center gap-2">
         <img
           [src]="'../../../../assets/Icons/Schedule/' + selectedOption.platform_name + '.' +selectedOption.image_type"
           style="width: 18px" />
-        <div>{{ selectedOption.platform_name }}</div>
+        <div>{{ selectedOption.user_platform_name }}</div>
       </div>
     </ng-template>
     <ng-template let-platform #item>
       <div class="flex items-center gap-2">
         <img [src]="'../../../../assets/Icons/Schedule/' + platform.platform_name + '.' + platform.image_type"
           style="width: 18px" />
-        <div>{{ platform.platform_name }}</div>
+        <div>{{ platform.user_platform_name }}</div>
       </div>
     </ng-template>
   </p-select>
@@ -439,21 +909,21 @@
     <div *ngIf="isDocumentHeader()" class="attachment-drop-area">
       <label class="block mb-2 text-sm font-medium text-gray-700">Attach Document</label>
       <div class="drop-zone" (dragover)="onTemplateDragOver($event)" (drop)="onTemplateDrop($event)">
-        <ng-container *ngIf="!temaplteattachedFile">
+        <ng-container *ngIf="!templateAttachedFile">
           <p>Drag & drop PDF file here or click to select</p>
           <button type="button" pButton label="Select File" (click)="fileInput.click()"
             class="mt-2 p-button-sm"></button>
         </ng-container>
-        <ng-container *ngIf="temaplteattachedFile">
+        <ng-container *ngIf="templateAttachedFile">
           <div class="preview-container">
-            {{temapltepdfPreviewUrl}}
-            <iframe [src]="temapltepdfPreviewUrl | safeUrl" width="100%" height="300px"
+            {{templatePdfPreviewUrl}}
+            <iframe [src]="templatePdfPreviewUrl | safeUrl" width="100%" height="300px"
                   style="border: none; border-radius: 8px;"></iframe>
 
             
-            <p class="file-name">{{ temaplteattachedFile.name }}</p>
+            <p class="file-name">{{ templateAttachedFile.name }}</p>
             <button type="button" pButton icon="pi pi-times" class="p-button-danger p-button-sm"
-              (click)="removeTemaplteFile()" label="Remove"></button>
+              (click)="removeTemplateFile()" label="Remove"></button>
           </div>
         </ng-container>
         <input type="file" accept="application/pdf" (change)="onTemplateFileSelected($event)" hidden #fileInput (click)="resetFileInput($event)"/>
@@ -471,7 +941,7 @@
     <div class="flex justify-end gap-2">
       <button pButton class="p-button-outlined" label="Cancel" severity="secondary"
         (click)="openConversationWhatsappVisible = false"> </button>
-      <button pButton class="p-button-outlined" *ngIf="this.selectedTemplate && isFiledValuesValid" label="Send"
+      <button pButton class="p-button-outlined" *ngIf="this.selectedTemplate && isFieldValuesValid" label="Send"
         (click)="startNewConversationOnWhatsapp()"> </button>
     </div>
   </div>
@@ -498,7 +968,7 @@
                 [filter]="true" 
                 filterBy="name" 
                 [showClear]="true"
-                placeholder="Select platform" 
+                placeholder="Select Channel" 
                 class="w-full md:w-56" 
                 [appendTo]="'body'">
             </p-select>
@@ -835,7 +1305,7 @@
 <p-contextMenu #cm [model]="contextMenuItems"></p-contextMenu>
 
 <p-dialog
-        [(visible)]="editContacDialogVisible" 
+        [(visible)]="editContactDialogVisible" 
         [style]="{ width: '850px' }" 
         header="Edit Contact" 
         [modal]="true" 

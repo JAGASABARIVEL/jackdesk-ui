@@ -1,0 +1,566 @@
+<!-- src/app/pages/customer-purchases/customer-purchases.component.html -->
+<p-toast></p-toast>
+<p-confirmDialog></p-confirmDialog>
+
+<div class="customer-purchases-container">
+  <!-- Header Section -->
+  <div class="header-section">
+    <div class="header-content">
+      <div class="title-section">
+        <h1 class="page-title">
+          <i class="pi pi-file-invoice"></i>
+          Customer Purchases & Invoices
+        </h1>
+        <p class="page-subtitle">Manage customer purchases, invoices, and payment tracking</p>
+      </div>
+      
+      <div class="header-actions">
+        <p-button 
+          label="Export" 
+          icon="pi pi-download" 
+          (onClick)="exportToExcel()"
+          styleClass="p-button-outlined">
+        </p-button>
+        <p-button 
+          label="New Purchase" 
+          icon="pi pi-plus" 
+          (onClick)="openPurchaseModal()"
+          styleClass="p-button-primary">
+        </p-button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Stats Cards -->
+  <div class="stats-grid">
+    <p-card styleClass="stat-card primary-card">
+      <div class="stat-content">
+        <div class="stat-icon">
+          <i class="pi pi-shopping-cart"></i>
+        </div>
+        <div class="stat-info">
+          <div class="stat-label">Total Purchases</div>
+          <div class="stat-value">{{ filteredPurchases.length }}</div>
+        </div>
+      </div>
+    </p-card>
+
+    <p-card styleClass="stat-card success-card">
+      <div class="stat-content">
+        <div class="stat-icon">
+          <i class="pi pi-check-circle"></i>
+        </div>
+        <div class="stat-info">
+          <div class="stat-label">Fully Paid</div>
+          <div class="stat-value">{{ getPurchasesByStatus('paid').length }}</div>
+        </div>
+      </div>
+    </p-card>
+
+    <p-card styleClass="stat-card warning-card">
+      <div class="stat-content">
+        <div class="stat-icon">
+          <i class="pi pi-clock"></i>
+        </div>
+        <div class="stat-info">
+          <div class="stat-label">Pending Payment</div>
+          <div class="stat-value">{{ getPurchasesByStatus('pending').length }}</div>
+        </div>
+      </div>
+    </p-card>
+
+    <p-card styleClass="stat-card info-card">
+      <div class="stat-content">
+        <div class="stat-icon">
+          <i class="pi pi-wallet"></i>
+        </div>
+        <div class="stat-info">
+          <div class="stat-label">Total Balance Due</div>
+          <div class="stat-value">{{ formatCurrency(getTotalBalanceDue()) }}</div>
+        </div>
+      </div>
+    </p-card>
+  </div>
+
+  <!-- Filters Section -->
+  <p-card styleClass="filters-card">
+    <div class="filters-section">
+      <div class="filter-group">
+        <span class="p-input-icon-left flex-1">
+          <i class="pi pi-search"></i>
+          <input 
+            pInputText 
+            type="text" 
+            [(ngModel)]="searchTerm"
+            (input)="onSearchChange()"
+            placeholder="Search by customer, product, invoice..."
+            class="w-full" />
+        </span>
+        
+        <p-select
+          [options]="customers"
+          [(ngModel)]="selectedCustomer"
+          optionLabel="customer_name"
+          optionValue="id"
+          placeholder="Filter by Customer"
+          [showClear]="true"
+          [filter]="true"
+          appendTo="body"
+          (onChange)="onFilterChange()"
+          styleClass="filter-select">
+        </p-select>
+        
+        <p-select
+          [options]="financialYears"
+          [(ngModel)]="selectedFinancialYear"
+          placeholder="Financial Year"
+          [showClear]="true"
+          (onChange)="onFilterChange()"
+          appendTo="body"
+          styleClass="filter-select">
+        </p-select>
+
+        <p-select
+          [options]="paymentStatuses"
+          [(ngModel)]="selectedPaymentStatus"
+          optionLabel="label"
+          optionValue="value"
+          placeholder="Payment Status"
+          [showClear]="true"
+          (onChange)="onFilterChange()"
+          appendTo="body"
+          styleClass="filter-select">
+        </p-select>
+
+        <p-button 
+          icon="pi pi-refresh" 
+          (onClick)="clearFilters()"
+          [rounded]="true"
+          [text]="true"
+          pTooltip="Clear Filters">
+        </p-button>
+      </div>
+    </div>
+  </p-card>
+
+  <!-- Purchases Table -->
+  <p-card styleClass="table-card">
+    <p-table 
+      [value]="filteredPurchases" 
+      [loading]="loading"
+      [paginator]="true" 
+      [rows]="10"
+      [showCurrentPageReport]="true"
+      [rowsPerPageOptions]="[10, 25, 50]"
+      currentPageReportTemplate="Showing {first} to {last} of {totalRecords} purchases"
+      styleClass="p-datatable-gridlines p-datatable-striped"
+      responsiveLayout="scroll">
+      
+      <ng-template pTemplate="header">
+        <tr>
+          <th pSortableColumn="invoice_number">
+            Invoice # <p-sortIcon field="invoice_number"></p-sortIcon>
+          </th>
+          <th pSortableColumn="purchase_date">
+            Date <p-sortIcon field="purchase_date"></p-sortIcon>
+          </th>
+          <th pSortableColumn="customer_name">
+            Customer <p-sortIcon field="customer_name"></p-sortIcon>
+          </th>
+          <th pSortableColumn="product_name">
+            Product/Service <p-sortIcon field="product_name"></p-sortIcon>
+          </th>
+          <th>FY</th>
+          <th class="text-right">Total Amount</th>
+          <th class="text-right">Paid</th>
+          <th class="text-right">Balance</th>
+          <th pSortableColumn="payment_status">
+            Status <p-sortIcon field="payment_status"></p-sortIcon>
+          </th>
+          <th style="width: 12rem">Actions</th>
+        </tr>
+      </ng-template>
+      
+      <ng-template pTemplate="body" let-purchase>
+        <tr>
+          <td>
+            <strong class="invoice-number">{{ purchase.invoice_number }}</strong>
+          </td>
+          <td>{{ formatDate(purchase.purchase_date) }}</td>
+          <td>
+            <div class="customer-cell">
+              <div class="customer-name">{{ purchase.customer_name }}</div>
+            </div>
+          </td>
+          <td>
+            <p-chip 
+              [label]="purchase.product_name" 
+              icon="pi pi-box"
+              styleClass="product-chip">
+            </p-chip>
+          </td>
+          <td>
+            <p-tag 
+              [value]="purchase.financial_year" 
+              severity="info"
+              [rounded]="true">
+            </p-tag>
+          </td>
+          <td class="text-right">
+            <span class="total-amount">{{ formatCurrency(purchase.total_amount) }}</span>
+          </td>
+          <td class="text-right">
+            <span class="paid-amount">{{ formatCurrency(purchase.amount_paid) }}</span>
+          </td>
+          <td class="text-right">
+            <span class="balance-amount" [class.has-balance]="parseFloat(purchase.amount_due || '0') > 0">
+              {{ formatCurrency(purchase.amount_due) }}
+            </span>
+          </td>
+          <td>
+            <p-tag 
+              [value]="purchase.payment_status" 
+              [severity]="getPaymentStatusSeverity(purchase.payment_status)">
+            </p-tag>
+          </td>
+          <td>
+            <div class="action-buttons">
+              <p-button 
+                icon="pi pi-money-bill" 
+                (onClick)="openPaymentModal(purchase)"
+                [rounded]="true"
+                [text]="true"
+                severity="success"
+                [disabled]="purchase.payment_status === 'paid'"
+                pTooltip="Record Payment"
+                tooltipPosition="top">
+              </p-button>
+              <p-button 
+                icon="pi pi-pencil" 
+                (onClick)="editPurchase(purchase)"
+                [rounded]="true"
+                [text]="true"
+                severity="info"
+                pTooltip="Edit"
+                tooltipPosition="top">
+              </p-button>
+              <p-button 
+                icon="pi pi-trash" 
+                (onClick)="deletePurchase(purchase.id!)"
+                [rounded]="true"
+                [text]="true"
+                severity="danger"
+                pTooltip="Delete"
+                tooltipPosition="top">
+              </p-button>
+            </div>
+          </td>
+        </tr>
+      </ng-template>
+      
+      <ng-template pTemplate="emptymessage">
+        <tr>
+          <td colspan="10" class="text-center">
+            <div class="empty-state">
+              <i class="pi pi-shopping-cart" style="font-size: 3rem; color: #cbd5e1;"></i>
+              <p class="empty-text">No purchases found</p>
+              <p-button 
+                label="Create First Purchase" 
+                icon="pi pi-plus" 
+                (onClick)="openPurchaseModal()"
+                styleClass="p-button-sm">
+              </p-button>
+            </div>
+          </td>
+        </tr>
+      </ng-template>
+    </p-table>
+  </p-card>
+</div>
+
+<!-- Add/Edit Purchase Dialog -->
+<p-dialog 
+  [(visible)]="showPurchaseModal" 
+  [header]="isEditMode ? 'Edit Purchase' : 'New Purchase'"
+  [modal]="true" 
+  [style]="{width: '50vw'}" 
+  [breakpoints]="{'960px': '75vw', '640px': '90vw'}"
+  [draggable]="false"
+  [resizable]="false">
+  
+  <form [formGroup]="purchaseForm" class="purchase-form">
+    <div class="form-grid">
+      <div class="form-field">
+        <label for="customer" class="form-label required">Customer</label>
+        <p-select
+          id="customer"
+          formControlName="customer"
+          [options]="customers"
+          optionLabel="customer_name"
+          optionValue="id"
+          placeholder="Select customer"
+          [filter]="true"
+          styleClass="w-full"
+          appendTo="body"
+          [class.ng-invalid]="purchaseForm.get('customer')?.invalid && purchaseForm.get('customer')?.touched">
+        </p-select>
+        <small class="p-error" *ngIf="purchaseForm.get('customer')?.invalid && purchaseForm.get('customer')?.touched">
+          Customer is required
+        </small>
+      </div>
+
+      <div class="form-field">
+        <label for="product" class="form-label required">Product/Service</label>
+        <p-select
+          id="product"
+          formControlName="product"
+          [options]="products"
+          optionLabel="name"
+          optionValue="id"
+          placeholder="Select product/service"
+          [filter]="true"
+          styleClass="w-full"
+          appendTo="body"
+          (onChange)="onProductChange()"
+          [class.ng-invalid]="purchaseForm.get('product')?.invalid && purchaseForm.get('product')?.touched">
+        </p-select>
+        <small class="p-error" *ngIf="purchaseForm.get('product')?.invalid && purchaseForm.get('product')?.touched">
+          Product is required
+        </small>
+      </div>
+
+      <div class="form-field">
+        <label for="purchase_date" class="form-label required">Purchase Date</label>
+        <p-calendar
+          id="purchase_date"
+          formControlName="purchase_date"
+          [showIcon]="true"
+          dateFormat="yy-mm-dd"
+          placeholder="Select date"
+          styleClass="w-full"
+          [class.ng-invalid]="purchaseForm.get('purchase_date')?.invalid && purchaseForm.get('purchase_date')?.touched">
+        </p-calendar>
+        <small class="p-error" *ngIf="purchaseForm.get('purchase_date')?.invalid && purchaseForm.get('purchase_date')?.touched">
+          Date is required
+        </small>
+      </div>
+
+      <div class="form-field">
+        <label for="financial_year" class="form-label required">Financial Year</label>
+        <p-select
+          id="financial_year"
+          formControlName="financial_year"
+          [options]="financialYears"
+          placeholder="Select FY"
+          styleClass="w-full"
+          appendTo="body"
+          [class.ng-invalid]="purchaseForm.get('financial_year')?.invalid && purchaseForm.get('financial_year')?.touched">
+        </p-select>
+        <small class="p-error" *ngIf="purchaseForm.get('financial_year')?.invalid && purchaseForm.get('financial_year')?.touched">
+          Financial year is required
+        </small>
+      </div>
+
+      <div class="form-field">
+        <label for="quantity" class="form-label required">Quantity</label>
+        <p-inputNumber
+          id="quantity"
+          formControlName="quantity"
+          [minFractionDigits]="2"
+          [maxFractionDigits]="2"
+          placeholder="1.00"
+          styleClass="w-full"
+          [class.ng-invalid]="purchaseForm.get('quantity')?.invalid && purchaseForm.get('quantity')?.touched">
+        </p-inputNumber>
+        <small class="p-error" *ngIf="purchaseForm.get('quantity')?.invalid && purchaseForm.get('quantity')?.touched">
+          Valid quantity is required
+        </small>
+      </div>
+
+      <div class="form-field">
+        <label for="unit_price" class="form-label required">Unit Price (₹)</label>
+        <p-inputNumber
+          id="unit_price"
+          formControlName="unit_price"
+          mode="currency"
+          currency="INR"
+          locale="en-IN"
+          [minFractionDigits]="2"
+          placeholder="5000.00"
+          styleClass="w-full"
+          [class.ng-invalid]="purchaseForm.get('unit_price')?.invalid && purchaseForm.get('unit_price')?.touched">
+        </p-inputNumber>
+        <small class="p-error" *ngIf="purchaseForm.get('unit_price')?.invalid && purchaseForm.get('unit_price')?.touched">
+          Valid price is required
+        </small>
+      </div>
+
+      <div class="form-field full-width">
+        <label for="description" class="form-label">Description</label>
+        <textarea 
+          pInputTextarea 
+          id="description" 
+          formControlName="description"
+          rows="2"
+          placeholder="Additional details"
+          class="w-full">
+        </textarea>
+      </div>
+
+      <div class="form-field full-width">
+        <label for="notes" class="form-label">Notes</label>
+        <textarea 
+          pInputTextarea 
+          id="notes" 
+          formControlName="notes"
+          rows="2"
+          placeholder="Internal notes"
+          class="w-full">
+        </textarea>
+      </div>
+    </div>
+  </form>
+
+  <ng-template pTemplate="footer">
+    <div class="dialog-footer">
+      <p-button 
+        label="Cancel" 
+        icon="pi pi-times" 
+        (onClick)="closePurchaseModal()"
+        styleClass="p-button-text">
+      </p-button>
+      <p-button 
+        [label]="isEditMode ? 'Update' : 'Create'" 
+        icon="pi pi-check" 
+        (onClick)="savePurchase()"
+        [loading]="loading">
+      </p-button>
+    </div>
+  </ng-template>
+</p-dialog>
+
+<!-- Record Payment Dialog -->
+<p-dialog 
+  [(visible)]="showPaymentModal" 
+  header="Record Payment"
+  [modal]="true" 
+  [style]="{width: '35vw'}" 
+  [breakpoints]="{'960px': '50vw', '640px': '90vw'}"
+  [draggable]="false"
+  [resizable]="false">
+  
+  <div *ngIf="selectedPurchaseForPayment" class="payment-summary">
+    <div class="summary-row">
+      <span>Invoice:</span>
+      <strong>{{ selectedPurchaseForPayment.invoice_number }}</strong>
+    </div>
+    <div class="summary-row">
+      <span>Total Amount:</span>
+      <strong>{{ formatCurrency(selectedPurchaseForPayment.total_amount) }}</strong>
+    </div>
+    <div class="summary-row">
+      <span>Already Paid:</span>
+      <strong class="text-success">{{ formatCurrency(selectedPurchaseForPayment.amount_paid) }}</strong>
+    </div>
+    <div class="summary-row highlight">
+      <span>Balance Due:</span>
+      <strong class="text-danger">{{ formatCurrency(selectedPurchaseForPayment.amount_due) }}</strong>
+    </div>
+  </div>
+
+  <form [formGroup]="paymentForm" class="payment-form">
+    <div class="form-grid">
+      <div class="form-field full-width">
+        <label for="payment_date" class="form-label required">Payment Date</label>
+        <p-calendar
+          id="payment_date"
+          formControlName="payment_date"
+          [showIcon]="true"
+          dateFormat="yy-mm-dd"
+          placeholder="Select date"
+          styleClass="w-full"
+          [class.ng-invalid]="paymentForm.get('payment_date')?.invalid && paymentForm.get('payment_date')?.touched">
+        </p-calendar>
+        <small class="p-error" *ngIf="paymentForm.get('payment_date')?.invalid && paymentForm.get('payment_date')?.touched">
+          Date is required
+        </small>
+      </div>
+
+      <div class="form-field full-width">
+        <label for="amount" class="form-label required">Amount (₹)</label>
+        <p-inputNumber
+          id="amount"
+          formControlName="amount"
+          mode="currency"
+          currency="INR"
+          locale="en-IN"
+          [minFractionDigits]="2"
+          placeholder="Amount"
+          styleClass="w-full"
+          [class.ng-invalid]="paymentForm.get('amount')?.invalid && paymentForm.get('amount')?.touched">
+        </p-inputNumber>
+        <small class="p-error" *ngIf="paymentForm.get('amount')?.invalid && paymentForm.get('amount')?.touched">
+          Valid amount is required
+        </small>
+      </div>
+
+      <div class="form-field full-width">
+        <label for="payment_method" class="form-label required">Payment Method</label>
+        <p-select
+          id="payment_method"
+          formControlName="payment_method"
+          [options]="paymentMethods"
+          optionLabel="label"
+          optionValue="value"
+          placeholder="Select method"
+          styleClass="w-full"
+          appendTo="body"
+          [class.ng-invalid]="paymentForm.get('payment_method')?.invalid && paymentForm.get('payment_method')?.touched">
+        </p-select>
+        <small class="p-error" *ngIf="paymentForm.get('payment_method')?.invalid && paymentForm.get('payment_method')?.touched">
+          Payment method is required
+        </small>
+      </div>
+
+      <div class="form-field full-width">
+        <label for="reference_number" class="form-label">Reference Number</label>
+        <input 
+          pInputText 
+          id="reference_number" 
+          formControlName="reference_number"
+          placeholder="Transaction reference"
+          class="w-full" />
+      </div>
+
+      <div class="form-field full-width">
+        <label for="payment_notes" class="form-label">Notes</label>
+        <textarea 
+          pInputTextarea 
+          id="payment_notes" 
+          formControlName="notes"
+          rows="2"
+          placeholder="Payment notes"
+          class="w-full">
+        </textarea>
+      </div>
+    </div>
+  </form>
+
+  <ng-template pTemplate="footer">
+    <div class="dialog-footer">
+      <p-button 
+        label="Cancel" 
+        icon="pi pi-times" 
+        (onClick)="closePaymentModal()"
+        styleClass="p-button-text">
+      </p-button>
+      <p-button 
+        label="Record Payment" 
+        icon="pi pi-check" 
+        (onClick)="recordPayment()"
+        [loading]="loading"
+        severity="success">
+      </p-button>
+    </div>
+  </ng-template>
+</p-dialog>

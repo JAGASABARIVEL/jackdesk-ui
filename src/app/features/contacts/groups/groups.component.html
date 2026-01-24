@@ -2,13 +2,32 @@
     <ng-template pTemplate="content">
         <div class="add-members-content">
             <p class="add-members-description">Select contacts to add to this group</p>
-            <p-multiSelect styleClass="members-multiselect" [options]="members_not_part_of_this_group" [(ngModel)]="selected_contacts_for_creating_group" optionLabel="name" [virtualScroll]="true" [virtualScrollItemSize]="18" appendTo="body" placeholder="Select members" [filter]="true" filterPlaceholder="Search contacts" />
+            <p-multiSelect 
+                styleClass="members-multiselect" 
+                [options]="members_not_part_of_this_group" 
+                [(ngModel)]="selected_contacts_for_creating_group" 
+                optionLabel="name" 
+                [virtualScroll]="true" 
+                [virtualScrollItemSize]="18" 
+                appendTo="body" 
+                placeholder="Select members" 
+                [filter]="true" 
+                filterBy="name,phone"
+                filterPlaceholder="Search by name or phone"
+                [loading]="contactsLoading"
+                (onFilter)="onContactSearch($event)" />
+            <small class="helper-text" *ngIf="!contactsLoading && members_not_part_of_this_group?.length === 0">
+                No contacts available. All contacts are already members of this group.
+            </small>
+            <small class="helper-text" *ngIf="!contactsLoading && members_not_part_of_this_group?.length > 0">
+                {{ members_not_part_of_this_group.length }} contacts available
+            </small>
         </div>
     </ng-template>
     <ng-template pTemplate="footer">
         <div class="dialog-footer">
-            <button pButton label="Cancel" icon="pi pi-times" class="modern-btn modern-btn-secondary" (click)="selected_contacts_for_creating_group=undefined; add_members_modal_visible=false;"></button>
-            <button pButton label="Add Members" icon="pi pi-check" class="modern-btn modern-btn-primary" [disabled]="selected_contacts_for_creating_group === undefined || selected_contacts_for_creating_group?.length === 0" (click)="addMembers()"></button>
+            <button pButton label="Cancel" icon="pi pi-times" class="modern-btn modern-btn-secondary" (click)="selected_contacts_for_creating_group=[]; add_members_modal_visible=false;"></button>
+            <button pButton label="Add Members" icon="pi pi-check" class="modern-btn modern-btn-primary" [disabled]="!selected_contacts_for_creating_group || selected_contacts_for_creating_group?.length === 0" (click)="addMembers()"></button>
         </div>
     </ng-template>
 </p-dialog>
@@ -23,7 +42,7 @@
             <button *ngIf="profile?.user.role === 'owner'" pButton class="modern-btn modern-btn-danger" label="Delete Selected" icon="pi pi-trash" (click)="deleteSelectedProducts()" [disabled]="!selectedProducts || !selectedProducts.length"></button>
         </div>
         <div class="action-right">
-            <button pButton class="modern-btn modern-btn-secondary" label="Reload" icon="pi pi-replay" (click)="loadContactGroups()"></button>
+            <button pButton class="modern-btn modern-btn-primary" label="Reload" icon="pi pi-replay" (click)="loadContactGroups()"></button>
         </div>
     </div>
 
@@ -36,7 +55,24 @@
     </div>
 
     <!-- Modern Table -->
-    <p-table #dt [value]="products" [rows]="10" [paginator]="true" [globalFilterFields]="['name', 'category']" [tableStyle]="{ 'min-width': '75rem' }" [(selection)]="selectedProducts" [rowHover]="true" dataKey="id" [loading]="loading" [rowsPerPageOptions]="[5, 10, 20, 40, 80, 100]" currentPageReportTemplate="Showing {first} to {last} of {totalRecords} groups" [showCurrentPageReport]="true" styleClass="modern-table">
+    <p-table #dt 
+        [value]="products" 
+        [globalFilterFields]="['name', 'category']"
+        [tableStyle]="{ 'min-width': '75rem' }"
+        [(selection)]="selectedProducts"
+        [rowHover]="true"
+        dataKey="id"
+        [loading]="loading"
+        [lazy]="true"
+        [paginator]="true"
+        [rows]="groupPagination.pageSize"
+        [totalRecords]="groupPagination.totalRecords"
+        [first]="(groupPagination.page - 1) * groupPagination.pageSize"
+        [rowsPerPageOptions]="[5, 10, 20, 40, 80, 100]"
+        currentPageReportTemplate="Showing {first} to {last} of {totalRecords} groups"
+        [showCurrentPageReport]="true"
+        styleClass="modern-table"
+        (onLazyLoad)="onGroupPageChange($event)">
         
         <ng-template pTemplate="header">
             <tr>
@@ -73,22 +109,26 @@
                 <td>
                     <p-tag [value]="product.category || 'N/A'" [severity]="getSeverity(product.category)" styleClass="modern-tag" />
                 </td>
-                <td>
-                    <td class="actions-cell">
+                <td class="actions-cell">
                     <div class="action-buttons">
-                      <button 
-                          pButton
-                          icon="pi pi-user-edit" 
-                          class="action-btn action-btn-edit"
-                          [rounded]="true" (click)="editProduct(product)" pTooltip="Edit" tooltipPosition="top">
-                      </button>
-                      <button 
-                          pButton 
-                          icon="pi pi-trash" 
-                          class="action-btn close-btn"
-                          tooltipPosition="top"
-                          [rounded]="true" (click)="deleteProduct(product)" pTooltip="Delete">
-                      </button>
+                        <button 
+                            pButton
+                            icon="pi pi-user-edit" 
+                            class="action-btn action-btn-edit"
+                            [rounded]="true" 
+                            (click)="editProduct(product)" 
+                            pTooltip="Edit" 
+                            tooltipPosition="top">
+                        </button>
+                        <button 
+                            pButton 
+                            icon="pi pi-trash" 
+                            class="action-btn close-btn"
+                            tooltipPosition="top"
+                            [rounded]="true" 
+                            (click)="deleteProduct(product)" 
+                            pTooltip="Delete">
+                        </button>
                     </div>
                 </td>
             </tr>
@@ -109,13 +149,19 @@
         <ng-template pTemplate="summary">
             <div class="table-summary">
                 <i class="pi pi-users summary-icon"></i>
-                <span class="summary-text">Total: <strong>{{ products ? products.length : 0 }}</strong> groups</span>
+                <span class="summary-text">Total: <strong>{{ groupPagination.totalRecords }}</strong> groups</span>
             </div>
         </ng-template>
     </p-table>
 
     <!-- Modern Group Dialog -->
-    <p-dialog [(visible)]="productDialog" header="Group Details" [modal]="true" [maximizable]="true" [style]="{ width: '900px' }" styleClass="modern-dialog group-dialog">
+    <p-dialog 
+        [(visible)]="productDialog" 
+        header="Group Details" 
+        [modal]="true" 
+        [maximizable]="true" 
+        [style]="{ width: '900px' }" 
+        styleClass="modern-dialog group-dialog">
         <ng-template pTemplate="content">
             <div class="group-dialog-content">
                 <!-- Group Info Section -->
@@ -126,13 +172,29 @@
 
                     <div class="form-group">
                         <label for="name" class="form-label">Group Name <span class="required">*</span></label>
-                        <input type="text" pInputText id="name" [(ngModel)]="product.name" required (blur)="validateGroupName()" autofocus class="form-input" placeholder="Enter group name"/>
+                        <input 
+                            type="text" 
+                            pInputText 
+                            id="name" 
+                            [(ngModel)]="product.name" 
+                            required 
+                            (blur)="validateGroupName()" 
+                            autofocus 
+                            class="form-input" 
+                            placeholder="Enter group name"/>
                         <small class="error-message" *ngIf="submitted && !product.name">Name is required</small>
                     </div>
 
                     <div class="form-group">
                         <label for="description" class="form-label">Description</label>
-                        <textarea id="description" pInputTextarea [(ngModel)]="product.description" rows="3" class="form-input" placeholder="Enter group description"></textarea>
+                        <textarea 
+                            id="description" 
+                            pInputTextarea 
+                            [(ngModel)]="product.description" 
+                            rows="3" 
+                            class="form-input" 
+                            placeholder="Enter group description">
+                        </textarea>
                     </div>
 
                     <div class="form-group">
@@ -165,42 +227,69 @@
                             <i class="pi pi-users"></i>
                             Group Members
                         </h3>
-                        <button pButton class="modern-btn modern-btn-primary btn-sm" icon="pi pi-user-plus" label="Add Members" (click)="add_members_modal_visible=true;"></button>
+                        <button 
+                            pButton 
+                            class="modern-btn modern-btn-primary btn-sm" 
+                            icon="pi pi-user-plus" 
+                            label="Add Members" 
+                            (click)="showAddMembersModal()">
+                        </button>
                     </div>
 
-                    <p-table #dt [value]="product.members" [rows]="10" [paginator]="true" [globalFilterFields]="['contact.name', 'contact.phone']" [tableStyle]="{ 'min-width': '100%' }" [(selection)]="product.members" (selectionChange)="refreshMemebersContactList()" dataKey="contact.id" [rowHover]="true" [loading]="loading" currentPageReportTemplate="Showing {first} to {last} of {totalRecords} members" [showCurrentPageReport]="true" styleClass="members-table">
+                    <p-table 
+                        #memberTable 
+                        [value]="product.members" 
+                        [rows]="10" 
+                        [paginator]="true" 
+                        [globalFilterFields]="['contact.name', 'contact.phone']" 
+                        [tableStyle]="{ 'min-width': '100%' }" 
+                        dataKey="contact.id" 
+                        [rowHover]="true" 
+                        currentPageReportTemplate="Showing {first} to {last} of {totalRecords} members" 
+                        [showCurrentPageReport]="true" 
+                        styleClass="members-table">
                         
                         <ng-template pTemplate="caption">
                             <div class="members-table-header">
                                 <span class="p-input-icon-left">
                                     <i class="pi pi-search"></i>
-                                    <input pInputText type="text" #searchInput (input)="onSearchMemeberInput($event, dt)" placeholder="Search members..." class="member-search-input"/>
+                                    <input 
+                                        pInputText 
+                                        type="text" 
+                                        (input)="onSearchMemberInput($event, memberTable)" 
+                                        placeholder="Search members..." 
+                                        class="member-search-input"/>
                                 </span>
                             </div>
                         </ng-template>
                         
                         <ng-template pTemplate="header">
                             <tr>
-                                <th style="width: 3rem">
-                                    <p-tableHeaderCheckbox />
-                                </th>
                                 <th pSortableColumn="contact.name">Name <p-sortIcon field="contact.name" /></th>
                                 <th pSortableColumn="contact.phone">Phone <p-sortIcon field="contact.phone" /></th>
+                                <th style="width: 4rem">Actions</th>
                             </tr>
                         </ng-template>
                         
-                        <ng-template pTemplate="body" let-product>
+                        <ng-template pTemplate="body" let-member let-i="rowIndex">
                             <tr>
-                                <td>
-                                    <p-tableCheckbox [value]="product" />
-                                </td>
                                 <td>
                                     <div class="member-info">
                                         <i class="pi pi-user member-avatar"></i>
-                                        <span>{{ product.contact.name }}</span>
+                                        <span>{{ member.contact.name }}</span>
                                     </div>
                                 </td>
-                                <td>{{ product.contact.phone }}</td>
+                                <td>{{ member.contact.phone }}</td>
+                                <td>
+                                    <button 
+                                        pButton 
+                                        icon="pi pi-times" 
+                                        class="p-button-rounded p-button-text p-button-danger" 
+                                        (click)="removeMember(i)"
+                                        pTooltip="Remove" 
+                                        tooltipPosition="top">
+                                    </button>
+                                </td>
                             </tr>
                         </ng-template>
                         
@@ -226,8 +315,22 @@
 
         <ng-template pTemplate="footer">
             <div class="dialog-footer">
-                <button pButton label="Cancel" icon="pi pi-times" class="modern-btn modern-btn-secondary" (click)="hideDialog()"></button>
-                <button pButton label="Save Group" icon="pi pi-check" class="modern-btn modern-btn-primary" [disabled]="!product.name" (click)="saveProduct()"></button>
+                <button 
+                    pButton 
+                    label="Cancel" 
+                    icon="pi pi-times" 
+                    class="modern-btn modern-btn-secondary" 
+                    (click)="hideDialog()">
+                </button>
+                <button 
+                    pButton 
+                    label="Save Group" 
+                    icon="pi pi-check" 
+                    class="modern-btn modern-btn-primary" 
+                    [disabled]="!product.name || dialogProgress" 
+                    [loading]="dialogProgress"
+                    (click)="saveProduct()">
+                </button>
             </div>
         </ng-template>
     </p-dialog>

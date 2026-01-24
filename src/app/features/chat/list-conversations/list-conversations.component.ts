@@ -20,7 +20,7 @@ import { CUstomEventService } from '../../../shared/services/Events/custom-event
 import { ConversationModel } from '../conversation.model';
 import { SelectModule } from 'primeng/select';
 import { SocketService } from '../../../shared/services/socketio.service';
-import { ConversationNotificationTemplate, LayoutService } from '../../../layout/service/app.layout.service';
+import { LayoutService } from '../../../layout/service/app.layout.service';
 import { DialogModule } from 'primeng/dialog';
 import { PlatformManagerService } from '../../../shared/services/platform-manager.service';
 import { CheckboxModule } from 'primeng/checkbox';
@@ -69,8 +69,6 @@ export class ListNewConversationsComponent implements OnInit, OnDestroy {
   constructor(
     private router: Router,
     private messageService: MessageService,
-    private confirmationService: ConfirmationService,
-    private userManagerService: UserManagerService,
     private conversationService: ChatManagerService,
     private platformManagerService: PlatformManagerService,
     private assignmentEventService: CUstomEventService,
@@ -115,7 +113,7 @@ export class ListNewConversationsComponent implements OnInit, OnDestroy {
   }
 
   playNotificationSound() {
-  const audio = new Audio("../../../../assets/media/new_conversation_notofication.mp3");
+  const audio = new Audio("../../../../assets/media/new_message.mp3");
   audio.play();
 }
 
@@ -251,7 +249,7 @@ totalRecords: number = 0;
 
   refreshUnrespondedConversationNotifications() {
         this.conversationService.list_notification("non-chat").pipe(takeUntil(this.destroy$)).subscribe({
-            next: (notificationData: ConversationNotificationTemplate) => {
+            next: (notificationData: any) => {
                 this.layoutService.unrespondedConversationNotification.update((prev) => notificationData)
             },
             error: (err) => {console.error(`Could not get the conversation notifications ${err}`)}

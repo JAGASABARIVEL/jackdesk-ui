@@ -1,0 +1,522 @@
+// src/app/features/ca-firm/department-management/department-management.component.scss
+
+.department-management-container {
+  padding: 1.5rem;
+  background: #f8f9fa;
+  min-height: 100vh;
+}
+
+.header-section {
+  margin-bottom: 2rem;
+
+  .header-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 1rem;
+  }
+
+  .title-section {
+    .page-title {
+      font-size: 2rem;
+      font-weight: 700;
+      color: #1e293b;
+      margin: 0 0 0.5rem 0;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+
+      i {
+        color: #667eea;
+      }
+    }
+
+    .page-subtitle {
+      color: #64748b;
+      margin: 0;
+      font-size: 1rem;
+    }
+  }
+
+  .header-actions {
+    display: flex;
+    gap: 0.75rem;
+  }
+}
+
+// Stats Grid
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+::ng-deep {
+  .stat-card {
+    border-radius: 12px;
+    border: none;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    transition: transform 0.2s, box-shadow 0.2s;
+
+    &:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 8px 16px rgba(0, 0, 0, 0.12);
+    }
+
+    .p-card-body {
+      padding: 1.5rem;
+    }
+  }
+
+  .stat-content {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+  }
+
+  .stat-icon {
+    width: 56px;
+    height: 56px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    color: white;
+
+    &.total {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    }
+
+    &.active {
+      background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    }
+
+    &.head {
+      background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+    }
+
+    &.triage {
+      background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+    }
+  }
+
+  .stat-details {
+    flex: 1;
+  }
+
+  .stat-value {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #1e293b;
+    line-height: 1;
+    margin-bottom: 0.25rem;
+  }
+
+  .stat-label {
+    font-size: 0.875rem;
+    color: #64748b;
+    font-weight: 500;
+  }
+
+  // Tree Card
+  .tree-card {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    border-radius: 12px;
+    border: none;
+
+    .p-card-header {
+      padding: 1.5rem;
+      background: #f8fafc;
+      border-bottom: 2px solid #e2e8f0;
+      border-radius: 12px 12px 0 0;
+    }
+
+    .p-card-body {
+      padding: 0;
+    }
+
+    .card-header-content {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 1rem;
+      flex-wrap: wrap;
+
+      .card-title {
+        font-weight: 600;
+        color: #1e293b;
+        font-size: 1.125rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+
+        i {
+          color: #667eea;
+        }
+      }
+
+      .search-input {
+        border-radius: 8px;
+        border: 1px solid #e2e8f0;
+        padding: 0.5rem 1rem 0.5rem 2.5rem;
+
+        &:focus {
+          border-color: #667eea;
+          box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+      }
+    }
+  }
+
+  .p-treetable {
+    .p-treetable-thead > tr > th {
+      background: #f8fafc;
+      color: #475569;
+      font-weight: 600;
+      padding: 1rem;
+      border-bottom: 2px solid #e2e8f0;
+      text-transform: uppercase;
+      font-size: 0.75rem;
+      letter-spacing: 0.05em;
+    }
+
+    .p-treetable-tbody > tr {
+      &:hover {
+        background: #f8fafc;
+      }
+
+      > td {
+        padding: 1rem;
+        border-bottom: 1px solid #f1f5f9;
+      }
+    }
+  }
+
+  .department-cell {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+
+  .department-name {
+    font-weight: 600;
+    color: #1e293b;
+    font-size: 0.95rem;
+  }
+
+  .department-desc {
+    font-size: 0.8rem;
+    color: #64748b;
+  }
+
+  .head-cell {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+
+  .head-info {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+  }
+
+  .head-name {
+    font-weight: 600;
+    color: #1e293b;
+    font-size: 0.875rem;
+  }
+
+  .head-email {
+    font-size: 0.75rem;
+    color: #64748b;
+  }
+
+  .text-muted {
+    color: #94a3b8;
+    font-style: italic;
+  }
+
+  .type-tags {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+  }
+
+  .action-buttons {
+    display: flex;
+    gap: 0.25rem;
+  }
+
+  .empty-state {
+    padding: 3rem 1rem;
+    text-align: center;
+
+    .empty-text {
+      font-size: 1.125rem;
+      color: #64748b;
+      margin: 1rem 0;
+    }
+  }
+
+  // Dialog Styles
+  .p-dialog {
+    border-radius: 12px;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+
+    .p-dialog-header {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 1.5rem;
+      border-radius: 12px 12px 0 0;
+
+      .p-dialog-title {
+        font-weight: 600;
+        font-size: 1.25rem;
+      }
+
+      .p-dialog-header-icon {
+        color: white;
+
+        &:hover {
+          background: rgba(255, 255, 255, 0.1);
+        }
+      }
+    }
+
+    .p-dialog-content {
+      padding: 2rem;
+    }
+  }
+
+  .department-form {
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 1.5rem;
+
+      @media (max-width: 768px) {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .form-field {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+
+      &.full-width {
+        grid-column: 1 / -1;
+      }
+
+      .form-label {
+        font-weight: 600;
+        color: #475569;
+        font-size: 0.875rem;
+
+        &.required::after {
+          content: ' *';
+          color: #ef4444;
+        }
+      }
+
+      input,
+      textarea,
+      .p-select {
+        border-radius: 8px;
+
+        &.ng-invalid.ng-touched {
+          border-color: #ef4444;
+        }
+      }
+
+      .p-error {
+        color: #ef4444;
+        font-size: 0.75rem;
+        margin-top: 0.25rem;
+      }
+    }
+
+    .checkbox-group {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+      padding: 1rem;
+      background: #f8fafc;
+      border-radius: 8px;
+    }
+
+    .checkbox-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.75rem;
+
+      .checkbox-label {
+        display: flex;
+        flex-direction: column;
+        gap: 0.25rem;
+        cursor: pointer;
+        font-weight: 500;
+        color: #1e293b;
+
+        small {
+          color: #64748b;
+          font-weight: 400;
+          font-size: 0.75rem;
+        }
+      }
+    }
+  }
+
+  .dialog-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.75rem;
+    padding: 1.5rem;
+    background: #f8fafc;
+    border-radius: 0 0 12px 12px;
+    margin: -2rem -2rem 0;
+  }
+
+  // Department Details Dialog
+  .department-details {
+    .detail-header {
+      display: flex;
+      align-items: center;
+      gap: 1.5rem;
+      padding-bottom: 1.5rem;
+      border-bottom: 2px solid #e2e8f0;
+      margin-bottom: 1.5rem;
+
+      .detail-icon {
+        width: 80px;
+        height: 80px;
+        border-radius: 16px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 2.5rem;
+      }
+
+      .detail-header-info {
+        flex: 1;
+
+        h3 {
+          margin: 0 0 0.5rem 0;
+          font-size: 1.5rem;
+          color: #1e293b;
+        }
+
+        p {
+          margin: 0 0 0.75rem 0;
+          color: #64748b;
+        }
+
+        .detail-tags {
+          display: flex;
+          gap: 0.5rem;
+          flex-wrap: wrap;
+        }
+      }
+    }
+
+    .detail-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 1.5rem;
+
+      @media (max-width: 768px) {
+        grid-template-columns: 1fr;
+      }
+
+      .detail-item {
+        &.full-width {
+          grid-column: 1 / -1;
+        }
+
+        label {
+          display: block;
+          font-weight: 600;
+          color: #64748b;
+          font-size: 0.75rem;
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
+          margin-bottom: 0.5rem;
+        }
+
+        span {
+          display: block;
+          color: #1e293b;
+          font-size: 0.95rem;
+        }
+
+        .head-detail {
+          display: flex;
+          align-items: center;
+          gap: 1rem;
+          padding: 1rem;
+          background: #f8fafc;
+          border-radius: 8px;
+
+          .head-name {
+            font-weight: 600;
+            color: #1e293b;
+            margin-bottom: 0.25rem;
+          }
+
+          .head-email {
+            font-size: 0.85rem;
+            color: #64748b;
+          }
+        }
+      }
+    }
+  }
+
+  // Button Styles
+  .p-button {
+    border-radius: 8px;
+    font-weight: 600;
+    transition: all 0.2s ease;
+
+    &:hover:not(:disabled) {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    }
+
+    &.p-button-primary {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      border: none;
+
+      &:hover {
+        background: linear-gradient(135deg, #5568d3 0%, #6a3e91 100%);
+      }
+    }
+
+    &.p-button-outlined {
+      border-width: 2px;
+    }
+  }
+
+  .p-tag {
+    border-radius: 6px;
+    padding: 0.5rem 0.75rem;
+    font-weight: 600;
+    font-size: 0.75rem;
+  }
+
+  .p-badge {
+    border-radius: 6px;
+    padding: 0.4rem 0.6rem;
+    font-weight: 600;
+  }
+
+  .p-avatar {
+    font-weight: 600;
+  }
+}

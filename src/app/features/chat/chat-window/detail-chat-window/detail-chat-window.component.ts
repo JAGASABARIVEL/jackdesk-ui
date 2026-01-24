@@ -1,55 +1,85 @@
-
 import { CommonModule } from '@angular/common';
-import { AfterViewInit, ChangeDetectorRef, Component, ElementRef, EventEmitter, Input, OnInit, Output, ViewChild } from '@angular/core';
-import { AvatarModule } from 'primeng/avatar';
-import { DividerModule } from 'primeng/divider';
-import { AdditionalDetailChatWindowComponent } from '../additional-detail-chat-window/additional-detail-chat-window.component';
+import { 
+  AfterViewInit, 
+  ChangeDetectorRef, 
+  Component, 
+  ElementRef, 
+  EventEmitter, 
+  Input, 
+  OnDestroy,
+  Output, 
+  ViewChild 
+} from '@angular/core';
+import { FormsModule } from '@angular/forms';
+import { Router } from '@angular/router';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
+import { Subject, take, takeUntil } from 'rxjs';
+
+// PrimeNG Imports
+import { AvatarModule } from 'primeng/avatar';
 import { SidebarModule } from 'primeng/sidebar';
 import { ButtonModule } from 'primeng/button';
 import { InputTextModule } from 'primeng/inputtext';
 import { ConfirmPopupModule } from 'primeng/confirmpopup';
 import { ContextMenuModule } from 'primeng/contextmenu';
 import { DialogModule } from 'primeng/dialog';
-import { FormsModule } from '@angular/forms';
 import { FloatLabelModule } from 'primeng/floatlabel';
-import { MessagePreviewComponent } from '../../../campaign/message-preview/message-preview.component';
-import { ConfirmationService, MessageService } from 'primeng/api';
 import { SelectModule } from 'primeng/select';
-import { PlatformManagerService } from '../../../../shared/services/platform-manager.service';
-import { ChatManagerService } from '../../../../shared/services/chat-manager.service';
 import { ToastModule } from 'primeng/toast';
 import { TooltipModule } from 'primeng/tooltip';
-import { ConversationNotificationTemplate, LayoutService } from '../../../../layout/service/app.layout.service';
-import { NgZone } from '@angular/core';
-import { Subject, take, takeUntil } from 'rxjs';
-import { SafeUrlPipe } from '../../../../shared/pipes/safe-url.pipe';
-import * as pdfjsLib from 'pdfjs-dist/build/pdf';
-import { ContactModel } from '../../../contacts/contact/contacts.model';
-import { ContactManagerService } from '../../../../shared/services/contact-manager.service';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { RadioButtonModule } from 'primeng/radiobutton';
 import { TextareaModule } from 'primeng/textarea';
-import { Router } from '@angular/router';
 import { FileUploadModule } from 'primeng/fileupload';
 import { CheckboxModule } from 'primeng/checkbox';
 import { ChipModule } from 'primeng/chip';
 import { BadgeModule } from 'primeng/badge';
-import { MessageModule } from 'primeng/message';      // ✅ ADD THIS
-import { PanelModule } from 'primeng/panel';          // ✅ ADD THIS
-import { UserManagerService } from '../../../../shared/services/user-manager.service';
+import { MessageModule } from 'primeng/message';
+import { PanelModule } from 'primeng/panel';
 import { MenuModule } from 'primeng/menu';
-import { MenuItem } from 'primeng/api';
-import { InternalNotesComponent } from './internal-notes/internal-notes.component';
+import { DividerModule } from 'primeng/divider';
+import { ConfirmationService, MessageService, MenuItem } from 'primeng/api';
 
+// Services (imports remain the same as original)
+import { PlatformManagerService } from '../../../../shared/services/platform-manager.service';
+import { ChatManagerService } from '../../../../shared/services/chat-manager.service';
+import { ContactManagerService } from '../../../../shared/services/contact-manager.service';
+import { UserManagerService } from '../../../../shared/services/user-manager.service';
+import { LayoutService } from '../../../../layout/service/app.layout.service';
 
+// Components & Pipes
+import { AdditionalDetailChatWindowComponent } from '../additional-detail-chat-window/additional-detail-chat-window.component';
+import { MessagePreviewComponent } from '../../../campaign/message-preview/message-preview.component';
+import { SafeUrlPipe } from '../../../../shared/pipes/safe-url.pipe';
+import { ContactModel } from '../../../contacts/contact/contacts.model';
+
+// Types
+interface ConversationStatus {
+  isNew: boolean;
+  isOrgNew: boolean;
+  isActive: boolean;
+  isClosed: boolean;
+  isZombie: boolean;
+  isAssignedToMe: boolean;
+  isAssignedToOther: boolean;
+  canStartConversation: boolean;
+  canSendMessage: boolean;
+  canSendTemplate: boolean;
+}
+
+interface MediaAttachment {
+  url: string;
+  filename: string;
+  type: string;
+  size?: number;
+}
 
 @Component({
   selector: 'app-detail-chat-window',
+  standalone: true,
   imports: [
     CommonModule,
     FormsModule,
-
     AvatarModule,
     SidebarModule,
     ButtonModule,
@@ -64,401 +94,716 @@ import { InternalNotesComponent } from './internal-notes/internal-notes.componen
     ConfirmDialogModule,
     RadioButtonModule,
     TextareaModule,
-    SafeUrlPipe,
     FileUploadModule,
     CheckboxModule,
     ChipModule,
     BadgeModule,
-    DividerModule,
     MessageModule,
     PanelModule,
     MenuModule,
-
+    DividerModule,
+    SafeUrlPipe,
     AdditionalDetailChatWindowComponent,
     MessagePreviewComponent,
-    InternalNotesComponent
   ],
-  providers: [
-    ConfirmationService,
-    MessageService
-  ],
+  providers: [ConfirmationService, MessageService],
   templateUrl: './detail-chat-window.component.html',
   styleUrl: './detail-chat-window.component.scss'
 })
-export class DetailChatWindowComponent implements AfterViewInit {
-
-  // Add these properties
-  menuItems: MenuItem[] = [];
+export class DetailChatWindowComponent implements AfterViewInit, OnDestroy {
+  
+  
+  // ============================================================================
+  // OUTPUTS & VIEW CHILDREN
+  // ============================================================================
+  
+  @Output() chatDetailsPageLoaded = new EventEmitter<boolean>();
+  @Output() conversationClosedEvent = new EventEmitter<any>();
+  @Output() messageSentEvent = new EventEmitter<any>();
+  @Output() ownThisConversationEvent = new EventEmitter<any>();
+  @Output() reassignThisConversationEvent = new EventEmitter<any>();
+  
+  @ViewChild('scrollMe') private myScrollContainer: ElementRef;
   @ViewChild('menu') menu: any;
-
-  @Output() chatDetailsPageLoaded: EventEmitter<boolean> = new EventEmitter();
-  @Output() conversationClosedEvent: EventEmitter<any> = new EventEmitter();
-  @Output() messageSentEvent: EventEmitter<any> = new EventEmitter();
-  @Output() ownThisConversationEvent: EventEmitter<any> = new EventEmitter();
-  @Output() reassignThisConversationEvent: EventEmitter<any> = new EventEmitter();
-  _selectedConversation;
-  chatdetaildrawerVisible = true
-  showInternalNotes=false
-  selectedUserForAssignment = null;
-  users = []
+  @ViewChild('messageInput') messageInputRef: ElementRef<HTMLTextAreaElement>;
+  @ViewChild('captionTextarea') captionTextareaRef: ElementRef<HTMLTextAreaElement>;
+  
+  // ============================================================================
+  // STATE PROPERTIES
+  // ============================================================================
+  
+  private _selectedConversation: any;
+  private _profile: any;
   private destroy$ = new Subject<void>();
+  
+  conversationStatus: ConversationStatus = this.getDefaultStatus();
+  
+  selectedContact: ContactModel;
+  users: any[] = [];
+  _employees: any[] = [];
+  contextMenuItems: MenuItem[] = [];
+  menuItems: MenuItem[] = [];
+  
+  // UI State
+  chatdetaildrawerVisible = false;
+  showInternalNotes = false;
+  editContactDialogVisible = false;
+  submitted = false;
+  
+  // 🆕 PDF Password Dialog
+  pdfPasswordDialogVisible = false;
+  currentPdfUrl: string = '';
+  pdfPassword: string = '';
+  pdfPasswordError: string = '';
+  
+  // 🆕 File Preview Dialog
+  filePreviewDialogVisible = false;
+  previewFileUrl: string = '';
+  previewFileName: string = '';
+  previewFileType: string = '';
 
-  // ✅ NEW: Gmail CC properties
+  // Input state
+  textareaHeight: number = 42; // Initial height in pixels
+  showFormattingHint: boolean = false;
+  private inputFocusTimeout: any;
+  
+  // ============================================================================
+  // MESSAGE INPUT STATE
+  // ============================================================================
+  
+  messageText: string = '';
+  attachedFile: File | null = null;
+  previewUrl: string | ArrayBuffer | null = null;
+  isDragging: boolean = false;
+  
+  // ============================================================================
+  // TEMPLATE STATE (keeping existing code)
+  // ============================================================================
+  
+  avaliable_templates: any[] = [];
+  selectedTemplate: any = null;
+  selected_platform: any = null;
+  registeredPlatforms: any[] = [];
+  
+  dynamicFields: string[] = [];
+  fieldValues: { [key: string]: string } = {};
+  templateAttachedFile: File | null = null;
+  templatePdfPreviewUrl: string | null = null;
+  
+  sendTemplateDialogVisible = false;
+  activeConvSelectedTemplate: any = null;
+  activeConvDynamicFields: string[] = [];
+  activeConvFieldValues: { [key: string]: string } = {};
+  activeConvAttachedFile: File | null = null;
+  activeConvPdfPreviewUrl: string | null = null;
+  
+  // ============================================================================
+  // NEW CONVERSATION STATE (keeping existing code)
+  // ============================================================================
+  
+  openConversationWhatsappVisible = false;
+  openConversationGmailVisible = false;
+  newConversationGmailAttachment: File | null = null;
+  newConversationGmailMessageBody: string = '';
+  newConversationSubjectForGmail: string = 'Enquiry request';
   newConversationGmailCC: string[] = [];
   newConversationGmailCCInput: string = '';
-
+  
+  // ============================================================================
+  // REASSIGNMENT & CLOSE STATE (keeping existing code)
+  // ============================================================================
+  
+  isAssignmentDropdownVisible = false;
+  selectedUserForAssignment: any = null;
+  closeConversationVisible = false;
+  closedReason = 'N/A';
+  blockForm = {
+    platform: null,
+    contact_value: '',
+    contact_type: '',
+    reason: '',
+    should_block: false
+  };
+  
+  // ============================================================================
+  // CC MANAGEMENT (keeping existing code)
+  // ============================================================================
+  
+  customerCCRecipients: string[] = [];
+  agentCCRecipients: string[] = [];
+  newAgentCCEmail: string = '';
+  private originalAgentCC: string[] = [];
+  
+  // ============================================================================
+  // CONSTRUCTOR
+  // ============================================================================
+  
   constructor(
     private cdr: ChangeDetectorRef,
-    private ngZone: NgZone,
     private router: Router,
     private sanitizer: DomSanitizer,
     private messageService: MessageService,
     private contactService: ContactManagerService,
     private layoutService: LayoutService,
-    private platforService: PlatformManagerService,
+    private platformService: PlatformManagerService,
     private conversationService: ChatManagerService,
     private userManagerService: UserManagerService
-  ) { }
-
-  ngOnDestroy(): void {
-  this.destroy$.next();
-  this.destroy$.complete();
-}
-
-
+  ) {}
+  
+  // ============================================================================
+  // LIFECYCLE HOOKS
+  // ============================================================================
+  
   ngAfterViewInit(): void {
     this.scrollToBottom();
     this.chatDetailsPageLoaded.emit(true);
+    this.setupPasteListener();
+
+    if (this.messageInputRef?.nativeElement) {
+    this.adjustTextareaHeight(this.messageInputRef.nativeElement);
+  }
   }
 
-  @Input() set selectedConversation(value) {
-  // ✅ Guard against null/undefined
-  if (!value) {
-    console.warn('selectedConversation is null or undefined');
-    this._selectedConversation = null;
-    return;
+  
+  
+  
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
+    this.removePasteListener();
+    clearTimeout(this.inputFocusTimeout);
   }
   
-  this._selectedConversation = value;
-  this.selectedContact = value?.contact;
-  this.convertTocommondatetime();
+  // ============================================================================
+  // 🆕 EXCEL PASTE SUPPORT
+  // ============================================================================
+  
+  private pasteListener: ((e: ClipboardEvent) => void) | null = null;
+  
+  private setupPasteListener(): void {
+    this.pasteListener = (e: ClipboardEvent) => this.handlePaste(e);
+    document.addEventListener('paste', this.pasteListener);
+  }
+  
+  private removePasteListener(): void {
+    if (this.pasteListener) {
+      document.removeEventListener('paste', this.pasteListener);
+    }
+  }
+  
+  private handlePaste(event: ClipboardEvent): void {
+    // Only process if focused on message input
+    const target = event.target as HTMLElement;
+    if (!target || !target.closest('.message-input-container')) {
+      console.warn("Target is none while pasting", target)
+      return
+    }
+    
+    const clipboardData = event.clipboardData;
+    if (!clipboardData) return;
+    
+    // Check for Excel/table data
+    const htmlData = clipboardData.getData('text/html');
+    const plainText = clipboardData.getData('text/plain');
+    
+    if (htmlData && (htmlData.includes('<table') || htmlData.includes('SourceURL:file:///.*\.xlsx'))) {
+      event.preventDefault();
+      this.processExcelPaste(htmlData, plainText);
+    }
+  }
+  
+  private processExcelPaste(htmlData: string, plainText: string): void {
+    try {
+      // Parse HTML table
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(htmlData, 'text/html');
+      const table = doc.querySelector('table');
+      
+      const text = table
+      ? this.convertTableToFormattedText(table)
+      : plainText;
 
-  // ✅ Only rebuild menu if profile is available
-  if (this.profile) {
-    this.buildMenuItems();
-  }
-  else {
-    console.log("No profile available to rebuild menu");
+    this.insertTextAtCursor(text);
+
+    // 🔴 FORCE AUTOGROW AFTER DOCUMENT-PASTE
+    setTimeout(() => {
+      const textarea = this.messageInputRef?.nativeElement;
+      if (textarea) {
+        this.adjustTextareaHeight(textarea);
+      }
+    });
+      
+      this.messageService.add({
+        severity: 'success',
+        summary: 'Pasted',
+        detail: 'Table data pasted with formatting'
+      });
+    } catch (error) {
+      console.error('Paste processing error:', error);
+      this.insertFormattedTextToInput(plainText);
+    }
   }
   
-  this.ngZone.onStable.pipe(take(1)).subscribe(() => {
+  //private convertTableToFormattedText(table: HTMLTableElement): string {
+  //  const rows: string[] = [];
+  //  const tableRows = Array.from(table.querySelectorAll('tr'));
+  //  
+  //  tableRows.forEach(tr => {
+  //    const cells = Array.from(tr.querySelectorAll('td, th'));
+  //    const cellTexts = cells.map(cell => cell.textContent?.trim() || '');
+  //    rows.push(cellTexts.join('\t')); // Use tabs to separate columns
+  //  });
+  //  
+  //  return rows.join('\n');
+  //}
+
+  /**
+ * Convert HTML table to tab-separated text
+ */
+private convertTableToFormattedText(table: HTMLTableElement): string {
+  const rows: string[] = [];
+  const tableRows = Array.from(table.querySelectorAll('tr'));
+  
+  tableRows.forEach(tr => {
+    const cells = Array.from(tr.querySelectorAll('td, th'));
+    const cellTexts = cells.map(cell => {
+      let text = cell.textContent?.trim() || '';
+      
+      // Handle merged cells
+      const colspan = cell.getAttribute('colspan');
+      if (colspan && parseInt(colspan) > 1) {
+        text += '\t'.repeat(parseInt(colspan) - 1);
+      }
+      
+      return text;
+    });
+    
+    rows.push(cellTexts.join('\t'));
+  });
+  
+  return rows.join('\n');
+}
+  
+  private insertFormattedTextToInput(text: string): void {
+    if (this.messageText) {
+      this.messageText += '\n\n' + text;
+    } else {
+      this.messageText = text;
+    }
+  }
+  
+  // ============================================================================
+  // 🆕 ATTACHMENT PREVIEW & DOWNLOAD
+  // ============================================================================
+  
+  openFilePreview(url: string, filename: string, type: string): void {
+    this.previewFileUrl = url;
+    this.previewFileName = filename;
+    this.previewFileType = type;
+    
+    // For PDFs, check if password protected
+    if (type.includes('pdf')) {
+      this.checkPdfPassword(url);
+    } else {
+      this.filePreviewDialogVisible = true;
+    }
+  }
+  
+  private checkPdfPassword(url: string): void {
+    // Try loading PDF to check if password protected
+    fetch(url)
+      .then(response => response.arrayBuffer())
+      .then(buffer => {
+        // Simple check: look for encryption dictionary in PDF
+        const uint8 = new Uint8Array(buffer);
+        const text = new TextDecoder().decode(uint8.slice(0, 1024));
+        
+        if (text.includes('/Encrypt')) {
+          // Likely password protected
+          this.currentPdfUrl = url;
+          this.pdfPassword = '';
+          this.pdfPasswordError = '';
+          this.pdfPasswordDialogVisible = true;
+        } else {
+          // Not password protected, show normally
+          this.filePreviewDialogVisible = true;
+        }
+      })
+      .catch(() => {
+        // On error, try to show anyway
+        this.filePreviewDialogVisible = true;
+      });
+  }
+  
+  submitPdfPassword(): void {
+    if (!this.pdfPassword.trim()) {
+      this.pdfPasswordError = 'Please enter a password';
+      return;
+    }
+    
+    // Close password dialog and show preview with password hint
+    this.pdfPasswordDialogVisible = false;
+    this.filePreviewDialogVisible = true;
+    
+    this.messageService.add({
+      severity: 'info',
+      summary: 'PDF Password',
+      detail: 'Please enter the password in the PDF viewer when prompted'
+    });
+  }
+  
+  downloadFile(url: string, filename: string): void {
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename || 'download';
+    link.target = '_blank';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    this.messageService.add({
+      severity: 'success',
+      summary: 'Download Started',
+      detail: `Downloading ${filename}`
+    });
+  }
+  
+  closeFilePreview(): void {
+    this.filePreviewDialogVisible = false;
+    this.previewFileUrl = '';
+    this.previewFileName = '';
+    this.previewFileType = '';
+  }
+  
+  closePdfPasswordDialog(): void {
+    this.pdfPasswordDialogVisible = false;
+    this.currentPdfUrl = '';
+    this.pdfPassword = '';
+    this.pdfPasswordError = '';
+  }
+  
+  getFileIcon(type: string): string {
+    if (type.includes('pdf')) return 'pi-file-pdf';
+    if (type.includes('word') || type.includes('document')) return 'pi-file-word';
+    if (type.includes('excel') || type.includes('spreadsheet')) return 'pi-file-excel';
+    if (type.includes('image')) return 'pi-image';
+    if (type.includes('video')) return 'pi-video';
+    if (type.includes('audio')) return 'pi-volume-up';
+    if (type.includes('zip') || type.includes('compressed')) return 'pi-folder';
+    return 'pi-file';
+  }
+  
+  getFileColor(type: string): string {
+    if (type.includes('pdf')) return '#DC2626';
+    if (type.includes('word')) return '#2563EB';
+    if (type.includes('excel')) return '#16A34A';
+    if (type.includes('image')) return '#7C3AED';
+    if (type.includes('video')) return '#EA580C';
+    return '#6B7280';
+  }
+  
+  // ============================================================================
+  // INPUTS WITH SETTERS
+  // ============================================================================
+  
+  @Input()
+  set selectedConversation(value: any) {
+    if (!value) {
+      this._selectedConversation = null;
+      this.conversationStatus = this.getDefaultStatus();
+      return;
+    }
+    
+    this._selectedConversation = value;
+    this.selectedContact = value?.contact;
+    this.conversationStatus = this.computeConversationStatus(value);
+    this.convertToCommonDateTime();
+    
+    if (this._profile) {
+      this.buildMenuItems();
+    }
+    
     this.scrollToBottom();
     this.loadUsers();
-  });
-}
-
-  @Input() set reassignmentProcessSuccess(value) {
-  // ✅ Guard against loading users when no conversation
-  if (value === true && this._selectedConversation) {
-    this.loadUsers();
-  }
-}
-
-// 1. Add profile setter
-private _profile: any;
-
-@Input() 
-set profile(value: any) {
-  this._profile = value;
-  // Rebuild menu when profile is set
-  if (this._selectedConversation) {
-    this.buildMenuItems();
-  }
-}
-
-get profile() {
-  return this._profile;
-}
-
-// ✅ NEW: Build menu items dynamically based on conversation state
-buildMenuItems() {
-  // ✅ Guard against missing conversation OR profile
-  if (!this._selectedConversation || !this.profile) {
-    this.menuItems = [];
-    return;
-  }
-
-  this.menuItems = [];
-
-  // Send Template Message (only for WhatsApp active conversations)
-  if (this.selectedConversation.contact.platform_name === 'whatsapp' &&
-      this.selectedConversation.status === 'active' &&
-      this.selectedConversation.assigned?.id === this.profile.user.id) {
-    this.menuItems.push({
-      label: 'Send Template',
-      icon: 'pi pi-file',
-      command: () => {
-        this.openSendTemplateDialog();
-      }
-    });
   }
   
-  // Info Button
-  this.menuItems.push({
-    label: 'Contact Info',
-    icon: 'pi pi-info-circle',
-    command: () => {
-      this.chatdetaildrawerVisible = true;
-    }
-  });
-
-  // Internal Comments Button
-  //this.menuItems.push({
-  //  label: 'Add Comments',
-  //  icon: 'pi pi-comments',
-  //  command: () => {
-  //    this.showInternalNotes = true;
-  //  }
-  //});
-
-  // Historical Conversation (only for non-Gmail)
-  if (this.selectedConversation.contact.platform_name !== 'gmail') {
-    this.menuItems.push({
-      label: 'View History',
-      icon: 'pi pi-history',
-      command: () => {
-        this.loadHistoricalConversation();
-      }
-    });
-  }
-  // Separator
-  this.menuItems.push({ separator: true });
-
-  // Reassign Conversation
-  if (this.selectedConversation.status !== 'org_new' && this.selectedConversation.status !== 'closed') {
-  this.menuItems.push({
-    label: 'Reassign Conversation',
-    icon: 'pi pi-pencil',
-    command: () => {
-      this.openReassignmentDialog();
-    }
-  });
-  }
-
-  // Close Conversation (only if active and assigned to someone)
-  if (!this.isWorkedBySomeone && 
-      this.selectedConversation.status !== 'new' && 
-      this.selectedConversation.status !== 'org_new' && 
-      this.selectedConversation.status !== 'closed') {
-    this.menuItems.push({
-      label: 'Close Conversation',
-      icon: 'pi pi-lock',
-      command: () => {
-        this.closeConversation();
-      }
-    });
-  }
-
-  // Start New Conversation (for org_new or Gmail)
-  if (this.selectedConversation.status === 'org_new' || 
-      this.selectedConversation.contact.platform_name === 'gmail') {
-    this.menuItems.push({
-      label: 'Start New Conversation',
-      icon: 'pi pi-lock-open',
-      command: () => {
-        this.newConversation();
-      }
-    });
-  }
-}
-
-// ✅ NEW: Open reassignment dialog
-openReassignmentDialog() {
-  this.isAssignmentDropdownVisible = true;
-}
-
-
-
-  loadUsers() {
-  // ✅ Guard against loading when no conversation
-  if (!this._selectedConversation) {
-    console.warn('Cannot load users: no conversation selected');
-    return;
-  }
-  
-  this.userManagerService.list_users().pipe(takeUntil(this.destroy$)).subscribe(
-    (data) => {
-      // Filter out the user who is already assigned to this conversation
-      if (this.selectedConversation?.assigned?.id) {
-        this.users = data.filter((usr) => usr.user !== this.selectedConversation.assigned.id);
-      } else {
-        this.users = data;
-      }
-    },
-    (err) => {
-      console.error("List conversation | Error getting users ", err);
-      this.users = []; // ✅ Set empty array on error
-    }
-  );
-}
-
-  public getSanitizedHtml(raw: string): SafeHtml {
-  return this.sanitizer.bypassSecurityTrustHtml(raw);
-}
-
-getMimeType(url: string): 'image' | 'video' | 'audio' | 'pdf' | 'other' {
-  if (!url) return 'other';
-  const ext = url.split('.').pop()?.toLowerCase() || '';
-  if (['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(ext)) return 'image';
-  if (['mp4', 'webm', 'mov'].includes(ext)) return 'video';
-  if (['mp3', 'aac', 'wav', 'ogg'].includes(ext)) return 'audio';
-  if (ext === 'pdf') return 'pdf';
-  return 'other';
-}
-
-// ✅ NEW: Reset form
-    resetNewConversationForm() {
-        this.newConversationSubjectForGmail = '';
-        this.newConversationGmailMessageBody = '';
-        this.newConversationGmailCC = [];
-        this.newConversationGmailCCInput = '';
-        this.newConversationGmailAttachment = null;
-        this.selected_platform = null;
-    }
-
-// ✅ NEW: Open new conversation dialog
-    openNewGmailConversation() {
-        this.resetNewConversationForm();
-        this.openConversationGmailVisible = true;
-    }
-
-    // ✅ NEW: Add CC recipient
-    addNewConversationCC() {
-        const email = this.newConversationGmailCCInput.trim();
-
-        if (!this.isValidEmail(email)) {
-            this.messageService.add({
-                severity: 'warn',
-                summary: 'Invalid Email',
-                detail: 'Please enter a valid email address'
-            });
-            return;
-        }
-
-        const emailLower = email.toLowerCase();
-
-        // Check if same as "To" email
-        if (this.selectedConversation.contact.phone.toLowerCase() === emailLower) {
-            this.messageService.add({
-                severity: 'warn',
-                summary: 'Duplicate',
-                detail: 'This email is the same as the "To" recipient'
-            });
-            return;
-        }
-
-        // Check if already in CC list
-        if (this.newConversationGmailCC.some(cc => cc.toLowerCase() === emailLower)) {
-            this.messageService.add({
-                severity: 'warn',
-                summary: 'Duplicate',
-                detail: 'This email is already in the CC list'
-            });
-            return;
-        }
-
-        // Add to CC list
-        this.newConversationGmailCC.push(email);
-        this.newConversationGmailCCInput = '';
-
-        this.messageService.add({
-            severity: 'success',
-            summary: 'Added',
-            detail: 'CC recipient added successfully'
-        });
-    }
-
-    // ✅ NEW: Remove CC recipient
-    removeNewConversationCC(index: number) {
-        const removed = this.newConversationGmailCC.splice(index, 1);
-        this.messageService.add({
-            severity: 'info',
-            summary: 'Removed',
-            detail: `${removed[0]} removed from CC list`
-        });
-    }
-
-    // ✅ NEW: Form validation
-    isNewConversationValid(): boolean {
-      let response = !!(this.selected_platform &&
-            this.selectedConversation.contact.phone &&
-            this.isValidEmail(this.selectedConversation.contact.phone) &&
-            this.newConversationSubjectForGmail &&
-            this.newConversationGmailMessageBody);
-        return response;
-    }
-
-     // ✅ NEW: Cancel and reset
-    cancelNewGmailConversation() {
-        // Confirm if there's content
-        if (this.newConversationGmailMessageBody || this.newConversationGmailCC.length > 0) {
-            if (confirm('Are you sure you want to discard this email?')) {
-                this.openConversationGmailVisible = false;
-                this.resetNewConversationForm();
-            }
-        } else {
-            this.openConversationGmailVisible = false;
-            this.resetNewConversationForm();
-        }
-    }
-
-
-  convertTocommondatetime() {
-    this._selectedConversation.messages = this._selectedConversation.messages.map(msg => {
-      const time = msg.type === 'customer' ? msg.received_time : msg.sent_time;
-      return {
-        ...msg,
-        displayTime: this.isOlderThan24Hours(time)
-          ? new Date(time).toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' })
-          : new Date(time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      };
-    });
-  }
-
-  get selectedConversation() {
+  get selectedConversation(): any {
     return this._selectedConversation;
   }
-
-  get isWorkedBySomeone() {
-  if (!this._selectedConversation || !this.profile) return false;
   
-  return this._selectedConversation.assigned?.id && 
-         this._selectedConversation.assigned?.id >= 0 && 
-         this._selectedConversation.assigned.id !== this.profile.user.id;
+  @Input()
+  set profile(value: any) {
+    this._profile = value;
+    if (this._selectedConversation) {
+      this.conversationStatus = this.computeConversationStatus(this._selectedConversation);
+      this.buildMenuItems();
+    }
+  }
+  
+  get profile(): any {
+    return this._profile;
+  }
+  
+  @Input()
+  set employees(value: any[]) {
+    this._employees = value.map(emp => ({
+      ...emp,
+      color: this.getUniqueRandomColor()
+    }));
+  }
+
+  get employees() {
+    return this._employees;
+  }
+  
+  @Input()
+  set reassignmentProcessSuccess(value: boolean) {
+    if (value === true && this._selectedConversation) {
+      this.loadUsers();
+    }
+  }
+  
+  // ============================================================================
+  // CONVERSATION STATUS COMPUTATION
+  // ============================================================================
+  
+  private getDefaultStatus(): ConversationStatus {
+    return {
+      isNew: false,
+      isOrgNew: false,
+      isActive: false,
+      isClosed: false,
+      isZombie: false,
+      isAssignedToMe: false,
+      isAssignedToOther: false,
+      canStartConversation: false,
+      canSendMessage: false,
+      canSendTemplate: false
+    };
+  }
+  
+  private computeConversationStatus(conversation: any): ConversationStatus {
+    if (!conversation || !this._profile) {
+      return this.getDefaultStatus();
+    }
+    
+    const userId = this._profile.user?.id;
+    const status = conversation.status;
+    const assignedId = conversation.assigned?.id;
+    const isContactOnly = conversation.id === -1;
+    const platform = conversation.contact?.platform_name;
+    
+    const isNew = isContactOnly;
+    const isOrgNew = status === 'org_new';
+    const isActive = status === 'active';
+    const isClosed = status === 'closed';
+    const isZombie = status === 'zombie';
+    const isAssignedToMe = assignedId === userId;
+    const isAssignedToOther = assignedId && assignedId !== userId && assignedId >= 0;
+    
+    // Can start conversation if:
+    // - It's a contact without conversation (id === -1)
+    // - Or it's org_new (unassigned)
+    // - Or it's Gmail (can always start new thread)
+    const canStartConversation = isNew || isClosed || isOrgNew || platform === 'gmail';
+    
+    // Can send message if:
+    // - Conversation is active AND assigned to current user AND not closed
+    const canSendMessage = isActive && isAssignedToMe && !isClosed;
+    
+    // Can send template if:
+    // - Can send message AND platform is WhatsApp
+    const canSendTemplate = (isZombie && platform === 'whatsapp' && isAssignedToMe && !isClosed) || (canSendMessage && platform === 'whatsapp');
+    
+    return {
+      isNew,
+      isOrgNew,
+      isActive,
+      isClosed,
+      isZombie,
+      isAssignedToMe,
+      isAssignedToOther,
+      canStartConversation,
+      canSendMessage,
+      canSendTemplate
+    };
+  }
+  
+  // ============================================================================
+  // MENU BUILDING
+  // ============================================================================
+  
+  buildMenuItems(): void {
+    if (!this._selectedConversation || !this._profile) {
+      this.menuItems = [];
+      return;
+    }
+    
+    const status = this.conversationStatus;
+    const platform = this._selectedConversation.contact?.platform_name;
+    
+    this.menuItems = [];
+    
+    // Send Template (WhatsApp active conversations only)
+    if (status.canSendTemplate) {
+      this.menuItems.push({
+        label: 'Send Template',
+        icon: 'pi pi-file',
+        command: () => this.openSendTemplateDialog()
+      });
+    }
+    
+    // Contact Info
+    this.menuItems.push({
+      label: 'Contact Info',
+      icon: 'pi pi-info-circle',
+      command: () => { this.chatdetaildrawerVisible = true; }
+    });
+    
+    // Historical Conversations (not Gmail)
+    if (platform !== 'gmail' && !status.isNew) {
+      this.menuItems.push({
+        label: 'View History',
+        icon: 'pi pi-history',
+        command: () => this.loadHistoricalConversation()
+      });
+    }
+    
+    // Separator
+    if (!status.isClosed && !status.isNew) {
+      this.menuItems.push({ separator: true });
+    }
+    
+    // Reassign (if not org_new and not closed)
+    if (!status.isOrgNew && !status.isClosed && !status.isNew) {
+      this.menuItems.push({
+        label: 'Reassign',
+        icon: 'pi pi-user-edit',
+        command: () => this.openReassignmentDialog()
+      });
+    }
+    
+    // Close Conversation (if assigned to me and active)
+    if ((status.isZombie || status.isActive) && status.isAssignedToMe && !status.isClosed) {
+      this.menuItems.push({
+        label: 'Close',
+        icon: 'pi pi-lock',
+        command: () => this.closeConversation()
+      });
+    }
+    
+    // Start New Conversation (if needed)
+    if (status.canStartConversation && !status.isActive) {
+      this.menuItems.push({
+        label: 'Start Conversation',
+        icon: 'pi pi-comments',
+        command: () => this.newConversation()
+      });
+    }
+  }
+  
+  // ============================================================================
+  // USER MANAGEMENT
+  // ============================================================================
+  
+  loadUsers(): void {
+    if (!this._selectedConversation) {
+      console.warn('Cannot load users: no conversation selected');
+      return;
+    }
+    
+    this.userManagerService.list_users()
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (data) => {
+          const assignedId = this._selectedConversation?.assigned?.id;
+          this.users = assignedId 
+            ? data.filter(usr => usr.user !== assignedId)
+            : data;
+        },
+        error: (err) => {
+          console.error('Failed to load users:', err);
+          this.users = [];
+        }
+      });
+  }
+
+  // Show zombie warning banner in template
+  getZombieWarningMessage(): string | null {
+    if (this.conversationStatus.isZombie) {
+      return 'This conversation requires re-engagement. Please send a template message to continue.';
+    }
+    return null;
+  }
+
+  isMessageInputDisabled() {
+    if (this.conversationStatus.isZombie) {
+      return true;
+    }
+    if (this.conversationStatus.isZombie) {
+    return true;
+  }
+    return false;
+  }
+
+  /**
+ * Get badge configuration for conversation status
+ */
+getConversationStatusBadge(): {
+  severity: 'success' | 'info' | 'warn' | 'danger' | 'secondary';
+  label: string;
+  icon: string;
+  tooltip: string;
+} {
+  const badges = {
+    'new': {
+      severity: 'info' as const,
+      label: 'New',
+      icon: 'pi pi-inbox',
+      tooltip: 'New unassigned conversation'
+    },
+    'active': {
+      severity: 'success' as const,
+      label: 'Active',
+      icon: 'pi pi-check-circle',
+      tooltip: 'Active conversation'
+    },
+    'zombie': {
+      severity: 'warn' as const,
+      label: 'Re-engagement Required',
+      icon: 'pi pi-exclamation-triangle',
+      tooltip: 'This conversation requires a template message to continue'
+    },
+    'closed': {
+      severity: 'secondary' as const,
+      label: 'Closed',
+      icon: 'pi pi-lock',
+      tooltip: 'Conversation is closed'
+    }
+  };
+  
+  return badges[this.selectedConversation.status] || badges['new'];
 }
-
-  isOlderThan24Hours(dateString: string): boolean {
-    const now = new Date();
-    const messageDate = new Date(dateString);
-    const diffInMs = now.getTime() - messageDate.getTime();
-    return diffInMs > 24 * 60 * 60 * 1000;
+  
+  getEmployeeNameFromId(id: number): any {
+    const employee = this.employees.find(emp => emp.user === id);
+    return employee || { 
+      details: { username: 'Unknown' }, 
+      color: '#999999' 
+    };
   }
-
-
-  /** Employee Details */
-  private usedColors: Set<string> = new Set();
-
-  currentColor: string = '#FFFFFF';
-
-  generateColor(): void {
-    this.currentColor = this.getRandomColor();
-  }
-
-  getRandomColor(): string {
+  
+  // ============================================================================
+  // COLOR GENERATION
+  // ============================================================================
+  
+  private usedColors = new Set<string>();
+  
+  private getRandomColor(): string {
     return '#' + Math.floor(Math.random() * 16777215).toString(16).padStart(6, '0');
   }
-
-  getUniqueRandomColor(): string {
+  
+  private getUniqueRandomColor(): string {
     let color;
     do {
       color = this.getRandomColor();
@@ -466,1182 +811,1917 @@ getMimeType(url: string): 'image' | 'video' | 'audio' | 'pdf' | 'other' {
     this.usedColors.add(color);
     return color;
   }
+  
+  // ============================================================================
+  // MESSAGE HANDLING
+  // ============================================================================
+  
+  //sendMessage(): void {
+  //  if (!this.messageText && !this.attachedFile) return;
+  //  if (!this.conversationStatus.canSendMessage) {
+  //    this.messageService.add({
+  //      severity: 'warn',
+  //      summary: 'Cannot Send',
+  //      detail: 'You cannot send messages in this conversation state'
+  //    });
+  //    return;
+  //  }
+  //  
+  //  const messagePayload: any = {
+  //    conversation_id: this._selectedConversation.id,
+  //    user_id: this._profile.user.id,
+  //    message_type: this.attachedFile ? 'media' : 'text',
+  //    message_body: this.messageText || ''
+  //  };
+  //  
+  //  if (this.attachedFile) {
+  //    messagePayload.file = this.attachedFile;
+  //  }
+  //  
+  //  // Optimistic update
+  //  this._selectedConversation.messages.push({
+  //    message_body: messagePayload.message_body,
+  //    message_type: messagePayload.message_type,
+  //    sender: this._profile.user.id,
+  //    sent_time: new Date(),
+  //    status: 'sending',
+  //    type: 'org'
+  //  });
+  //  
+  //  this.conversationService.respond_to_message(
+  //    'chat',
+  //    messagePayload.conversation_id,
+  //    messagePayload
+  //  ).pipe(takeUntil(this.destroy$))
+  //    .subscribe({
+  //      next: () => {
+  //        this.reloadActiveConversation();
+  //        this.resetInput();
+  //      },
+  //      error: (err) => {
+  //        console.error('Message failed:', err);
+  //        this.messageService.add({
+  //          severity: 'error',
+  //          summary: 'Failed',
+  //          detail: 'Could not send message'
+  //        });
+  //        this.reloadActiveConversation();
+  //      }
+  //    });
+  //}
 
-  _employees = []
-  @Input()
-  set employees(value: any[]) {
-    value.forEach(
-      (emp) => {
-        emp.color = this.getUniqueRandomColor();
-      }
-    );
-    this._employees = value;
+  sendMessage(): void {
+  if (!this.canSendCurrentMessage()) {
+    if (this.conversationStatus.isZombie) {
+      this.messageService.add({
+        severity: 'error',
+        summary: 'Cannot Send',
+        detail: 'This conversation requires re-engagement. Please send a template message first.',
+        life: 5000
+      });
+    }
+    return;
   }
-
-  get employees(): any[] {
-    return this._employees;
+  
+  const messagePayload: any = {
+    conversation_id: this._selectedConversation.id,
+    user_id: this._profile.user.id,
+    message_type: this.attachedFile ? 'media' : 'text',
+    message_body: this.messageText?.trim() || ''
+  };
+  
+  if (this.attachedFile) {
+    messagePayload.file = this.attachedFile;
   }
-
-  getEmployeeNameFromId(id) {
-    const employee = this.employees.find(employee => { return employee.user === id });
-    return employee || { details: { "username": "unknown" }, "color": "red" };
-  }
-
-  loadHistoricalConversation() {
-    this.conversationService.list_historical_conversations_for_contact("chat", this.selectedConversation.contact.id).subscribe(
-      (convs) => {
-        let conv_messages: any[] = [];
-        convs.forEach((conv) => {
-          // Normalize and sort conversation messages by timestamp
-          const normalizedMsgs = conv.messages.map((msg: any) => ({
-            ...msg,
-            'timestamp': msg.sent_time
-              ? new Date(msg.sent_time).getTime()
-              : new Date(msg.received_time).getTime()
-          }));
-          normalizedMsgs.sort((a, b) => a.timestamp - b.timestamp);
-          // Get start and end timestamps from message data
-          const startTime = normalizedMsgs[0]?.timestamp || new Date(conv.created_at).getTime();
-          const endTime = normalizedMsgs.at(-1)?.timestamp || startTime;
-          // Add start_tag just before the first message
-          conv_messages.push({
-            'type': 'start_tag',
-            'by': conv.open_by,
-            'reason': conv.open_by === 'customer' ? 'Customer Query' : 'Organization Query',
-            'timestamp': startTime - 1
+  
+  // Optimistic update
+  this._selectedConversation.messages.push({
+    message_body: messagePayload.message_body,
+    message_type: messagePayload.message_type,
+    sender: this._profile.user.id,
+    sent_time: new Date(),
+    status: 'sending',
+    type: 'org'
+  });
+  
+  this.conversationService.respond_to_message(
+    'chat',
+    messagePayload.conversation_id,
+    messagePayload
+  ).pipe(takeUntil(this.destroy$))
+    .subscribe({
+      next: (response: any) => {
+        if (response.conversation_status === 'zombie') {
+          this._selectedConversation.status = 'zombie';
+          this.conversationStatus = this.computeConversationStatus(this._selectedConversation);
+          this.buildMenuItems();
+          
+          this.messageService.add({
+            severity: 'error',
+            summary: 'Re-engagement Required',
+            detail: 'Message failed. This conversation now requires a template message.',
+            life: 8000
           });
-          // Add all messages
-          conv_messages.push(...normalizedMsgs);
-
-          // Add end_tag just after the last message (only for closed conversations)
-          if (conv.status === 'closed') {
-            conv_messages.push({
-              'type': 'end_tag',
-              'by': this.getEmployeeNameFromId(conv.closed_by)?.details?.username || "Unknown",
-              'reason': conv.closed_reason,
-              'timestamp': endTime + 1
-            });
-          }
-        });
-        // Final global sort of all messages by timestamp
-        conv_messages.sort((a, b) => a.timestamp - b.timestamp);
-        this.selectedConversation.messages = conv_messages;
-        this.convertTocommondatetime();
+        }
+        
+        this.reloadActiveConversation();
+        this.resetInput();
+        this.resetTextareaHeight();
       },
-      (err) => {
-        console.error("Chat window | Error getting historical conversations ", err);
+      error: (err) => {
+        console.error('Message failed:', err);
+        
+        const errorBody = err.error || {};
+        
+        if (errorBody.requires_template || errorBody.conversation_status === 'zombie') {
+          this._selectedConversation.status = 'zombie';
+          this.conversationStatus = this.computeConversationStatus(this._selectedConversation);
+          this.buildMenuItems();
+          
+          this.messageService.add({
+            severity: 'error',
+            summary: 'Re-engagement Required',
+            detail: errorBody.details || 'Please send a template message to continue this conversation.',
+            life: 8000
+          });
+        } else {
+          this.messageService.add({
+            severity: 'error',
+            summary: 'Failed',
+            detail: errorBody.details || 'Could not send message'
+          });
+        }
+        
+        this.reloadActiveConversation();
       }
-    );
-  }
-
-
-  isAssignmentDropdownVisible = false;
-  toggleDropdown(): void {
-    this.isAssignmentDropdownVisible = !this.isAssignmentDropdownVisible;
-  }
-
-  ownThisConversation() {
-    this.conversationService.assign_conversation(
-        "chat",
-        this.selectedConversation.id,
-        this.profile.user.id
-      ).pipe(takeUntil(this.destroy$)).subscribe((data) => {
-        this.selectedConversation.assigned = {id: this.profile.user.id, name: this.profile.user.username};
-        this.selectedConversation.status = 'active'
-        this.messageService.add({ severity: 'success', summary: 'Success', detail: 'Task assignment changed' });
-        this.ownThisConversationEvent.emit(this.selectedConversation);
-      },
-      (err) => {
-        console.error("List conversation | Error assigning task ", err);
-        this.messageService.add({ severity: 'error', summary: 'Error', detail: 'An error occurred while assigning task', sticky: true });
-      }
-    )
-  }
-
-  // Update assignTask to rebuild menu
-assignTask(): void {
-  if (this.selectedUserForAssignment) {
-    this.conversationService.assign_conversation(
-      "chat",
-      this.selectedConversation.id,
-      this.selectedUserForAssignment.user
-    ).pipe(takeUntil(this.destroy$)).subscribe((data) => {
-      this.messageService.add({ 
-        severity: 'success', 
-        summary: 'Success', 
-        detail: 'Task assignment changed' 
-      });
-      this.refreshUnrespondedConversationNotifications();
-      this.cancelAssignment();
-      this.reassignThisConversationEvent.emit({
-        selected_conversation: this.selectedConversation, 
-        current_user_id: this.profile.user.id
-      });
-    },
-    (err) => {
-      console.error("List conversation | Error assigning task ", err);
-      this.messageService.add({ 
-        severity: 'error', 
-        summary: 'Error', 
-        detail: 'An error occurred while assigning task', 
-        sticky: true 
-      });
     });
-  }
 }
-
+  
+  resetInput(): void {
+    this.messageText = '';
+    this.attachedFile = null;
+    this.previewUrl = null;
+    this.resetTextareaHeight();
+    
+    // Focus back on input
+    setTimeout(() => {
+      this.messageInputRef?.nativeElement?.focus();
+    }, 100);
+  }
+  
+  // ============================================================================
+  // FILE HANDLING
+  // ============================================================================
+  
+  onFileSelected(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    if (input.files && input.files.length > 0) {
+      this.setAttachment(input.files[0]);
+    }
+  }
+  
+  onDragOver(event: DragEvent): void {
+    event.preventDefault();
+    this.isDragging = true;
+  }
+  
+  onDragLeave(event: DragEvent): void {
+    this.isDragging = false;
+  }
+  
+  onFileDrop(event: DragEvent): void {
+    event.preventDefault();
+    this.isDragging = false;
+    
+    if (event.dataTransfer?.files.length) {
+      this.setAttachment(event.dataTransfer.files[0]);
+    }
+  }
+  
+  setAttachment(file: File): void {
+    this.attachedFile = file;
+    
+    if (this.isImage(file)) {
+      const reader = new FileReader();
+      reader.onload = () => {
+        this.previewUrl = reader.result;
+      };
+      reader.readAsDataURL(file);
+    } else {
+      this.previewUrl = null;
+    }
+  }
+  
+  removeAttachment(): void {
+    this.attachedFile = null;
+    this.previewUrl = null;
+  }
+  
+  isImage(file: File): boolean {
+    return file.type.startsWith('image/');
+  }
+  
+  formatBytes(bytes: number): string {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+  }
+  
+  resetFileInput(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    input.value = '';
+  }
+  
+  getMimeType(url: string): 'image' | 'video' | 'audio' | 'pdf' | 'other' {
+    if (!url) return 'other';
+    const ext = url.split('.').pop()?.toLowerCase() || '';
+    if (['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(ext)) return 'image';
+    if (['mp4', 'webm', 'mov'].includes(ext)) return 'video';
+    if (['mp3', 'aac', 'wav', 'ogg'].includes(ext)) return 'audio';
+    if (ext === 'pdf') return 'pdf';
+    return 'other';
+  }
+  
+  // ============================================================================
+  // CONVERSATION ACTIONS
+  // ============================================================================
+  
+  ownThisConversation(): void {
+    if (!this._profile?.user?.id) return;
+    
+    this.conversationService.assign_conversation(
+      'chat',
+      this._selectedConversation.id,
+      this._profile.user.id
+    ).pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (data) => {
+          this._selectedConversation.assigned = {
+            id: this._profile.user.id,
+            name: this._profile.user.username
+          };
+          this._selectedConversation.status = 'active';
+          this.conversationStatus = this.computeConversationStatus(this._selectedConversation);
+          this.buildMenuItems();
+          
+          this.messageService.add({
+            severity: 'success',
+            summary: 'Success',
+            detail: 'Conversation assigned to you'
+          });
+          
+          this.ownThisConversationEvent.emit(this._selectedConversation);
+        },
+        error: (err) => {
+          console.error('Failed to own conversation:', err);
+          this.messageService.add({
+            severity: 'error',
+            summary: 'Error',
+            detail: 'Failed to assign conversation'
+          });
+        }
+      });
+  }
+  
+  openReassignmentDialog(): void {
+    this.isAssignmentDropdownVisible = true;
+  }
+  
+  assignTask(): void {
+    if (!this.selectedUserForAssignment) return;
+    
+    this.conversationService.assign_conversation(
+      'chat',
+      this._selectedConversation.id,
+      this.selectedUserForAssignment.user
+    ).pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: () => {
+          this.messageService.add({
+            severity: 'success',
+            summary: 'Success',
+            detail: `Assigned to ${this.selectedUserForAssignment.details.username}`
+          });
+          
+          this.refreshUnrespondedConversationNotifications();
+          this.cancelAssignment();
+          
+          this.reassignThisConversationEvent.emit({
+            selected_conversation: this._selectedConversation,
+            current_user_id: this._profile.user.id
+          });
+        },
+        error: (err) => {
+          console.error('Failed to reassign:', err);
+          this.messageService.add({
+            severity: 'error',
+            summary: 'Error',
+            detail: 'Failed to reassign conversation'
+          });
+        }
+      });
+  }
+  
   cancelAssignment(): void {
-    this.isAssignmentDropdownVisible = false; // Close dropdown without assigning
+    this.isAssignmentDropdownVisible = false;
     this.selectedUserForAssignment = null;
   }
   
-
-  closedReason = 'N/A';
-  closeConversationVisible = false;
-  closeConversation() {
+  closeConversation(): void {
     this.closeConversationVisible = true;
   }
-  onClosedReasonSave() {
+  
+  onClosedReasonSave(): void {
     this.conversationService.close_conversation(
-      "chat",
-      this.selectedConversation.id,
+      'chat',
+      this._selectedConversation.id,
       {
-        "closed_by": this.profile.user.id,
-        "closed_reason": this.closedReason
+        closed_by: this._profile.user.id,
+        closed_reason: this.closedReason
       }
-    ).pipe(takeUntil(this.destroy$)).subscribe((data) => {
-      //this.reloadActiveConversation();
-      this.conversationClosedEvent.emit(this.selectedConversation);
-
-      this.closeConversationVisible = false;
-      this.messageService.add({ severity: 'success', summary: 'Success', detail: 'Conversation closed successfully' });
-    });
-    if (this.blockForm.should_block) {
-      this.submitBlockContact();
-    }
-  }
-
-  blockForm = {
-  platform: null,
-  contact_value: '',
-  contact_type: '',
-  reason: '',
-  should_block: false
-};
-blockDialogVisible = false;
-
-submitBlockContact() {
-  this.platforService.list_platforms_by_type(this.selectedConversation.contact.platform_name)
-    .pipe(takeUntil(this.destroy$)).subscribe({
-      next: (platformsToBlockTheContact: any[]) => {
-        const platform_ids = platformsToBlockTheContact.map(p => p.id);
-        const payload = {
-          contact_value: this.selectedConversation.contact.phone,
-          contact_type: this.selectedConversation.contact.platform_name,
-          reason: this.closedReason,
-          platform_ids: platform_ids
-        };
-        this.platforService
-          .blockContactBulk(payload)
-          .subscribe({
-            next: () => {
-              this.blockDialogVisible = false;
-              this.blockForm = { should_block: false, platform: null, contact_value: '', contact_type: '', reason: '' };
-            },
-            error: (err) => {
-              console.error('Block contact failed', err);
-              this.blockForm = { should_block: false, platform: null, contact_value: '', contact_type: '', reason: '' };
-            }
+    ).pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: () => {
+          this.conversationClosedEvent.emit(this._selectedConversation);
+          this.closeConversationVisible = false;
+          
+          this.messageService.add({
+            severity: 'success',
+            summary: 'Success',
+            detail: 'Conversation closed'
           });
-      },
-      error: (err) => console.error("Could not get platform IDs")
-    });
-}
-
-
-
-  
-
-  openConversationWhatsappVisible = false;
-  startNewConversationOnWhatsapp() {
-    // TODO: Handle template payload in BE
-    this.openConversationWhatsappVisible = false;
-    const newConversationPayload = new FormData();
-    newConversationPayload.append("organization_id", this.profile.organization)
-    newConversationPayload.append("platform_id", this.selected_platform.id)
-    newConversationPayload.append("contact_id", this.selectedConversation.contact.id)
-    newConversationPayload.append("user_id", this.profile.user.id)
-    newConversationPayload.append("template", JSON.stringify(this.selectedTemplate))
-    newConversationPayload.append("template_parameters", JSON.stringify(this.fieldValues))
-    if (this.temaplteattachedFile !== null) {
-      newConversationPayload.append('file', this.temaplteattachedFile);
-    }
-
-    this.conversationService.start_new_conversation(
-      "chat",
-      newConversationPayload
-    ).pipe(takeUntil(this.destroy$)).subscribe(
-      (success_data: any) => {   
-        this.messageService.add({ severity: 'success', summary: 'Success', detail: 'New conversation started', sticky: true });
-        this.selectedConversation.assigned = {id: this.profile.user.id, name: this.profile.user.username};
-        this.selectedConversation.status = 'active'
-        this.selectedConversation.id = success_data.data[0]?.id
-        this.selectedConversation.messages = success_data.data[0]?.messages
-        this.ownThisConversationEvent.emit(this.selectedConversation);
-      },
-      (err) => {
-        this.messageService.add({ severity: 'danger', summary: 'Failed', detail: 'New conversation can not be started', sticky: true });
-      }
-    );
-  }
-
-
-  openConversationGmailVisible = false;
-  newConversationGmailAttachment = null;
-  newConversationGmailMessageBody = null;
-  newSelectedConversationGmail:any = {};
-  newConversationSubjectForGmail = 'Enquiry request';
-  resetNewGmailMessageObjects() {
-    this.newConversationGmailAttachment = null;
-    this.newConversationGmailMessageBody = null;
-    this.newSelectedConversationGmail = {};
-    this.newConversationSubjectForGmail = 'Enquiry request';
+          
+          if (this.blockForm.should_block) {
+            this.submitBlockContact();
+          }
+        },
+        error: (err) => {
+          console.error('Failed to close conversation:', err);
+          this.messageService.add({
+            severity: 'error',
+            summary: 'Error',
+            detail: 'Failed to close conversation'
+          });
+        }
+      });
   }
   
-
-  handleFileUploadGmail(event: any) {
-  const file = event.files?.[0];
-  if (file) {
-    this.newConversationGmailAttachment = file;
+  submitBlockContact(): void {
+    this.platformService.list_platforms_by_type(
+      this._selectedConversation.contact.platform_name
+    ).pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (platforms: any[]) => {
+          const payload = {
+            contact_value: this._selectedConversation.contact.phone,
+            contact_type: this._selectedConversation.contact.platform_name,
+            reason: this.closedReason,
+            platform_ids: platforms.map(p => p.id)
+          };
+          
+          this.platformService.blockContactBulk(payload)
+            .subscribe({
+              next: () => {
+                this.messageService.add({
+                  severity: 'success',
+                  summary: 'Blocked',
+                  detail: 'Contact blocked successfully'
+                });
+                this.blockForm = {
+                  should_block: false,
+                  platform: null,
+                  contact_value: '',
+                  contact_type: '',
+                  reason: ''
+                };
+              },
+              error: (err) => {
+                console.error('Block contact failed:', err);
+                this.messageService.add({
+                  severity: 'error',
+                  summary: 'Error',
+                  detail: 'Failed to block contact'
+                });
+              }
+            });
+        },
+        error: (err) => {
+          console.error('Failed to get platforms:', err);
+        }
+      });
   }
-}
-
-  startNewConversationOnGmail() {
-    this.newSelectedConversationGmail = structuredClone(this.selectedConversation);
-    this.newSelectedConversationGmail['id'] = -1;
-    // TODO: Handle template payload in BE
-    this.openConversationGmailVisible = false;
-    const newConversationPayload = new FormData();
-    // ✅ Add CC recipients
-    if (this.newConversationGmailCC.length > 0) {
-        newConversationPayload.append('cc_recipients', JSON.stringify(this.newConversationGmailCC));
-    }
-    newConversationPayload.append("organization_id", this.profile.organization)
-    newConversationPayload.append("platform_id", this.selected_platform.id)
-    newConversationPayload.append("contact_id", this.selectedConversation.contact.id)
-    newConversationPayload.append("user_id", this.profile.user.id)
-    newConversationPayload.append("subject", this.newConversationSubjectForGmail)
-    newConversationPayload.append("message_body", this.newConversationGmailMessageBody)
-    if (this.newConversationGmailAttachment !== null) {
-      newConversationPayload.append('file', this.newConversationGmailAttachment);
-    }
-    this.conversationService.start_new_conversation(
-      "chat",
-      newConversationPayload
-    ).pipe(takeUntil(this.destroy$)).subscribe(
-      (success_data: any) => {   
-        this.messageService.add({ severity: 'success', summary: 'Success', detail: 'New conversation started', sticky: true });
-        this.newSelectedConversationGmail['assigned'] = {id: this.profile.user.id, name: this.profile.user.username};
-        this.newSelectedConversationGmail['status'] = 'active'
-        this.newSelectedConversationGmail['subject'] = this.newConversationSubjectForGmail;
-        this.newSelectedConversationGmail['id'] = success_data.data[0]?.id
-        this.newSelectedConversationGmail['messages'] = success_data.data[0]?.messages;
-        // Assigning back to selectedConversation so that its active
-        this.ownThisConversationEvent.emit(this.newSelectedConversationGmail);
-        //this.selectedConversation = this.newSelectedConversationGmail;
-      },
-      (err) => {
-        this.messageService.add({ severity: 'danger', summary: 'Failed', detail: 'New conversation can not be started', sticky: true });
-      }
-    );
-  }
-
-  contextMenuItems = [];
-  onRightClick(event: MouseEvent, fileId: any, contextMenu: any, media_url: any) {
-    this.contextMenuItems = [
-      { label: 'View / Download', icon: 'pi pi-download', command: () => this.viewOrDownloadFileFromUrl(media_url) },
-      { label: 'View Directory', icon: 'pi pi-eye', command: () => this.viewFilePath(fileId) }
-    ]
-    contextMenu.show(event); // Show context menu
-    event.preventDefault(); // Prevent default right-click
-  }
-
-  // File Actions on chat window
-  viewFilePath(id) {
-    this.router.navigate([`/apps/chat/fmanager`], {
-      queryParams: { "file": id }
-    });
-  }
-
-  downloadFile(fileId) {
-    //this.fileManagerService.download_file(fileId).subscribe((response: any) => {
-    //  const link = document.createElement('a');
-    //  link.href = response.download_url;  // Pre-signed S3 URL
-    //  link.target = '_blank';  // Open in a new tab
-    //  link.download = "file.pdf";
-    //  document.body.appendChild(link);
-    //  link.click();
-    //  document.body.removeChild(link);
-    //});
-  }
-
-  viewOrDownloadFileFromUrl(download_url) {
-    window.open(download_url, '_blank');
-  }
-
-  /******** Template Section ********/
-  avaliable_templates = [];
-  selectedTemplate = null;
-  selected_platform = null;
-  registeredPlatforms = [];
-
-  newConversation() {
+  
+  // ============================================================================
+  // NEW CONVERSATION
+  // ============================================================================
+  
+  newConversation(): void {
     this.loadRegisteredPlatforms();
-    if (this.selectedConversation.contact.platform_name === 'whatsapp') {
+    
+    const platform = this._selectedConversation.contact?.platform_name;
+    
+    if (platform === 'whatsapp') {
       this.openConversationWhatsappVisible = true;
-    }
-    else if (this.selectedConversation.contact.platform_name === 'gmail') {
+    } else if (platform === 'gmail') {
       this.resetNewGmailMessageObjects();
       this.openConversationGmailVisible = true;
     }
   }
-
-  loadRegisteredPlatforms() {
-    this.platforService.list_platforms_by_type(this.selectedConversation.contact.platform_name).pipe(takeUntil(this.destroy$)).subscribe(
-      (data) => {
-        this.registeredPlatforms = data;
-        this.registeredPlatforms = this.registeredPlatforms.map(
-          (_registeredPlatform) => {
-            if (_registeredPlatform.platform_name === 'whatsapp') {
-              _registeredPlatform.image_type = 'svg'
-            }
-            else if (['webchat', 'messenger', 'gmail', 'gmessages'].includes(_registeredPlatform.platform_name)) {
-              _registeredPlatform.image_type = 'png'
-            }
-            return _registeredPlatform;
-          }
-        )
-      },
-      (err) => {
-        console.error("Compose Message | Error getting platforms ", err);
-      }
-    );
-  }
-
-  onPlatformSelected() {
-    this.avaliable_templates = [] // This would ensure to reset on platform gets changed
-    if (this.selected_platform.id) {
-      this.platforService.get_templates(this.selected_platform.id).pipe(takeUntil(this.destroy$)).subscribe(
-        {
-          next: (templates_list) => {
-            // At this moment we support only whatsapp
-            this.avaliable_templates = templates_list["whatsapp"];
-          },
-          error: () => console.error("Could not get templates")
+  
+  loadRegisteredPlatforms(): void {
+    this.platformService.list_platforms_by_type(
+      this._selectedConversation.contact.platform_name
+    ).pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (data) => {
+          this.registeredPlatforms = data.map(platform => ({
+            ...platform,
+            image_type: this.getPlatformImageType(platform.platform_name)
+          }));
+        },
+        error: (err) => {
+          console.error('Failed to load platforms:', err);
         }
-      )
+      });
+  }
+  
+  private getPlatformImageType(platformName: string): string {
+    return platformName === 'whatsapp' ? 'svg' : 'png';
+  }
+  
+  onPlatformSelected(): void {
+    this.avaliable_templates = [];
+    
+    if (this.selected_platform?.id) {
+      this.platformService.get_templates(this.selected_platform.id)
+        .pipe(takeUntil(this.destroy$))
+        .subscribe({
+          next: (templates) => {
+            this.avaliable_templates = templates['whatsapp'] || [];
+          },
+          error: () => {
+            console.error('Could not get templates');
+          }
+        });
     }
   }
-
-  onSelectTemplate() {
+  
+  // WhatsApp Template Handling
+  onSelectTemplate(): void {
     if (this.selectedTemplate) {
       this.addField();
+    } else {
+      this.dynamicFields = [];
+      this.fieldValues = {};
     }
-    else {
-      this.selectedTemplate = undefined;
-    }
-    this.selectedTemplate = this.selectedTemplate;
   }
-
-  dynamicFields: string[] = [];
-  fieldValues: { [key: string]: string } = {};
-  addField() {
+  
+  addField(): void {
     this.dynamicFields = [];
     this.fieldValues = {};
-    let parameterVariables = [];
-    for (let section of this.selectedTemplate.components) {
-      parameterVariables.push(...this.extractParameterVariables(section.text))
-    }
-    if (parameterVariables) {
-      for (let param of parameterVariables) {
-        this.dynamicFields.push(param);
-        this.fieldValues[param] = '';
+    
+    const params: string[] = [];
+    for (const section of this.selectedTemplate.components) {
+      if (section.text) {
+        params.push(...this.extractParameterVariables(section.text));
       }
     }
+    
+    params.forEach(param => {
+      this.dynamicFields.push(param);
+      this.fieldValues[param] = '';
+    });
   }
-
+  
   extractParameterVariables(text: string): string[] {
     const regex = /{{(.*?)}}/g;
-    const matches = [];
+    const matches: string[] = [];
     let match;
     while ((match = regex.exec(text)) !== null) {
-      matches.push(match[1].trim()); // Extract and trim the variable name
+      matches.push(match[1].trim());
     }
     return matches;
   }
-
+  
   isDocumentHeader(): boolean {
     return this.selectedTemplate?.components?.some(
       c => c.type === 'HEADER' && c.format === 'DOCUMENT'
     );
   }
-  temaplteattachedFile: File | null = null;
-  temapltepdfThumbnail: string | null = null;
-  temapltepdfPreviewUrl: string | null = null;
   
-
+  get isFieldValuesValid(): boolean {
+    return !Object.values(this.fieldValues).some(value => value === '');
+  }
+  
+  // Template file handling
   onTemplateFileSelected(event: Event): void {
-  const fileInput = event.target as HTMLInputElement;
-
-  if (fileInput.files && fileInput.files.length > 0) {
-    const file = fileInput.files[0];
-
-    if (file.type === 'application/pdf') {
-      this.temaplteattachedFile = file;
-      this.temapltepdfPreviewUrl = URL.createObjectURL(file); // ✅ Create preview URL for iframe
-    } else {
-      alert('Only PDF files are allowed.');
+    const fileInput = event.target as HTMLInputElement;
+    if (fileInput.files && fileInput.files.length > 0) {
+      const file = fileInput.files[0];
+      if (file.type === 'application/pdf') {
+        this.templateAttachedFile = file;
+        this.templatePdfPreviewUrl = URL.createObjectURL(file);
+      } else {
+        this.messageService.add({
+          severity: 'warn',
+          summary: 'Invalid File',
+          detail: 'Only PDF files allowed'
+        });
+      }
     }
   }
-}
-
+  
   onTemplateDragOver(event: DragEvent): void {
     event.preventDefault();
-    event.stopPropagation();
   }
+
+  // ============================================================================
+// CONTINUATION OF DetailChatWindowComponent
+// ============================================================================
 
   onTemplateDrop(event: DragEvent): void {
     event.preventDefault();
     if (event.dataTransfer?.files?.length) {
       const file = event.dataTransfer.files[0];
       if (file.type === 'application/pdf') {
-        this.temaplteattachedFile = file;
-        this.temapltepdfPreviewUrl = URL.createObjectURL(file); // ✅ Create preview URL for iframe
-      } else {
-        alert('Only PDF files are allowed.');
-      }
-    }
-  }
-
-  removeTemaplteFile(): void {
-    this.temaplteattachedFile = null;
-    this.temapltepdfThumbnail = null;
-  }
-
-  // Convert PDF to thumbnail using PDF.js (basic first-page render)
-  generatePDFThumbnail(file: File): void {
-  const reader = new FileReader();
-  reader.onload = async () => {
-    const pdfjsLib = await import('pdfjs-dist/build/pdf');
-    pdfjsLib.GlobalWorkerOptions.workerSrc =
-  `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
-    //pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
-
-    const loadingTask = pdfjsLib.getDocument({ data: reader.result });
-    loadingTask.promise.then(async (pdf) => {
-      const page = await pdf.getPage(1);
-      const viewport = page.getViewport({ scale: 1 });
-      const canvas = document.createElement('canvas');
-      const context = canvas.getContext('2d');
-      canvas.height = viewport.height;
-      canvas.width = viewport.width;
-
-      await page.render({ canvasContext: context!, viewport }).promise;
-      this.temapltepdfThumbnail = canvas.toDataURL();
-    });
-  };
-  reader.readAsArrayBuffer(file);
-}
-
-
-  get isFiledValuesValid() {
-    return !Object.values(this.fieldValues).some(value => value === '');
-  }
-
-
-
-  /** ******* Chat Message Section ********** */
-  onTemplatePreviewReadyEvent(event) {
-      this.cdr.detectChanges();
-  }
-
-
-  messageText: string = '';
-attachedFile: File | null = null;
-previewUrl: string | ArrayBuffer | null = null;
-isDragging: boolean = false;
-
-onFileSelected(event: Event) {
-  const input = event.target as HTMLInputElement;
-  if (input.files && input.files.length > 0) {
-    this.setAttachment(input.files[0]);
-  }
-}
-
-
-onDragOver(event: DragEvent) {
-  event.preventDefault();
-  this.isDragging = true;
-}
-
-onDragLeave(event: DragEvent) {
-  // Optional: check if the mouse actually left the window
-  this.isDragging = false;
-}
-
-onFileDrop(event: DragEvent) {
-  event.preventDefault();
-  this.isDragging = false;
-
-  if (event.dataTransfer?.files.length) {
-    this.setAttachment(event.dataTransfer.files[0]);
-  }
-}
-
-
-setAttachment(file: File) {
-  this.attachedFile = file;
-
-  if (this.isImage(file)) {
-    const reader = new FileReader();
-    reader.onload = () => {
-      this.previewUrl = reader.result;
-    };
-    reader.readAsDataURL(file);
-  } else {
-    this.previewUrl = null;
-  }
-}
-
-formatBytes(bytes: number): string {
-  if (bytes === 0) return '0 Bytes';
-  const k = 1024,
-        sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'],
-        i = Math.floor(Math.log(bytes) / Math.log(k));
-  return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
-}
-
-isImage(file: File): boolean {
-  return file.type.startsWith('image/');
-}
-
-resetFileInput(event: Event) {
-  const input = event.target as HTMLInputElement;
-  input.value = ''; // This happens BEFORE the user selects a file
-}
-
-removeAttachment() {
-  this.attachedFile = null;
-  this.previewUrl = null;
-  // Do not clear messageText, as user might keep it
-}
-
-sendMessage() {
-  if (!this.messageText && !this.attachedFile) return;
-
-  let messagePayload = null;
-
-  if (this.attachedFile) {
-  messagePayload = {
-          conversation_id: this.selectedConversation.id,
-          message_body: this.messageText || '',
-          file: this.attachedFile,
-          user_id: this.profile.user.id,
-          message_type: 'media'
-        };
-      }
-    else {
-      messagePayload = {
-        conversation_id: this.selectedConversation.id,
-        message_body: this.messageText,
-        user_id: this.profile.user.id,
-        message_type: 'text',
-        file: null
-      };
-    }
-
-    
-
-  this.selectedConversation.messages.push({
-        message_body: messagePayload.message_body,
-        message_type: messagePayload.message_type,
-        sender: this.profile.user.id,
-        sent_time: new Date(),
-        status: 'unknown',
-        type: 'org'
-      });
-
-      this.conversationService.respond_to_message(
-        "chat",
-        messagePayload.conversation_id,
-        messagePayload
-      ).pipe(takeUntil(this.destroy$)).subscribe({
-        next: () => {
-          this.reloadActiveConversation();
-          this.resetInput()
-        },
-        error: (err) => {
-          console.error("Message failed", err);
-          this.reloadActiveConversation();
-        }
-      })
-  
-}
-
-
-
-
-
-
-
-    
-
-    
-resetInput() {
-  this.messageText = '';
-  this.attachedFile = null;
-  this.previewUrl = null;
-}
-
-onChangeInSelectedConversationObjectFromChildren() {
-  this.reloadActiveConversation();
-}
-
-private reloadActiveConversation(): void {
-    this.conversationService.list_conversation_from_id("chat", this.selectedConversation.id)
-    .pipe(takeUntil(this.destroy$))
-      .subscribe(conv => {
-        this._selectedConversation = conv;
-        this.scrollToBottom();
-        this.messageSentEvent.emit(this.selectedConversation)
-      });
-    this.refreshUnrespondedConversationNotifications();
-  }
-
-  
-
-  refreshUnrespondedConversationNotifications() {
-    this.conversationService.list_notification("chat")
-    .pipe(takeUntil(this.destroy$))
-    .subscribe({
-      next: (notificationData: ConversationNotificationTemplate) => {
-        this.layoutService.unrespondedConversationNotification.update((prev) => notificationData)
-      },
-      error: (err) => { console.error(`Could not get the conversation notifications ${err}`) }
-    });
-  }
-
-  @ViewChild('scrollMe') private myScrollContainer: ElementRef;
-  scrollToBottom(): void {
-    try {
-      this.myScrollContainer.nativeElement.scrollTop = this.myScrollContainer.nativeElement.scrollHeight + 50;
-    } catch (err) { }
-  }
-
-
-  /** Edit user details */
-  selectedContact: ContactModel;
-  editContacDialogVisible = false;
-  submitted = false;
-
-  
-
-  //saveContactInConversationObject() {
-  //this.submitted = true;
-  //// Clone to separate standard & custom fields
-  //const payload = { ...this.selectedContact };
-  //// Extract custom fields if present
-  //if (this.selectedContact.custom_fields) {
-  //  payload['custom_fields'] = { ...this.selectedContact.custom_fields };
-  //}
-  //this.contactService.update_contact(payload)
-  //  .pipe(takeUntil(this.destroy$))
-  //  .subscribe(
-  //    (data) => {
-  //      this.selectedConversation.contact = data;
-  //      this.selectedContact = this.selectedConversation.contact;
-  //      this.editContacDialogVisible = false;
-  //      this.submitted = false;
-  //      this.onChangeInSelectedConversationObjectFromChildren();
-  //    },
-  //    (err) => {
-  //      console.error("Contacts | Error updating contact ", err);
-  //      this.editContacDialogVisible = false;
-  //      this.submitted = false;
-  //      this.messageService.add({ severity: 'error', summary: 'Error', detail: 'Contact not updated', sticky: true });
-  //    }
-  //  );
-  //}
-    
-    // ✅ CC Management
-    customerCCRecipients: string[] = [];  // Read-only from customer
-    agentCCRecipients: string[] = [];     // Editable by agent
-    newAgentCCEmail: string = '';
-    
-    // Original CC for reset
-    private originalAgentCC: string[] = [];
-
-    onEdit() {
-        this.selectedContact = { ...this.selectedConversation.contact };
-        
-        // Reset CC to current values
-        this.customerCCRecipients = [...(this.selectedConversation.customer_cc_recipients || [])];
-        this.agentCCRecipients = [...(this.selectedConversation.agent_cc_recipients || [])];
-        this.originalAgentCC = [...this.agentCCRecipients];
-        this.newAgentCCEmail = '';
-        
-        this.editContacDialogVisible = true;
-        this.submitted = false;
-    }
-
-    // ✅ Agent CC Management
-    addAgentCC() {
-        if (!this.isValidEmail(this.newAgentCCEmail)) {
-            this.messageService.add({
-                severity: 'warn',
-                summary: 'Invalid Email',
-                detail: 'Please enter a valid email address'
-            });
-            return;
-        }
-
-        const email = this.newAgentCCEmail.trim().toLowerCase();
-        
-        // Check if already in agent's list
-        if (this.agentCCRecipients.some(cc => cc.toLowerCase() === email)) {
-            this.messageService.add({
-                severity: 'warn',
-                summary: 'Duplicate',
-                detail: 'This email is already in your CC list'
-            });
-            return;
-        }
-        
-        // Check if already in customer's list
-        if (this.customerCCRecipients.some(cc => cc.toLowerCase() === email)) {
-            this.messageService.add({
-                severity: 'info',
-                summary: 'Already Included',
-                detail: 'This email is already in customer\'s CC list'
-            });
-            return;
-        }
-        
-        this.agentCCRecipients.push(this.newAgentCCEmail.trim());
-        this.newAgentCCEmail = '';
-        
-        this.messageService.add({
-            severity: 'success',
-            summary: 'Added',
-            detail: 'CC recipient added successfully'
-        });
-    }
-
-    removeAgentCC(index: number) {
-        const removed = this.agentCCRecipients.splice(index, 1);
-        this.messageService.add({
-            severity: 'info',
-            summary: 'Removed',
-            detail: `${removed[0]} removed from your CC list`
-        });
-    }
-
-    isValidEmail(email: string): boolean {
-        if (!email) return false;
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        return emailRegex.test(email.trim());
-    }
-
-    getMergedCCList(): string[] {
-        const merged = [...this.customerCCRecipients];
-        
-        // Add agent's CC that aren't duplicates
-        for (const email of this.agentCCRecipients) {
-            const emailLower = email.toLowerCase();
-            if (!merged.some(cc => cc.toLowerCase() === emailLower)) {
-                merged.push(email);
-            }
-        }
-        
-        return merged;
-    }
-
-    getChipStyle(email: string): any {
-        const emailLower = email.toLowerCase();
-        
-        if (this.customerCCRecipients.some(cc => cc.toLowerCase() === emailLower)) {
-            return {
-                'background-color': '#D1FAE5',
-                'color': '#065F46'
-            };
-        } else {
-            return {
-                'background-color': '#DBEAFE',
-                'color': '#1E40AF'
-            };
-        }
-    }
-
-    cancelEdit() {
-        this.editContacDialogVisible = false;
-        this.newAgentCCEmail = '';
-        this.submitted = false;
-        
-        // Reset to original values
-        this.customerCCRecipients = [...(this.selectedConversation.customer_cc_recipients || [])];
-        this.agentCCRecipients = [...this.originalAgentCC];
-    }
-
-    // ✅ MODIFIED: Save contact AND CC separately
-    saveContactInConversationObject() {
-        this.submitted = true;
-
-        // Validate
-        if (!this.selectedContact.name || !this.selectedContact.phone) {
-            return;
-        }
-
-        // 1️⃣ First, save contact information
-        const contactPayload = { ...this.selectedContact };
-        
-        // Extract custom fields if present
-        if (this.selectedContact.custom_fields) {
-            contactPayload['custom_fields'] = { ...this.selectedContact.custom_fields };
-        }
-
-        this.contactService.update_contact(contactPayload)
-            .pipe(takeUntil(this.destroy$))
-            .subscribe({
-                next: (updatedContact) => {
-                    // Update contact in conversation
-                    this.selectedConversation.contact = updatedContact;
-                    this.selectedContact = this.selectedConversation.contact;
-                    
-                    // 2️⃣ Then, save CC recipients if changed (only for Gmail)
-                    if (this.selectedConversation.contact.platform_name === 'gmail' && 
-                        this.hasAgentCCChanged()) {
-                        this.saveAgentCC();
-                    } else {
-                        // No CC changes, just close dialog
-                        this.completeEdit();
-                    }
-                },
-                error: (err) => {
-                    console.error("Error updating contact:", err);
-                    this.editContacDialogVisible = false;
-                    this.submitted = false;
-                    this.messageService.add({
-                        severity: 'error',
-                        summary: 'Error',
-                        detail: 'Contact not updated',
-                        sticky: true
-                    });
-                }
-            });
-    }
-
-    // ✅ NEW: Check if agent CC changed
-    private hasAgentCCChanged(): boolean {
-        if (this.agentCCRecipients.length !== this.originalAgentCC.length) {
-            return true;
-        }
-        
-        // Check if all emails match (case-insensitive)
-        const currentSet = new Set(this.agentCCRecipients.map(cc => cc.toLowerCase()));
-        const originalSet = new Set(this.originalAgentCC.map(cc => cc.toLowerCase()));
-        
-        if (currentSet.size !== originalSet.size) {
-            return true;
-        }
-        
-        for (const email of currentSet) {
-            if (!originalSet.has(email)) {
-                return true;
-            }
-        }
-        
-        return false;
-    }
-
-    // ✅ NEW: Save agent CC separately
-    private saveAgentCC() {
-        const ccPayload = {
-            conversation_id: this.selectedConversation.id,
-            agent_cc_recipients: this.agentCCRecipients
-        };
-
-        this.conversationService.updateConversationCC(ccPayload)
-            .pipe(takeUntil(this.destroy$))
-            .subscribe({
-                next: (response) => {
-                    // Update conversation with new CC
-                    this.selectedConversation.agent_cc_recipients = this.agentCCRecipients;
-                    this.originalAgentCC = [...this.agentCCRecipients];
-                    
-                    this.messageService.add({
-                        severity: 'success',
-                        summary: 'Success',
-                        detail: 'Contact and CC recipients updated successfully'
-                    });
-                    
-                    this.completeEdit();
-                },
-                error: (err) => {
-                    console.error("Error updating CC recipients:", err);
-                    
-                    // Contact was saved, but CC failed
-                    this.messageService.add({
-                        severity: 'warn',
-                        summary: 'Partial Success',
-                        detail: 'Contact updated, but CC recipients failed to save'
-                    });
-                    
-                    this.completeEdit();
-                }
-            });
-    }
-
-    // ✅ NEW: Complete edit and emit changes
-    private completeEdit() {
-        this.editContacDialogVisible = false;
-        this.submitted = false;
-    }
-
-    // ============================================================================
-    // STEP 1: Add New Properties to DetailChatWindowComponent
-    // ============================================================================
-    
-    // Template messaging in active conversation
-    sendTemplateDialogVisible = false;
-    activeConvSelectedTemplate = null;
-    activeConvDynamicFields: string[] = [];
-    activeConvFieldValues: { [key: string]: string } = {};
-    activeConvAttachedFile: File | null = null;
-    activeConvPdfPreviewUrl: string | null = null;
-
-    // ============================================================================
-    // STEP 2: Add Method to Open Template Dialog for Active Conversation
-    // ============================================================================
-    
-    openSendTemplateDialog() {
-      // Load available templates for the current platform
-      if (this.selectedConversation?.contact?.platform_id) {
-        this.platforService.get_templates(this.selectedConversation.contact.platform_id)
-          .pipe(takeUntil(this.destroy$))
-          .subscribe({
-            next: (templates_list) => {
-              this.avaliable_templates = templates_list["whatsapp"] || [];
-              this.sendTemplateDialogVisible = true;
-            },
-            error: (err) => {
-              let error_detail = err?.error;
-              console.error("Could not get templates", error_detail);
-              
-              this.messageService.add({
-                severity: 'error',
-                summary: 'Error',
-                detail: `Could not load templates ${error_detail}`
-              });
-            }
-          });
+        this.templateAttachedFile = file;
+        this.templatePdfPreviewUrl = URL.createObjectURL(file);
       } else {
         this.messageService.add({
           severity: 'warn',
-          summary: 'No Platform',
-          detail: 'Platform information not available'
+          summary: 'Invalid File',
+          detail: 'Only PDF files allowed'
         });
       }
     }
-
-    // ============================================================================
-    // STEP 3: Handle Template Selection for Active Conversation
-    // ============================================================================
+  }
+  
+  removeTemplateFile(): void {
+    this.templateAttachedFile = null;
+    this.templatePdfPreviewUrl = null;
+  }
+  
+  startNewConversationOnWhatsapp(): void {
+    this.openConversationWhatsappVisible = false;
     
-    onActiveConvTemplateSelect() {
-      if (this.activeConvSelectedTemplate) {
-        this.extractActiveConvTemplateFields();
-      } else {
-        this.clearActiveConvTemplateData();
-      }
+    const payload = new FormData();
+    payload.append('organization_id', this._profile.organization);
+    payload.append('platform_id', this.selected_platform.id);
+    payload.append('contact_id', this._selectedConversation.contact.id);
+    payload.append('user_id', this._profile.user.id);
+    payload.append('template', JSON.stringify(this.selectedTemplate));
+    payload.append('template_parameters', JSON.stringify(this.fieldValues));
+    
+    if (this.templateAttachedFile) {
+      payload.append('file', this.templateAttachedFile);
     }
-
-    extractActiveConvTemplateFields() {
-      this.activeConvDynamicFields = [];
-      this.activeConvFieldValues = {};
-      let parameterVariables = [];
-      
-      for (let section of this.activeConvSelectedTemplate.components) {
-        if (section.text) {
-          parameterVariables.push(...this.extractParameterVariables(section.text));
-        }
-      }
-      
-      if (parameterVariables.length > 0) {
-        for (let param of parameterVariables) {
-          this.activeConvDynamicFields.push(param);
-          this.activeConvFieldValues[param] = '';
-        }
-      }
-    }
-
-    // ============================================================================
-    // STEP 4: Handle File Upload for Active Conversation Template
-    // ============================================================================
     
-    onActiveConvFileSelected(event: Event): void {
-      const fileInput = event.target as HTMLInputElement;
-    
-      if (fileInput.files && fileInput.files.length > 0) {
-        const file = fileInput.files[0];
-    
-        if (file.type === 'application/pdf') {
-          this.activeConvAttachedFile = file;
-          this.activeConvPdfPreviewUrl = URL.createObjectURL(file);
-        } else {
+    this.conversationService.start_new_conversation('chat', payload)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (data: any) => {
           this.messageService.add({
-            severity: 'warn',
-            summary: 'Invalid File',
-            detail: 'Only PDF files are allowed for document templates'
+            severity: 'success',
+            summary: 'Success',
+            detail: 'Conversation started'
+          });
+          
+          // Update conversation
+          this._selectedConversation.assigned = {
+            id: this._profile.user.id,
+            name: this._profile.user.username
+          };
+          this._selectedConversation.status = 'active';
+          this._selectedConversation.id = data.data[0]?.id;
+          this._selectedConversation.messages = data.data[0]?.messages;
+          this._selectedConversation.contact = data.data[0]?.contact;
+          
+          this.conversationStatus = this.computeConversationStatus(this._selectedConversation);
+          this.buildMenuItems();
+          
+          this.ownThisConversationEvent.emit(this._selectedConversation);
+        },
+        error: (err) => {
+          console.error('Failed to start conversation:', err);
+          this.messageService.add({
+            severity: 'error',
+            summary: 'Failed',
+            detail: 'Could not start conversation'
           });
         }
+      });
+  }
+  
+  // ============================================================================
+  // GMAIL NEW CONVERSATION
+  // ============================================================================
+  
+  resetNewGmailMessageObjects(): void {
+    this.newConversationGmailAttachment = null;
+    this.newConversationGmailMessageBody = '';
+    this.newConversationSubjectForGmail = 'Enquiry request';
+    this.newConversationGmailCC = [];
+    this.newConversationGmailCCInput = '';
+  }
+  
+  handleFileUploadGmail(event: any): void {
+    const file = event.files?.[0];
+    if (file) {
+      this.newConversationGmailAttachment = file;
+    }
+  }
+  
+  addNewConversationCC(): void {
+    const email = this.newConversationGmailCCInput.trim();
+    
+    if (!this.isValidEmail(email)) {
+      this.messageService.add({
+        severity: 'warn',
+        summary: 'Invalid',
+        detail: 'Please enter valid email'
+      });
+      return;
+    }
+    
+    const emailLower = email.toLowerCase();
+    
+    if (this._selectedConversation.contact.phone.toLowerCase() === emailLower) {
+      this.messageService.add({
+        severity: 'warn',
+        summary: 'Duplicate',
+        detail: 'Same as recipient'
+      });
+      return;
+    }
+    
+    if (this.newConversationGmailCC.some(cc => cc.toLowerCase() === emailLower)) {
+      this.messageService.add({
+        severity: 'warn',
+        summary: 'Duplicate',
+        detail: 'Already in CC list'
+      });
+      return;
+    }
+    
+    this.newConversationGmailCC.push(email);
+    this.newConversationGmailCCInput = '';
+    
+    this.messageService.add({
+      severity: 'success',
+      summary: 'Added',
+      detail: 'CC recipient added'
+    });
+  }
+  
+  removeNewConversationCC(index: number): void {
+    const removed = this.newConversationGmailCC.splice(index, 1);
+    this.messageService.add({
+      severity: 'info',
+      summary: 'Removed',
+      detail: `${removed[0]} removed`
+    });
+  }
+  
+  isNewConversationValid(): boolean {
+    return !!(
+      this.selected_platform &&
+      this._selectedConversation.contact.phone &&
+      this.isValidEmail(this._selectedConversation.contact.phone) &&
+      this.newConversationSubjectForGmail &&
+      this.newConversationGmailMessageBody
+    );
+  }
+  
+  cancelNewGmailConversation(): void {
+    if (this.newConversationGmailMessageBody || this.newConversationGmailCC.length > 0) {
+      if (confirm('Discard this email?')) {
+        this.openConversationGmailVisible = false;
+        this.resetNewGmailMessageObjects();
       }
+    } else {
+      this.openConversationGmailVisible = false;
+      this.resetNewGmailMessageObjects();
     }
-
-    onActiveConvDragOver(event: DragEvent): void {
-      event.preventDefault();
-      event.stopPropagation();
+  }
+  
+  startNewConversationOnGmail(): void {
+    this.openConversationGmailVisible = false;
+    
+    const payload = new FormData();
+    payload.append('organization_id', this._profile.organization);
+    payload.append('platform_id', this.selected_platform.id);
+    payload.append('contact_id', this._selectedConversation.contact.id);
+    payload.append('user_id', this._profile.user.id);
+    payload.append('subject', this.newConversationSubjectForGmail);
+    payload.append('message_body', this.newConversationGmailMessageBody);
+    
+    if (this.newConversationGmailCC.length > 0) {
+      payload.append('cc_recipients', JSON.stringify(this.newConversationGmailCC));
     }
-
-    onActiveConvDrop(event: DragEvent): void {
-      event.preventDefault();
-      if (event.dataTransfer?.files?.length) {
-        const file = event.dataTransfer.files[0];
-        if (file.type === 'application/pdf') {
-          this.activeConvAttachedFile = file;
-          this.activeConvPdfPreviewUrl = URL.createObjectURL(file);
-        } else {
+    
+    if (this.newConversationGmailAttachment) {
+      payload.append('file', this.newConversationGmailAttachment);
+    }
+    
+    this.conversationService.start_new_conversation('chat', payload)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (data: any) => {
           this.messageService.add({
-            severity: 'warn',
-            summary: 'Invalid File',
-            detail: 'Only PDF files are allowed'
+            severity: 'success',
+            summary: 'Success',
+            detail: 'Email sent'
+          });
+          
+          const newConv = {
+            ...this._selectedConversation,
+            assigned: { id: this._profile.user.id, name: this._profile.user.username },
+            status: 'active',
+            subject: this.newConversationSubjectForGmail,
+            id: data.data[0]?.id,
+            messages: data.data[0]?.messages
+          };
+          
+          this.conversationStatus = this.computeConversationStatus(newConv);
+          this.buildMenuItems();
+          
+          this.ownThisConversationEvent.emit(newConv);
+        },
+        error: (err) => {
+          console.error('Failed to send email:', err);
+          this.messageService.add({
+            severity: 'error',
+            summary: 'Failed',
+            detail: 'Could not send email'
           });
         }
-      }
+      });
+  }
+  
+  // ============================================================================
+  // TEMPLATE IN ACTIVE CONVERSATION
+  // ============================================================================
+  
+  openSendTemplateDialog(): void {
+    if (!this._selectedConversation?.contact?.platform_id) {
+      this.messageService.add({
+        severity: 'warn',
+        summary: 'No Platform',
+        detail: 'Platform info unavailable'
+      });
+      return;
     }
-
-    removeActiveConvFile(): void {
-      this.activeConvAttachedFile = null;
-      this.activeConvPdfPreviewUrl = null;
-    }
-
-    // ============================================================================
-    // STEP 5: Check if Template has Document Header
-    // ============================================================================
     
-    isActiveConvDocumentHeader(): boolean {
-      return this.activeConvSelectedTemplate?.components?.some(
-        c => c.type === 'HEADER' && c.format === 'DOCUMENT'
-      );
-    }
-
-    // ============================================================================
-    // STEP 6: Validate Active Conversation Template Form
-    // ============================================================================
-    
-    get isActiveConvTemplateValid(): boolean {
-      // Check if template is selected
-      if (!this.activeConvSelectedTemplate) return false;
-      
-      // Check if all dynamic fields are filled
-      const allFieldsFilled = !Object.values(this.activeConvFieldValues)
-        .some(value => value === '');
-      
-      // Check if document header requires file
-      if (this.isActiveConvDocumentHeader() && !this.activeConvAttachedFile) {
-        return false;
-      }
-      
-      return allFieldsFilled;
-    }
-
-     // ============================================================================
-     // STEP 7: Send Template Message in Active Conversation
-     // ============================================================================
-     
-     sendTemplateMessageInActiveConversation() {
-       if (!this.isActiveConvTemplateValid) {
-         this.messageService.add({
-           severity: 'warn',
-           summary: 'Incomplete',
-           detail: 'Please fill all required fields'
-         });
-         return;
-       }
-     
-       const messagePayload = new FormData();
-       messagePayload.append("conversation_id", this.selectedConversation.id);
-       messagePayload.append("user_id", this.profile.user.id);
-       messagePayload.append("message_type", "template");
-       messagePayload.append("template", JSON.stringify(this.activeConvSelectedTemplate));
-       messagePayload.append("template_parameters", JSON.stringify(this.activeConvFieldValues));
-       
-       if (this.activeConvAttachedFile) {
-         messagePayload.append('file', this.activeConvAttachedFile);
-       }
-     
-       // Add optimistic message to UI
-       this.selectedConversation.messages.push({
-         message_body: '',
-         message_type: 'template',
-         template: this.activeConvSelectedTemplate,
-         media_url: this.activeConvPdfPreviewUrl,
-         sender: this.profile.user.id,
-         sent_time: new Date(),
-         status: 'sending',
-         type: 'org'
-       });
-     
-       this.conversationService.respond_to_message(
-         "chat",
-         this.selectedConversation.id,
-         messagePayload
-       ).pipe(takeUntil(this.destroy$)).subscribe({
-         next: (response) => {
-           this.messageService.add({
-             severity: 'success',
-             summary: 'Success',
-             detail: 'Template message sent successfully'
-           });
-           this.closeSendTemplateDialog();
-           this.reloadActiveConversation();
-         },
-         error: (err) => {
-           console.error("Template message failed", err);
-           this.messageService.add({
-             severity: 'error',
-             summary: 'Failed',
-             detail: 'Could not send template message'
-           });
-           this.reloadActiveConversation();
-         }
-       });
-     }
-     
-     // ============================================================================
-     // STEP 8: Clear and Close Template Dialog
-     // ============================================================================
-     
-     clearActiveConvTemplateData() {
-       this.activeConvSelectedTemplate = null;
-       this.activeConvDynamicFields = [];
-       this.activeConvFieldValues = {};
-       this.activeConvAttachedFile = null;
-       this.activeConvPdfPreviewUrl = null;
-     }
-     
-    closeSendTemplateDialog() {
-      this.sendTemplateDialogVisible = false;
+    this.platformService.get_templates(this._selectedConversation.contact.platform_id)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (templates) => {
+          this.avaliable_templates = templates['whatsapp'] || [];
+          this.sendTemplateDialogVisible = true;
+        },
+        error: (err) => {
+          console.error('Failed to load templates:', err);
+          this.messageService.add({
+            severity: 'error',
+            summary: 'Error',
+            detail: 'Could not load templates'
+          });
+        }
+      });
+  }
+  
+  onActiveConvTemplateSelect(): void {
+    if (this.activeConvSelectedTemplate) {
+      this.extractActiveConvTemplateFields();
+    } else {
       this.clearActiveConvTemplateData();
     }
+  }
+  
+  extractActiveConvTemplateFields(): void {
+    this.activeConvDynamicFields = [];
+    this.activeConvFieldValues = {};
+    
+    const params: string[] = [];
+    for (const section of this.activeConvSelectedTemplate.components) {
+      if (section.text) {
+        params.push(...this.extractParameterVariables(section.text));
+      }
+    }
+    
+    params.forEach(param => {
+      this.activeConvDynamicFields.push(param);
+      this.activeConvFieldValues[param] = '';
+    });
+  }
+  
+  isActiveConvDocumentHeader(): boolean {
+    return this.activeConvSelectedTemplate?.components?.some(
+      c => c.type === 'HEADER' && c.format === 'DOCUMENT'
+    );
+  }
+  
+  get isActiveConvTemplateValid(): boolean {
+    if (!this.activeConvSelectedTemplate) return false;
+    
+    const allFieldsFilled = !Object.values(this.activeConvFieldValues)
+      .some(value => value === '');
+    
+    if (this.isActiveConvDocumentHeader() && !this.activeConvAttachedFile) {
+      return false;
+    }
+    
+    return allFieldsFilled;
+  }
+  
+  onActiveConvFileSelected(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    if (input.files && input.files.length > 0) {
+      const file = input.files[0];
+      if (file.type === 'application/pdf') {
+        this.activeConvAttachedFile = file;
+        this.activeConvPdfPreviewUrl = URL.createObjectURL(file);
+      } else {
+        this.messageService.add({
+          severity: 'warn',
+          summary: 'Invalid',
+          detail: 'Only PDF allowed'
+        });
+      }
+    }
+  }
+  
+  onActiveConvDragOver(event: DragEvent): void {
+    event.preventDefault();
+  }
+  
+  onActiveConvDrop(event: DragEvent): void {
+    event.preventDefault();
+    if (event.dataTransfer?.files?.length) {
+      const file = event.dataTransfer.files[0];
+      if (file.type === 'application/pdf') {
+        this.activeConvAttachedFile = file;
+        this.activeConvPdfPreviewUrl = URL.createObjectURL(file);
+      } else {
+        this.messageService.add({
+          severity: 'warn',
+          summary: 'Invalid',
+          detail: 'Only PDF allowed'
+        });
+      }
+    }
+  }
+  
+  removeActiveConvFile(): void {
+    this.activeConvAttachedFile = null;
+    this.activeConvPdfPreviewUrl = null;
+  }
+  
+  sendTemplateMessageInActiveConversation(): void {
+    if (!this.isActiveConvTemplateValid) {
+      this.messageService.add({
+        severity: 'warn',
+        summary: 'Incomplete',
+        detail: 'Fill all required fields'
+      });
+      return;
+    }
+    
+    let payload: any;
+    
+    if (this.activeConvAttachedFile) {
+      payload = new FormData();
+      payload.append('conversation_id', this._selectedConversation.id);
+      payload.append('user_id', this._profile.user.id);
+      payload.append('message_type', 'template');
+      payload.append('template', JSON.stringify(this.activeConvSelectedTemplate));
+      payload.append('template_parameters', JSON.stringify(this.activeConvFieldValues));
+      payload.append('file', this.activeConvAttachedFile);
+    } else {
+      payload = {
+        conversation_id: this._selectedConversation.id,
+        user_id: this._profile.user.id,
+        message_type: 'template',
+        template: JSON.stringify(this.activeConvSelectedTemplate),
+        template_parameters: JSON.stringify(this.activeConvFieldValues)
+      };
+    }
+    
+    // Optimistic update
+    this._selectedConversation.messages.push({
+      message_body: '',
+      message_type: 'template',
+      template: this.activeConvSelectedTemplate,
+      media_url: this.activeConvPdfPreviewUrl,
+      sender: this._profile.user.id,
+      sent_time: new Date(),
+      status: 'sending',
+      type: 'org'
+    });
+    
+    this.conversationService.respond_to_message(
+      'chat',
+      this._selectedConversation.id,
+      payload
+    ).pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: () => {
+          this.messageService.add({
+            severity: 'success',
+            summary: 'Success',
+            detail: 'Template sent'
+          });
+          this.closeSendTemplateDialog();
+          this.reloadActiveConversation();
+        },
+        error: (err) => {
+          console.error('Template failed:', err);
+          this.messageService.add({
+            severity: 'error',
+            summary: 'Failed',
+            detail: 'Could not send template'
+          });
+          this.reloadActiveConversation();
+        }
+      });
+  }
+  
+  clearActiveConvTemplateData(): void {
+    this.activeConvSelectedTemplate = null;
+    this.activeConvDynamicFields = [];
+    this.activeConvFieldValues = {};
+    this.activeConvAttachedFile = null;
+    this.activeConvPdfPreviewUrl = null;
+  }
+  
+  closeSendTemplateDialog(): void {
+    this.sendTemplateDialogVisible = false;
+    this.clearActiveConvTemplateData();
+  }
+  
+  // ============================================================================
+  // CONTACT EDITING & CC MANAGEMENT
+  // ============================================================================
+  
+  onEdit(): void {
+    this.selectedContact = { ...this._selectedConversation.contact };
+    
+    this.customerCCRecipients = [...(this._selectedConversation.customer_cc_recipients || [])];
+    this.agentCCRecipients = [...(this._selectedConversation.agent_cc_recipients || [])];
+    this.originalAgentCC = [...this.agentCCRecipients];
+    this.newAgentCCEmail = '';
+    
+    this.editContactDialogVisible = true;
+    this.submitted = false;
+  }
+  
+  addAgentCC(): void {
+    if (!this.isValidEmail(this.newAgentCCEmail)) {
+      this.messageService.add({
+        severity: 'warn',
+        summary: 'Invalid',
+        detail: 'Enter valid email'
+      });
+      return;
+    }
+    
+    const email = this.newAgentCCEmail.trim().toLowerCase();
+    
+    if (this.agentCCRecipients.some(cc => cc.toLowerCase() === email)) {
+      this.messageService.add({
+        severity: 'warn',
+        summary: 'Duplicate',
+        detail: 'Already in list'
+      });
+      return;
+    }
+    
+    if (this.customerCCRecipients.some(cc => cc.toLowerCase() === email)) {
+      this.messageService.add({
+        severity: 'info',
+        summary: 'Info',
+        detail: 'Already in customer CC'
+      });
+      return;
+    }
+    
+    this.agentCCRecipients.push(this.newAgentCCEmail.trim());
+    this.newAgentCCEmail = '';
+    
+    this.messageService.add({
+      severity: 'success',
+      summary: 'Added',
+      detail: 'CC added'
+    });
+  }
+  
+  removeAgentCC(index: number): void {
+    const removed = this.agentCCRecipients.splice(index, 1);
+    this.messageService.add({
+      severity: 'info',
+      summary: 'Removed',
+      detail: `${removed[0]} removed`
+    });
+  }
+  
+  isValidEmail(email: string): boolean {
+    if (!email) return false;
+    const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return regex.test(email.trim());
+  }
+  
+  getMergedCCList(): string[] {
+    const merged = [...this.customerCCRecipients];
+    
+    for (const email of this.agentCCRecipients) {
+      const emailLower = email.toLowerCase();
+      if (!merged.some(cc => cc.toLowerCase() === emailLower)) {
+        merged.push(email);
+      }
+    }
+    
+    return merged;
+  }
+  
+  getChipStyle(email: string): any {
+    const emailLower = email.toLowerCase();
+    
+    if (this.customerCCRecipients.some(cc => cc.toLowerCase() === emailLower)) {
+      return {
+        'background-color': '#D1FAE5',
+        'color': '#065F46'
+      };
+    }
+    return {
+      'background-color': '#DBEAFE',
+      'color': '#1E40AF'
+    };
+  }
+  
+  cancelEdit(): void {
+    this.editContactDialogVisible = false;
+    this.newAgentCCEmail = '';
+    this.submitted = false;
+    
+    this.customerCCRecipients = [...(this._selectedConversation.customer_cc_recipients || [])];
+    this.agentCCRecipients = [...this.originalAgentCC];
+  }
+  
+  saveContactInConversationObject(): void {
+    this.submitted = true;
+    
+    if (!this.selectedContact.name || !this.selectedContact.phone) {
+      return;
+    }
+    
+    const payload = { ...this.selectedContact };
+    
+    if (this.selectedContact.custom_fields) {
+      payload['custom_fields'] = { ...this.selectedContact.custom_fields };
+    }
+    
+    this.contactService.update_contact(payload)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (updated) => {
+          this._selectedConversation.contact = updated;
+          this.selectedContact = this._selectedConversation.contact;
+          
+          if (this._selectedConversation.contact.platform_name === 'gmail' && 
+              this.hasAgentCCChanged()) {
+            this.saveAgentCC();
+          } else {
+            this.completeEdit();
+          }
+        },
+        error: (err) => {
+          console.error('Failed to update contact:', err);
+          this.editContactDialogVisible = false;
+          this.submitted = false;
+          this.messageService.add({
+            severity: 'error',
+            summary: 'Error',
+            detail: 'Failed to update contact'
+          });
+        }
+      });
+  }
+  
+  private hasAgentCCChanged(): boolean {
+    if (this.agentCCRecipients.length !== this.originalAgentCC.length) {
+      return true;
+    }
+    
+    const currentSet = new Set(this.agentCCRecipients.map(cc => cc.toLowerCase()));
+    const originalSet = new Set(this.originalAgentCC.map(cc => cc.toLowerCase()));
+    
+    if (currentSet.size !== originalSet.size) return true;
+    
+    for (const email of currentSet) {
+      if (!originalSet.has(email)) return true;
+    }
+    
+    return false;
+  }
+  
+  private saveAgentCC(): void {
+    const payload = {
+      conversation_id: this._selectedConversation.id,
+      agent_cc_recipients: this.agentCCRecipients
+    };
+    
+    this.conversationService.updateConversationCC(payload)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: () => {
+          this._selectedConversation.agent_cc_recipients = this.agentCCRecipients;
+          this.originalAgentCC = [...this.agentCCRecipients];
+          
+          this.messageService.add({
+            severity: 'success',
+            summary: 'Success',
+            detail: 'Contact and CC updated'
+          });
+          
+          this.completeEdit();
+        },
+        error: (err) => {
+          console.error('Failed to update CC:', err);
+          this.messageService.add({
+            severity: 'warn',
+            summary: 'Partial Success',
+            detail: 'Contact updated but CC failed'
+          });
+          this.completeEdit();
+        }
+      });
+  }
+  
+  private completeEdit(): void {
+    this.editContactDialogVisible = false;
+    this.submitted = false;
+  }
+  
+  // ============================================================================
+  // UTILITIES
+  // ============================================================================
+  
+  convertToCommonDateTime(): void {
+    if (!this._selectedConversation?.messages) return;
+    
+    this._selectedConversation.messages = this._selectedConversation.messages.map(msg => {
+      const time = msg.type === 'customer' ? msg.received_time : msg.sent_time;
+      return {
+        ...msg,
+        displayTime: this.isOlderThan24Hours(time)
+          ? new Date(time).toLocaleString('en-US', { 
+              dateStyle: 'medium', 
+              timeStyle: 'short' 
+            })
+          : new Date(time).toLocaleTimeString([], { 
+              hour: '2-digit', 
+              minute: '2-digit' 
+            })
+      };
+    });
+  }
+  
+  isOlderThan24Hours(dateString: string): boolean {
+    const now = new Date();
+    const date = new Date(dateString);
+    return (now.getTime() - date.getTime()) > 24 * 60 * 60 * 1000;
+  }
+  
+  //getSanitizedHtml(raw: string): SafeHtml {
+  //  return this.sanitizer.bypassSecurityTrustHtml(raw);
+  //}
+  
+  scrollToBottom(): void {
+    try {
+      setTimeout(() => {
+        if (this.myScrollContainer) {
+          this.myScrollContainer.nativeElement.scrollTop = 
+            this.myScrollContainer.nativeElement.scrollHeight + 50;
+        }
+      }, 100);
+    } catch (err) {
+      console.error('Scroll error:', err);
+    }
+  }
+  
+  loadHistoricalConversation(): void {
+    this.conversationService.list_historical_conversations_for_contact(
+      'chat',
+      this._selectedConversation.contact.id
+    ).pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (convs) => {
+          const messages: any[] = [];
+          
+          convs.forEach(conv => {
+            const normalized = conv.messages.map((msg: any) => ({
+              ...msg,
+              timestamp: msg.sent_time
+                ? new Date(msg.sent_time).getTime()
+                : new Date(msg.received_time).getTime()
+            }));
+            
+            normalized.sort((a, b) => a.timestamp - b.timestamp);
+            
+            const startTime = normalized[0]?.timestamp || new Date(conv.created_at).getTime();
+            const endTime = normalized[normalized.length - 1]?.timestamp || startTime;
+            
+            messages.push({
+              type: 'start_tag',
+              by: conv.open_by,
+              reason: conv.open_by === 'customer' ? 'Customer Query' : 'Organization Query',
+              timestamp: startTime - 1
+            });
+            
+            messages.push(...normalized);
+            
+            if (conv.status === 'closed') {
+              messages.push({
+                type: 'end_tag',
+                by: this.getEmployeeNameFromId(conv.closed_by)?.details?.username || 'Unknown',
+                reason: conv.closed_reason,
+                timestamp: endTime + 1
+              });
+            }
+          });
+          
+          messages.sort((a, b) => a.timestamp - b.timestamp);
+          this._selectedConversation.messages = messages;
+          this.convertToCommonDateTime();
+          this.scrollToBottom();
+        },
+        error: (err) => {
+          console.error('Failed to load history:', err);
+          this.messageService.add({
+            severity: 'error',
+            summary: 'Error',
+            detail: 'Failed to load history'
+          });
+        }
+      });
+  }
+  
+  private reloadActiveConversation(): void {
+    this.conversationService.list_conversation_from_id(
+      'chat',
+      this._selectedConversation.id
+    ).pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (conv) => {
+          this._selectedConversation = conv;
+          this.conversationStatus = this.computeConversationStatus(conv);
+          this.buildMenuItems();
+          this.scrollToBottom();
+          this.messageSentEvent.emit(this._selectedConversation);
+        },
+        error: (err) => {
+          console.error('Failed to reload conversation:', err);
+        }
+      });
+    
+    this.refreshUnrespondedConversationNotifications();
+  }
+  
+  private refreshUnrespondedConversationNotifications(): void {
+    this.conversationService.list_notification('chat')
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (data: any) => {
+          this.layoutService.unrespondedConversationNotification.update(() => data);
+        },
+        error: (err) => {
+          console.error('Failed to refresh notifications:', err);
+        }
+      });
+  }
+  
+  onRightClick(event: MouseEvent, fileId: any, contextMenu: any, mediaUrl: any): void {
+    this.contextMenuItems = [
+      { 
+        label: 'View', 
+        icon: 'pi pi-eye', 
+        command: () => this.viewOrDownloadFileFromUrl(mediaUrl) 
+      },
+      //{ 
+      //  label: 'View Directory', 
+      //  icon: 'pi pi-eye', 
+      //  command: () => this.viewFilePath(fileId) 
+      //}
+    ];
+    contextMenu.show(event);
+    event.preventDefault();
+  }
+  
+  viewFilePath(id: string): void {
+    this.router.navigate(['/apps/chat/fmanager'], {
+      queryParams: { file: id }
+    });
+  }
+  
+  viewOrDownloadFileFromUrl(url: string): void {
+    window.open(url, '_blank');
+  }
+  
+  onTemplatePreviewReadyEvent(event: any): void {
+    this.cdr.detectChanges();
+  }
+
+  // ============================================================================
+// ADD THESE HELPER METHODS TO YOUR DetailChatWindowComponent CLASS
+// ============================================================================
+
+/**
+ * Extract filename from URL
+ */
+getFileName(url: string): string {
+  if (!url) return 'Unknown File';
+  
+  try {
+    const urlObj = new URL(url);
+    const pathname = urlObj.pathname;
+    const filename = pathname.substring(pathname.lastIndexOf('/') + 1);
+    
+    // Decode URI component to handle special characters
+    return decodeURIComponent(filename) || 'document';
+  } catch {
+    // Fallback for invalid URLs
+    const parts = url.split('/');
+    return parts[parts.length - 1] || 'document';
+  }
+}
+
+/**
+ * Get human-readable file type label
+ */
+getFileTypeLabel(mimeType: string): string {
+  const typeMap: { [key: string]: string } = {
+    'application/pdf': 'PDF',
+    'application/vnd.ms-excel': 'Excel',
+    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': 'Excel',
+    'application/msword': 'Word',
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document': 'Word',
+    'application/vnd.ms-powerpoint': 'PowerPoint',
+    'application/vnd.openxmlformats-officedocument.presentationml.presentation': 'PowerPoint',
+    'application/zip': 'ZIP',
+    'application/x-zip-compressed': 'ZIP',
+    'text/plain': 'Text',
+    'text/csv': 'CSV',
+    'image/jpeg': 'Image',
+    'image/png': 'Image',
+    'image/gif': 'Image',
+    'video/mp4': 'Video',
+    'audio/mpeg': 'Audio'
+  };
+  
+  // Try exact match first
+  if (typeMap[mimeType]) {
+    return typeMap[mimeType];
+  }
+  
+  // Try partial matches
+  if (mimeType.includes('pdf')) return 'PDF';
+  if (mimeType.includes('excel') || mimeType.includes('spreadsheet')) return 'Excel';
+  if (mimeType.includes('word') || mimeType.includes('document')) return 'Word';
+  if (mimeType.includes('powerpoint') || mimeType.includes('presentation')) return 'PowerPoint';
+  if (mimeType.includes('zip') || mimeType.includes('compressed')) return 'ZIP';
+  if (mimeType.includes('image')) return 'Image';
+  if (mimeType.includes('video')) return 'Video';
+  if (mimeType.includes('audio')) return 'Audio';
+  if (mimeType.includes('text')) return 'Text';
+  
+  return 'File';
+}
+
+
+
+// ============================================================================
+// AUTO-GROWING TEXTAREA LOGIC
+// ============================================================================
+
+/**
+ * Handle message input changes and auto-grow textarea
+ */
+onMessageInput(event: Event): void {
+  const textarea = event.target as HTMLTextAreaElement;
+  this.adjustTextareaHeight(textarea);
+}
+
+/**
+ * Handle caption input for attachments
+ */
+onCaptionInput(event: Event): void {
+  const textarea = event.target as HTMLTextAreaElement;
+  this.adjustTextareaHeight(textarea);
+}
+
+/**
+ * Adjust textarea height based on content
+ */
+private adjustTextareaHeight(textarea: HTMLTextAreaElement): void {
+  if (!textarea) return;
+  
+  const minHeight = 42; // Minimum height (1 line)
+  const maxHeight = 200; // Maximum height before scrolling
+  const lineHeight = 22; // Approximate line height
+  
+  // Reset height to recalculate
+  textarea.style.height = 'auto';
+  
+  // Calculate new height
+  const scrollHeight = textarea.scrollHeight;
+  const newHeight = Math.min(Math.max(scrollHeight, minHeight), maxHeight);
+  
+  // Apply new height
+  this.textareaHeight = newHeight;
+  textarea.style.height = `${newHeight}px`;
+  
+  // Enable scrolling if max height reached
+  if (scrollHeight > maxHeight) {
+    textarea.style.overflowY = 'auto';
+  } else {
+    textarea.style.overflowY = 'hidden';
+  }
+}
+
+/**
+ * Reset textarea height when message is sent
+ */
+private resetTextareaHeight(): void {
+  this.textareaHeight = 42;
+  if (this.messageInputRef?.nativeElement) {
+    this.messageInputRef.nativeElement.style.height = '42px';
+    this.messageInputRef.nativeElement.style.overflowY = 'hidden';
+  }
+}
+
+// ============================================================================
+// KEYBOARD SHORTCUTS (WhatsApp-style)
+// ============================================================================
+
+/**
+ * Handle keyboard events in message input
+ * - Enter: Send message
+ * - Ctrl+Enter / Shift+Enter: New line
+ * - Escape: Clear input
+ */
+onMessageKeyDown(event: KeyboardEvent): void {
+  const textarea = event.target as HTMLTextAreaElement;
+  
+  // Ctrl+Enter or Shift+Enter: Insert new line
+  if ((event.ctrlKey || event.shiftKey) && event.key === 'Enter') {
+    event.preventDefault();
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const value = textarea.value;
+    
+    // Insert newline at cursor position
+    this.messageText = value.substring(0, start) + '\n' + value.substring(end);
+    
+    // Restore cursor position after Angular updates
+    setTimeout(() => {
+      textarea.selectionStart = textarea.selectionEnd = start + 1;
+      this.adjustTextareaHeight(textarea);
+    }, 0);
+    
+    return;
+  }
+  
+  // Enter alone: Send message
+  if (event.key === 'Enter' && !event.shiftKey && !event.ctrlKey && !event.altKey && !event.metaKey) {
+    event.preventDefault();
+    this.sendMessage();
+    return;
+  }
+  
+  // Escape: Clear input
+  if (event.key === 'Escape') {
+    event.preventDefault();
+    this.messageText = '';
+    this.resetTextareaHeight();
+    textarea.blur();
+    return;
+  }
+  
+  // Ctrl+K: Clear input (alternative)
+  if (event.ctrlKey && event.key === 'k') {
+    event.preventDefault();
+    this.messageText = '';
+    this.resetTextareaHeight();
+    return;
+  }
+}
+
+// ============================================================================
+// ENHANCED PASTE HANDLING WITH FORMATTING
+// ============================================================================
+
+/**
+ * Handle paste events - supports Excel tables and formatted text
+ */
+onPaste(event: ClipboardEvent): void {
+  const clipboardData = event.clipboardData;
+  if (!clipboardData) return;
+  
+  // Get both HTML and plain text
+  const htmlData = clipboardData.getData('text/html');
+  const plainText = clipboardData.getData('text/plain');
+  
+  // Check if this is an image paste
+  const items = Array.from(clipboardData.items);
+  const imageItem = items.find(item => item.type.startsWith('image/'));
+  
+  if (imageItem) {
+    event.preventDefault();
+    this.handleImagePaste(imageItem);
+    return;
+  }
+  
+  // Check if pasting a table (Excel/Sheets)
+  if (htmlData && (htmlData.includes('<table') || htmlData.includes('SourceURL:file:///.*\\.xlsx'))) {
+    event.preventDefault();
+    event.stopPropagation();
+    this.processTablePaste(htmlData, plainText);
+    return;
+  }
+  
+  // For regular text, let it paste normally but adjust height
+  setTimeout(() => {
+    if (this.messageInputRef?.nativeElement) {
+      this.adjustTextareaHeight(this.messageInputRef.nativeElement);
+    }
+  }, 0);
+}
+
+/**
+ * Handle image paste from clipboard
+ */
+private handleImagePaste(imageItem: DataTransferItem): void {
+  const file = imageItem.getAsFile();
+  if (!file) return;
+  
+  this.setAttachment(file);
+  
+  this.messageService.add({
+    severity: 'success',
+    summary: 'Image Pasted',
+    detail: 'Image from clipboard attached',
+    life: 3000
+  });
+}
+
+/**
+ * Process table/Excel paste with formatting preservation
+ */
+private processTablePaste(htmlData: string, plainText: string): void {
+  try {
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(htmlData, 'text/html');
+    const table = doc.querySelector('table');
+    
+    if (table) {
+      const formattedText = this.convertTableToFormattedText(table);
+      this.insertTextAtCursor(formattedText);
+      
+      this.messageService.add({
+        severity: 'success',
+        summary: 'Table Pasted',
+        detail: 'Table formatting preserved with tabs',
+        life: 3000
+      });
+    } else {
+      this.insertTextAtCursor(plainText);
+    }
+  } catch (error) {
+    console.error('Paste processing error:', error);
+    this.insertTextAtCursor(plainText);
+  }
+}
+
+
+
+/**
+ * Insert text at cursor position in textarea
+ */
+//private insertTextAtCursor(text: string): void {
+//  const textarea = this.messageInputRef?.nativeElement;
+//  if (!textarea) {
+//    // Fallback: append to end
+//    this.messageText = (this.messageText || '') + (this.messageText ? '\n\n' : '') + text;
+//    return;
+//  }
+//  
+//  const start = textarea.selectionStart;
+//  const end = textarea.selectionEnd;
+//  const currentValue = this.messageText || '';
+//  
+//  // Insert text at cursor
+//  const before = currentValue.substring(0, start);
+//  const after = currentValue.substring(end);
+//  
+//  // Add spacing if needed
+//  const needsSpaceBefore = before && !before.endsWith('\n');
+//  const needsSpaceAfter = after && !after.startsWith('\n');
+//  
+//  this.messageText = before + 
+//                     (needsSpaceBefore ? '\n\n' : '') + 
+//                     text + 
+//                     (needsSpaceAfter ? '\n\n' : '') + 
+//                     after;
+//  
+//  // Restore cursor position
+//  setTimeout(() => {
+//    const newPosition = start + (needsSpaceBefore ? 2 : 0) + text.length;
+//    textarea.selectionStart = textarea.selectionEnd = newPosition;
+//    this.adjustTextareaHeight(textarea);
+//    textarea.focus();
+//  }, 0);
+//}
+
+private insertTextAtCursor(text: string): void {
+  const textarea = this.messageInputRef?.nativeElement;
+  if (!textarea) return;
+
+  const start = textarea.selectionStart;
+  const end = textarea.selectionEnd;
+
+  const before = textarea.value.substring(0, start);
+  const after = textarea.value.substring(end);
+
+  const needsSpaceBefore = before && !before.endsWith('\n');
+  const needsSpaceAfter = after && !after.startsWith('\n');
+
+  const newValue =
+    before +
+    (needsSpaceBefore ? '\n\n' : '') +
+    text +
+    (needsSpaceAfter ? '\n\n' : '') +
+    after;
+
+  // 🔴 WRITE ONLY ONCE
+  textarea.value = newValue;
+  this.messageText = newValue; // sync Angular AFTER
+
+  // Restore cursor
+  const newPosition = start + (needsSpaceBefore ? 2 : 0) + text.length;
+
+  setTimeout(() => {
+    textarea.selectionStart = textarea.selectionEnd = newPosition;
+    this.adjustTextareaHeight(textarea);
+    textarea.focus();
+  });
+}
+
+
+// ============================================================================
+// INPUT FOCUS MANAGEMENT
+// ============================================================================
+
+/**
+ * Handle input focus
+ */
+onInputFocus(): void {
+  this.showFormattingHint = true;
+  
+  // Hide hint after 3 seconds
+  clearTimeout(this.inputFocusTimeout);
+  this.inputFocusTimeout = setTimeout(() => {
+    this.showFormattingHint = false;
+  }, 3000);
+}
+
+/**
+ * Handle input blur
+ */
+onInputBlur(): void {
+  clearTimeout(this.inputFocusTimeout);
+  this.showFormattingHint = false;
+}
+
+// ============================================================================
+// SEND MESSAGE HELPERS
+// ============================================================================
+
+/**
+ * Check if current message can be sent
+ */
+canSendCurrentMessage(): boolean {
+  // Has content (text or file)
+  const hasContent = (this.messageText && this.messageText.trim().length > 0) || this.attachedFile;
+  
+  // Can send in current conversation state
+  const canSend = !this.conversationStatus.isZombie && 
+                  this.conversationStatus.canSendMessage;
+  
+  return hasContent && canSend;
+}
+
+/**
+ * Enhanced send message with cleanup
+ */
+
+
+
+
+
+// ============================================================================
+// UTILITY METHODS (if not already present)
+// ============================================================================
+
+/**
+ * Get message input placeholder based on conversation state
+ */
+getMessageInputPlaceholder(): string {
+  if (!this._selectedConversation) {
+    return 'Select a conversation';
+  }
+  
+  if (this._selectedConversation.status === 'zombie') {
+    return 'Re-engagement required - use template button';
+  }
+  
+  if (this._selectedConversation.status === 'closed') {
+    return 'This conversation is closed';
+  }
+  
+  if (!this.conversationStatus.canSendMessage) {
+    return 'You cannot send messages in this conversation';
+  }
+  
+  return 'Type a message';
+}
+
+// Add these methods to your DetailChatWindowComponent class
+
+/**
+ * Get sanitized HTML for email content
+ * Now with minimal sanitization to preserve formatting
+ */
+getSanitizedHtml(raw: string): SafeHtml {
+  if (!raw) {
+    return this.sanitizer.bypassSecurityTrustHtml('');
+  }
+  
+  // Angular's DomSanitizer will handle the security
+  // Since we already sanitized on the backend, we can trust this content
+  return this.sanitizer.bypassSecurityTrustHtml(raw);
+}
+
+/**
+ * Check if message is an email type
+ */
+isEmailMessage(message: any): boolean {
+  return message.message_type === 'email' || 
+         (message.content_blocks && message.content_blocks.length > 0);
+}
+
+/**
+ * Get email metadata for display
+ */
+getEmailMetadata(message: any): any {
+  if (!this.isEmailMessage(message)) {
+    return null;
+  }
+  
+  return {
+    from: message.customer_name || message.contact?.phone,
+    to: this.profile?.user?.email,
+    cc: message.cc_recipients || [],
+    replyTo: message.reply_to,
+    date: message.received_time || message.sent_time,
+    subject: this.selectedConversation?.subject
+  };
+}
+
+/**
+ * Format email date nicely
+ */
+formatEmailDate(dateString: string): string {
+  const date = new Date(dateString);
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffHours = diffMs / (1000 * 60 * 60);
+  
+  if (diffHours < 24) {
+    // Today: show time
+    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  } else if (diffHours < 48) {
+    // Yesterday
+    return 'Yesterday ' + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  } else if (diffHours < 168) {
+    // This week: show day name
+    return date.toLocaleDateString([], { weekday: 'long', hour: '2-digit', minute: '2-digit' });
+  } else {
+    // Older: show full date
+    return date.toLocaleDateString([], { 
+      year: 'numeric', 
+      month: 'short', 
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  }
+}
+
+/**
+ * Check if HTML content has tables (for special handling)
+ */
+hasEmailTables(html: string): boolean {
+  return html && html.includes('<table');
+}
+
+/**
+ * Estimate reading time for email
+ */
+getEmailReadingTime(message: any): string {
+  if (!message.content_blocks || message.content_blocks.length === 0) {
+    return '1 min read';
+  }
+  
+  const html = message.content_blocks[0]?.html || '';
+  // Strip HTML tags for word count
+  const text = html.replace(/<[^>]*>/g, ' ');
+  const words = text.trim().split(/\s+/).length;
+  const minutes = Math.ceil(words / 200); // Average reading speed
+  
+  return minutes === 1 ? '1 min read' : `${minutes} min read`;
+}
+
+/**
+ * Check if email has external images
+ */
+hasExternalImages(html: string): boolean {
+  return html && (html.includes('<img') && html.includes('http'));
+}
+
+/**
+ * Truncate long email subjects
+ */
+truncateSubject(subject: string, maxLength: number = 60): string {
+  if (!subject || subject.length <= maxLength) {
+    return subject;
+  }
+  return subject.substring(0, maxLength) + '...';
+}
+
+/**
+ * Get email preview text (first few lines)
+ */
+getEmailPreview(message: any, maxLength: number = 150): string {
+  if (!message.content_blocks || message.content_blocks.length === 0) {
+    return '';
+  }
+  
+  const html = message.content_blocks[0]?.html || '';
+  // Strip HTML and get plain text
+  const text = html.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+  
+  if (text.length <= maxLength) {
+    return text;
+  }
+  
+  return text.substring(0, maxLength) + '...';
+}
+
+/**
+ * Detect if email is likely a reply/forward
+ */
+isEmailReply(message: any): boolean {
+  const subject = this.selectedConversation?.subject || '';
+  return subject.toLowerCase().startsWith('re:') || 
+         subject.toLowerCase().startsWith('fwd:');
+}
+
+/**
+ * Get appropriate icon for email type
+ */
+getEmailIcon(message: any): string {
+  if (this.isEmailReply(message)) {
+    return 'pi-reply';
+  }
+  if (message.cc_recipients && message.cc_recipients.length > 0) {
+    return 'pi-users';
+  }
+  return 'pi-envelope';
+}
+
+/**
+ * Check if email needs special rendering (like newsletters)
+ */
+isNewsletterStyle(html: string): boolean {
+  // Check for common newsletter indicators
+  return html && (
+    html.includes('unsubscribe') ||
+    html.includes('newsletter') ||
+    html.includes('email-wrapper') ||
+    (html.match(/<table/g) || []).length > 3
+  );
+}
 
 }

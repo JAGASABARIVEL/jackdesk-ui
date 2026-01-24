@@ -1,26 +1,30 @@
 <div class="flex bg-white" style="max-height: 100vh;">
-  <!-- Left: Modern Chat List -->
+  <!-- Left: Chat List -->
   <div class="w-4 chat-list-container" style="height: 80vh;">
-    <!-- Enhanced User Profile Section with Gradient Accent -->
+    <!-- User Profile Section -->
     <div class="user-profile-section mb-2">
       <div class="flex align-items-center gap-3">
         <div class="user-avatar">
-          <img *ngIf="profile.user?.image" [src]="profile.user.image" alt="avatar" 
-               class="border-circle h-4rem w-4rem" style="object-fit: cover;"/>
-          <p-avatar *ngIf="!profile.user?.image" 
-                    label="{{ profile.user.username | slice:0:1 }}" 
-                    size="normal"
-                    shape="circle">
-          </p-avatar>
+          @if (profile()?.user?.image) {
+            <img [src]="profile().user.image" 
+                 alt="avatar" 
+                 class="border-circle h-4rem w-4rem" 
+                 style="object-fit: cover;"/>
+          } @else {
+            <p-avatar [label]="getUsernameInitial()" 
+                      size="normal"
+                      shape="circle">
+            </p-avatar>
+          }
         </div>
         <div class="user-info flex-1">
-          <div class="username">{{ profile.user.username }}</div>
-          <div class="user-email">{{ profile.user.email }}</div>
+          <div class="username">{{ profile()?.user.username }}</div>
+          <div class="user-email">{{ profile()?.user.email }}</div>
         </div>
       </div>
     </div>
     
-    <!-- Modern Search -->
+    <!-- Search Bar -->
     <div class="search-container px-3">
       <p-inputgroup class="w-full">
         <p-inputgroup-addon>
@@ -29,142 +33,206 @@
         <input pInputText 
                type="text" 
                placeholder="Search conversations..." 
-               [(ngModel)]="searchQuery"
-               (input)="filterContacts()" 
+               [ngModel]="searchQuery()"
+               (ngModelChange)="onSearchInput($event)" 
                class="w-full" />
       </p-inputgroup>
+      
+      <!-- Search status indicator -->
+      @if (isSearching()) {
+        <small class="text-xs mt-1 text-color-secondary">
+          Searching organization-wide... ({{ totalRecords() }} results)
+        </small>
+      } @else {
+        <small class="text-xs mt-1 text-color-secondary">
+          Your conversations ({{ totalRecords() }} total)
+        </small>
+      }
     </div>
     
-    <!-- Scrollable Conversations -->
-    <div class="px-3" style="max-height: 55vh; overflow-y: auto;">
-      <!-- Conversations List -->
-      <ng-container *ngIf="filterconversations() && filterconversations().length > 0; else noConversations">
-        <div class="chat-list-item" 
-             [class.active]="conversation.id === selectedConversation()?.id" 
-             *ngFor="let conversation of filterconversations()"
-             (click)="onConversationSelected(conversation)">
-          <div class="conversation-item">
-            <div class="flex align-items-start justify-content-between gap-2">
-              <!-- Left: Avatar + Preview -->
-              <div class="flex gap-3 flex-1 min-w-0">
-                <!-- Avatar with Platform Badge -->
-                <div class="platform-indicator position-relative">
-                  <img *ngIf="conversation.contact?.img" 
-                       [src]="conversation.contact.img" 
-                       alt="avatar"
-                       class="border-circle" 
-                       style="width: 48px; height: 48px; object-fit: cover;" />
-                  <p-avatar *ngIf="conversation.contact?.name && !conversation.contact?.img"
-                            label="{{conversation.contact.name | slice:0:1}}"
-                            size="large" 
-                            shape="circle">
-                  </p-avatar>
-                  <p-avatar *ngIf="!conversation.contact?.name && !conversation.contact?.img && conversation.contact?.phone"
-                            label="{{conversation.contact.phone | slice:0:1}}"
-                            size="large" 
-                            shape="circle">
-                  </p-avatar>
+    <!-- Loading indicator -->
+    @if (isLoading()) {
+      <div class="flex justify-content-center align-items-center" style="height: 50vh;">
+        <p-progressSpinner 
+          styleClass="w-4rem h-4rem" 
+          strokeWidth="4" 
+          fill="transparent" 
+          animationDuration=".8s">
+        </p-progressSpinner>
+      </div>
+    } @else {
+      <!-- Conversations List with Infinite Scroll -->
+      <div 
+        #conversationList
+        class="px-3 conversation-scroll-container" 
+        style="max-height: 60vh; overflow-y: auto;"
+        (scroll)="isSearching() ? loadMoreSearchResults() : onScrollConversationList($event)">
+        
+        @if (displayedConversations().length > 0) {
+          @for (conversation of displayedConversations(); track trackConversation($index, conversation)) {
+            <div class="chat-list-item" 
+                 [class.active]="conversation.id === selectedConversation()?.id" 
+                 (click)="onConversationSelected(conversation)">
+              <div class="conversation-item">
+                <div class="flex align-items-start justify-content-between gap-2">
+                  <!-- Left: Avatar + Preview -->
+                  <div class="flex gap-3 flex-1 min-w-0">
+                    <!-- Avatar with Platform Badge -->
+                    <div class="platform-indicator position-relative">
+                      @if (conversation.contact?.image) {
+                        <img [src]="conversation.contact.image" 
+                             alt="avatar"
+                             class="border-circle" 
+                             style="width: 48px; height: 48px; object-fit: cover;" />
+                      } @else if (conversation.contact?.name) {
+                        <p-avatar [label]="conversation.contact.name | slice:0:1"
+                                  size="large" 
+                                  shape="circle">
+                        </p-avatar>
+                      } @else {
+                        <p-avatar [label]="conversation.contact.phone | slice:0:1"
+                                  size="large" 
+                                  shape="circle">
+                        </p-avatar>
+                      }
+                      
+                      <!-- Platform Icon Badge -->
+                      @switch (conversation.contact?.platform_name) {
+                        @case ('webchat') {
+                          <img class="platform-icon"
+                               src="../../../../../assets/Icons/Schedule/webchat.png" 
+                               style="width: 18px; height: 18px;">
+                        }
+                        @case ('whatsapp') {
+                          <img class="platform-icon"
+                               src="../../../../../assets/Icons/Schedule/whatsapp.svg" 
+                               style="width: 20px; height: 20px;">
+                        }
+                        @case ('messenger') {
+                          <img class="platform-icon"
+                               src="../../../../../assets/Icons/Schedule/messenger.png" 
+                               style="width: 18px; height: 18px;">
+                        }
+                        @case ('gmail') {
+                          <img class="platform-icon"
+                               src="../../../../../assets/Icons/Schedule/gmail.png" 
+                               style="width: 20px; height: 20px;">
+                        }
+                        @case ('gmessages') {
+                          <img class="platform-icon"
+                               src="../../../../../assets/Icons/Schedule/gmessages.png" 
+                               style="width: 20px; height: 20px;">
+                        }
+                      }
+                    </div>
+                    
+                    <!-- Name and Preview -->
+                    <div class="conversation-preview flex-1 min-w-0">
+                      <div class="contact-name text-overflow-ellipsis overflow-hidden white-space-nowrap">
+                        {{conversation.contact?.name || conversation.contact?.phone}}
+                        @if (conversation.id === -1) {
+                          <span class="text-xs text-color-secondary ml-2">(New)</span>
+                        }
+                      </div>
+                      <div class="last-message text-overflow-ellipsis overflow-hidden white-space-nowrap">
+                        @if (conversation.id === -1) {
+                          <span class="text-color-secondary">Click to start conversation</span>
+                        } @else if (conversation.subject) {
+                          📧 {{ conversation.subject | slice:0:50 }}
+                        } @else if (conversation.messages?.length > 0) {
+                          @let lastMsg = conversation.messages[conversation.messages.length - 1];
+                          @if (lastMsg.template) {
+                            @let tmpl = lastMsg.template | performJsonOp: 'load';
+                            @if (tmpl?.components?.length > 1) {
+                              📋 {{ tmpl.components[1]?.text | slice:0:50 }}
+                            }
+                          } @else {
+                            {{ lastMsg.message_body | slice:0:50 }}
+                          }
+                        } @else {
+                          No messages yet
+                        }
+                      </div>
+                    </div>
+                  </div>
                   
-                  <!-- Platform Icon Badge -->
-                  <img *ngIf="conversation.contact?.platform_name === 'webchat'" 
-                       class="platform-icon"
-                       src="../../../../../assets/Icons/Schedule/webchat.png" 
-                       style="width: 18px; height: 18px;">
-                  <img *ngIf="conversation.contact?.platform_name === 'whatsapp'" 
-                       class="platform-icon"
-                       src="../../../../../assets/Icons/Schedule/whatsapp.svg" 
-                       style="width: 20px; height: 20px;">
-                  <img *ngIf="conversation.contact?.platform_name === 'messenger'" 
-                       class="platform-icon"
-                       src="../../../../../assets/Icons/Schedule/messenger.png" 
-                       style="width: 18px; height: 18px;">
-                  <img *ngIf="conversation.contact?.platform_name === 'gmail'" 
-                       class="platform-icon"
-                       src="../../../../../assets/Icons/Schedule/gmail.png" 
-                       style="width: 20px; height: 20px;">
-                  <img *ngIf="conversation.contact?.platform_name === 'gmessages'" 
-                       class="platform-icon"
-                       src="../../../../../assets/Icons/Schedule/gmessages.png" 
-                       style="width: 20px; height: 20px;">
-                </div>
-                
-                <!-- Name and Preview -->
-                <div class="conversation-preview flex-1 min-w-0">
-                  <div class="contact-name text-overflow-ellipsis overflow-hidden white-space-nowrap">
-                    {{conversation.contact?.name || conversation.contact?.phone}}
-                  </div>
-                  <div class="last-message text-overflow-ellipsis overflow-hidden white-space-nowrap">
-                    <ng-container *ngIf="!conversation.messages[conversation.messages?.length - 1]?.template && !conversation?.subject">
-                      {{ conversation.messages[conversation.messages?.length - 1]?.message_body || 'No messages yet' }}
-                    </ng-container>
-                    <ng-container *ngIf="conversation.messages?.length">
-                      <ng-container *ngIf="conversation.messages[conversation.messages.length - 1]?.template as tmpl">
-                        <ng-container *ngIf="tmpl | performJsonOp: 'load' as loadedTemplate">
-                          <span *ngIf="loadedTemplate.components?.length > 1">
-                            📋 {{ loadedTemplate.components[1]?.text | slice:0:50 }}
-                          </span>
-                        </ng-container>
-                      </ng-container>
-                    </ng-container>
-                    <ng-container *ngIf="conversation?.subject">
-                      📧 {{ conversation?.subject | slice:0:50 }}
-                    </ng-container>
+                  <!-- Right: Time + Badge -->
+                  <div class="conversation-meta flex flex-column align-items-end gap-2">
+                    <div class="timestamp">
+                      {{getLastMessageTime(conversation)}}
+                    </div>
+                    @if (getUnreadCount(conversation) > 0) {
+                      <p-badge [value]="getUnreadCount(conversation).toString()"
+                               styleClass="unread-badge"/>
+                    }
                   </div>
                 </div>
-              </div>
-              
-              <!-- Right: Time + Badge -->
-              <div class="conversation-meta flex flex-column align-items-end gap-2">
-                <div class="timestamp">
-                  {{getLastMessageTime(conversation)}}
-                </div>
-                <p-badge *ngIf="getUnreadCount(conversation) > 0" 
-                         [value]="getUnreadCount(conversation).toString()"
-                         styleClass="unread-badge"/>
               </div>
             </div>
+          }
+          
+          <!-- Load More Indicator -->
+          @if (isLoadingMore()) {
+            <div class="flex justify-content-center py-3">
+              <p-progressSpinner 
+                styleClass="w-2rem h-2rem" 
+                strokeWidth="4" 
+                fill="transparent" 
+                animationDuration=".8s">
+              </p-progressSpinner>
+            </div>
+          }
+          
+          <!-- End of List Indicator -->
+          @if (!hasMorePages() && !isSearching()) {
+            <div class="text-center py-3 text-color-secondary text-sm">
+              <i class="pi pi-check-circle mr-2"></i>
+              All conversations loaded
+            </div>
+          }
+          
+          @if (!searchHasMore() && isSearching()) {
+            <div class="text-center py-3 text-color-secondary text-sm">
+              <i class="pi pi-check-circle mr-2"></i>
+              All search results loaded
+            </div>
+          }
+          
+        } @else {
+          <!-- Empty State -->
+          <div class="empty-state flex flex-column align-items-center justify-content-center text-center" 
+               style="height: 50vh;">
+            <i class="pi pi-inbox empty-icon" style="font-size: 4rem;"></i>
+            <h3 class="empty-title">No Conversations</h3>
+            <p class="empty-description max-w-20rem">
+              @if (searchQuery()) {
+                No conversations match "<strong>{{searchQuery()}}</strong>".
+              } @else {
+                You don't have any active conversations yet. New messages will appear here.
+              }
+            </p>
           </div>
-        </div>
-      </ng-container>
-      
-      <!-- Empty State -->
-      <ng-template #noConversations>
-        <div class="empty-state flex flex-column align-items-center justify-content-center text-center" 
-             style="height: 50vh;">
-          <i class="pi pi-inbox empty-icon" style="font-size: 4rem;"></i>
-          <h3 class="empty-title">No Conversations</h3>
-          <p class="empty-description max-w-20rem">
-            <ng-container *ngIf="searchQuery; else noActiveConversations">
-              No conversations match "<strong>{{searchQuery}}</strong>".
-            </ng-container>
-            <ng-template #noActiveConversations>
-              You don't have any active conversations yet. New messages will appear here.
-            </ng-template>
-          </p>
-        </div>
-      </ng-template>
-    </div>
+        }
+      </div>
+    }
   </div>
   
-  <!-- Right: Modern Detail View -->
+  <!-- Right: Detail View -->
   <div class="w-8">
-    <!-- Show detail when conversation selected -->
-    <ng-container *ngIf="selectedConversation() !== null; else noConversationSelected">
-      <app-detail-chat-window
-        (chatDetailsPageLoaded)="onChatDetailsPageLoad()" 
-        (messageSentEvent)="onMessageSent($event)" 
-        (conversationClosedEvent)="onConversationClosed($event)" 
-        (ownThisConversationEvent)="onOwnThisConversation($event)" 
-        (reassignThisConversationEvent)="onReassignThisConversationEvent($event)"
-        [reassignmentProcessSuccess]="reassignmentProcessResponse"
-        [selectedConversation]="selectedConversation()" 
-        [profile]="profile"
-        [employees]="employees">
-      </app-detail-chat-window>
-    </ng-container>
-    
-    <!-- Empty State for Detail View -->
-    <ng-template #noConversationSelected>
+    @if (selectedConversation()) {
+      
+        <!-- Existing Active Conversation -->
+        <app-detail-chat-window
+          (messageSentEvent)="onMessageSent($event)" 
+          (conversationClosedEvent)="onConversationClosed($event)" 
+          (ownThisConversationEvent)="onOwnThisConversation($event)" 
+          (reassignThisConversationEvent)="onReassignThisConversation()"
+          [selectedConversation]="selectedConversation()" 
+          [profile]="profile()"
+          [employees]="employees()">
+        </app-detail-chat-window>
+    } @else {
+      <!-- Empty State for Detail View -->
       <div class="flex flex-column align-items-center justify-content-center" 
            style="height: 80vh; background: linear-gradient(135deg, #f9fafb 0%, #ffffff 100%);">
         <div class="text-center max-w-30rem">
@@ -185,11 +253,34 @@
             <span class="inline-flex align-items-center gap-2 px-3 py-2 border-round" 
                   style="background: rgba(102, 126, 234, 0.1); color: #667eea; font-size: 0.9rem;">
               <i class="pi pi-info-circle"></i>
-              Tip: Use the search bar to find specific conversations quickly
+              Tip: Search across all conversations in your organization
             </span>
           </div>
         </div>
       </div>
-    </ng-template>
+    }
   </div>
 </div>
+
+<style>
+.conversation-scroll-container {
+  scroll-behavior: smooth;
+}
+
+.conversation-scroll-container::-webkit-scrollbar {
+  width: 6px;
+}
+
+.conversation-scroll-container::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+.conversation-scroll-container::-webkit-scrollbar-thumb {
+  background: #888;
+  border-radius: 3px;
+}
+
+.conversation-scroll-container::-webkit-scrollbar-thumb:hover {
+  background: #555;
+}
+</style>

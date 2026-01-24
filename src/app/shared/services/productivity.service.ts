@@ -1,16 +1,16 @@
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
-import { HOST } from '../../../environment'
+import { PRODUCTIVITY_HOST } from '../../../environment'
 
 @Injectable({
   providedIn: 'root'
 })
 export class ProductivityService {
 
-    employee_productivity_url = `${HOST}/productivity/employee`;
-    leaderboard_productivity_url = `${HOST}/productivity/summary`;
-    my_summary_url = `${HOST}/productivity/my_summary`;
+    employee_productivity_url = `${PRODUCTIVITY_HOST}/productivity/employee`;
+    leaderboard_productivity_url = `${PRODUCTIVITY_HOST}/productivity/summary`;
+    my_summary_url = `${PRODUCTIVITY_HOST}/productivity/my_summary`;
 
   profile;
   auth_token;

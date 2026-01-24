@@ -90,7 +90,7 @@ import { LayoutService } from '../../../layout/service/app.layout.service';
               label="Generate Report"
               icon="pi pi-search"
               class="p-button-primary"
-              [disabled]="!fromDates || !toDates"
+              [disabled]="!selected_user || !fromDates || !toDates"
               (click)="getProductivityData()">
             </button>
             <!--button

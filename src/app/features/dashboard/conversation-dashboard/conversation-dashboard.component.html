@@ -3,7 +3,7 @@
 <!-- Report Dialog -->
 <p-dialog 
   *ngIf="profile.user.role==='owner'" 
-  header="Conversations Report" 
+  header="Our Tickets" 
   [(visible)]="reportAllConversationVisible"
   [modal]="true" 
   [breakpoints]="{ '1199px': '75vw', '575px': '90vw' }" 
@@ -19,7 +19,7 @@
 
 <p-dialog 
   *ngIf="profile.user.role==='employee'" 
-  header="My Conversations Report"
+  header="My Tickets"
   [(visible)]="reportAllConversationVisible" 
   [modal]="true" 
   [breakpoints]="{ '1199px': '75vw', '575px': '90vw' }"
@@ -39,10 +39,10 @@
   <div class="flex flex-wrap justify-content-between align-items-center mb-4">
     <div>
       <h1 class="text-4xl font-bold text-900 m-0 mb-2">
-        {{ profile.user.role === 'owner' ? 'Organization' : 'My' }} Dashboard
+        {{ profile.user.role === 'owner' ? 'Our' : 'My' }} Tickets
       </h1>
       <p class="text-600 text-lg m-0">
-        Monitor performance and track conversation metrics
+        Quick view of your tickets
       </p>
     </div>
     <div class="flex gap-2 align-items-center">
@@ -68,7 +68,7 @@
   </div>
 
   <!-- Quick Stats Section -->
-  <div class="grid mb-4">
+  <div *ngIf="profile.user.role ==='owner'" class="grid mb-4">
     <div *ngFor="let stat of quickStats" class="col-12 md:col-6 lg:col-4 xl:col-4">
       <div 
         class="surface-card shadow-2 p-4 border-round transition-duration-200 h-full"
@@ -123,6 +123,62 @@
       </div>
     </div>
   </div>
+
+  <!-- Employee Only Section -->
+  <ng-container *ngIf="['employee', 'owner'].includes(profile.user.role)">
+    <div class="grid mb-4">
+      <div class="col-12">
+        <div class="surface-card shadow-2 p-4 border-round">
+          <div class="flex justify-content-between align-items-center mb-4">
+            <div>
+              <!--h3 class="text-xl font-bold text-900 m-0 mb-1">My Performance</h3-->
+              <p class="text-600 text-sm m-0">Your personal stats for the selected period</p>
+            </div>
+            <p-button 
+              icon="pi pi-chart-bar" 
+              label="List Tickets"
+              (onClick)="reportAllConversationVisible=true; filter_status_report=''"
+              [outlined]="true"
+              severity="info">
+            </p-button>
+          </div>
+          
+          <div class="grid">
+            <div class="col-12 md:col-6 lg:col-3">
+              <div class="text-center p-3 bg-blue-50 border-round">
+                <i class="pi pi-briefcase text-4xl text-blue-500 mb-2"></i>
+                <div class="text-2xl font-bold text-900">{{ myStats?.active || 0 }}</div>
+                <div class="text-600 text-sm">Active</div>
+              </div>
+            </div>
+            <div class="col-12 md:col-6 lg:col-3">
+              <div class="text-center p-3 bg-blue-50 border-round">
+                <i class="pi pi-bullseye text-4xl text-orange-500 mb-2"></i>
+                <div class="text-2xl font-bold text-900">{{ myStats?.zombie || 0 }}</div>
+                <div class="text-600 text-sm">Zombie</div>
+              </div>
+            </div>
+            <div class="col-12 md:col-6 lg:col-3">
+              <div class="text-center p-3 bg-green-50 border-round">
+                <i class="pi pi-check-circle text-4xl text-green-500 mb-2"></i>
+                <div class="text-2xl font-bold text-900">{{ myStats?.closed || 0 }}</div>
+                <div class="text-600 text-sm">Resolved</div>
+              </div>
+            </div>
+            <div class="col-12 md:col-6 lg:col-3">
+              <div class="text-center p-3 bg-purple-50 border-round">
+                <i class="pi pi-percentage text-4xl text-purple-500 mb-2"></i>
+                <div class="text-2xl font-bold text-900">{{ myStats?.closeRate || 0 }}%</div>
+                <div class="text-600 text-sm">Close Rate</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </ng-container>
+
+</div>
 
   <!-- New Conversations Section -->
   <div class="grid mb-4">
@@ -245,58 +301,4 @@
 
   </ng-container>
 
-  <!-- Employee Only Section -->
-  <ng-container *ngIf="profile.user.role === 'employee'">
-    <div class="grid mb-4">
-      <div class="col-12">
-        <div class="surface-card shadow-2 p-4 border-round">
-          <div class="flex justify-content-between align-items-center mb-4">
-            <div>
-              <h3 class="text-xl font-bold text-900 m-0 mb-1">My Performance</h3>
-              <p class="text-600 text-sm m-0">Your personal metrics for the selected period</p>
-            </div>
-            <p-button 
-              icon="pi pi-chart-bar" 
-              label="Detailed Report"
-              (onClick)="reportAllConversationVisible=true; filter_status_report=''"
-              [outlined]="true"
-              severity="info">
-            </p-button>
-          </div>
-          
-          <div class="grid">
-            <div class="col-12 md:col-6 lg:col-3">
-              <div class="text-center p-3 bg-blue-50 border-round">
-                <i class="pi pi-briefcase text-4xl text-blue-500 mb-2"></i>
-                <div class="text-2xl font-bold text-900">{{ myStats?.active || 0 }}</div>
-                <div class="text-600 text-sm">Active</div>
-              </div>
-            </div>
-            <div class="col-12 md:col-6 lg:col-3">
-              <div class="text-center p-3 bg-green-50 border-round">
-                <i class="pi pi-check-circle text-4xl text-green-500 mb-2"></i>
-                <div class="text-2xl font-bold text-900">{{ myStats?.closed || 0 }}</div>
-                <div class="text-600 text-sm">Resolved</div>
-              </div>
-            </div>
-            <div class="col-12 md:col-6 lg:col-3">
-              <div class="text-center p-3 bg-purple-50 border-round">
-                <i class="pi pi-percentage text-4xl text-purple-500 mb-2"></i>
-                <div class="text-2xl font-bold text-900">{{ myStats?.closeRate || 0 }}%</div>
-                <div class="text-600 text-sm">Close Rate</div>
-              </div>
-            </div>
-            <div class="col-12 md:col-6 lg:col-3">
-              <div class="text-center p-3 bg-orange-50 border-round">
-                <i class="pi pi-clock text-4xl text-orange-500 mb-2"></i>
-                <div class="text-2xl font-bold text-900">{{ (myStats?.responsetime || 0).toFixed(1) }}h</div>
-                <div class="text-600 text-sm">Avg Response</div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </ng-container>
-
-</div>
+  

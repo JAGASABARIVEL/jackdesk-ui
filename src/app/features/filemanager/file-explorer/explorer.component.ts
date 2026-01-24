@@ -109,7 +109,7 @@ export class FileExplorerComponent implements OnInit, OnDestroy {
 
         this.profile = JSON.parse(localStorage.getItem('profile'));
         if (!this.profile) {
-            this.router.navigate(["/apps/login"]);
+            this.router.navigate(["login"]);
             return;
         }
         else {

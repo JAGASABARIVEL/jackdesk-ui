@@ -1,388 +1,807 @@
 <p-toast></p-toast>
 
-<div>
-  <p-accordion value="0">
-    <p-accordion-panel value="0">
-      <p-accordion-header>Employee</p-accordion-header>
-      <p-accordion-content>
-        <div class="flex align-items-start justify-content-start">
-          <p-card class="mr-4">
-            <form [formGroup]="employeeForm">
-              <p-select [virtualScroll]="true" [virtualScrollItemSize]="10" placeholder="Employee Email" styleClass="w-full mb-4"
-                [options]="registeredUsers" filter="true" [loading]="registeredUsersLoading" optionLabel="email"
-                optionValue="id" class="w-full md:w-56" formControlName="employee_id" appendTo="body"
-                class="flex-auto" />
-              <p-select [virtualScroll]="true" [virtualScrollItemSize]="10" placeholder="Employee Role" styleClass="w-full mb-4"
-                [options]="registeredEmployeeTypes" filter="true" optionLabel="name"
-                optionValue="name" class="w-full md:w-56" formControlName="employment_role" appendTo="body"
-                class="flex-auto" />
-              <input placeholder="uuid" styleClass="w-full" id="uuid" pInputText formControlName="uuid"
-                class="flex-auto" />
-              <button pButton class="p-button-outlined" styleClass="w-full mt-4" label="Add" (click)="addEmployee()"
-                [disabled]="employeeForm.invalid"></button>
-            </form>
-          </p-card>
-          <div class="card">
-            <p-table [value]="employees" [paginator]="true" [rows]="10">
-              <ng-template pTemplate="header">
-                <tr>
-                  <th pSortableColumn="details.username">
-                    Username <p-sortIcon field="details.username" />
-                  </th>
-                  <th pSortableColumn="details.email">
-                    Email <p-sortIcon field="details.email" />
-                  </th>
-                  <th pSortableColumn="role">
-                    Role <p-sortIcon field="role" />
-                  </th>
-                  <th>Actions</th>
-                </tr>
-              </ng-template>
-              <ng-template pTemplate="body" let-employee>
-                <tr>
-                  <td>{{ employee.details.username }}</td>
-                  <td>{{ employee.details.email }}</td>
-                  <td>{{ employee.role }}</td>
-                  <td>
-                    <button [disabled]="employee.role === 'owner'" pButton type="button" icon="pi pi-trash"
-                      class="p-button-danger" (click)="removeEmployee(employee)">
-                    </button>
-                  </td>
-                </tr>
-              </ng-template>
-            </p-table>
-          </div>
-        </div>
-      </p-accordion-content>
-    </p-accordion-panel>
+<!-- Modern Header -->
+<div class="settings-header">
+  <h1 class="settings-title">
+    <i class="pi pi-cog"></i>
+    Admin Settings
+  </h1>
+  <p class="settings-subtitle">Manage your organization, team members, and integrations</p>
+</div>
 
-    <p-accordion-panel value="1">
-      <p-accordion-header>Agent</p-accordion-header>
-      <p-accordion-content>
-        <div class="flex align-items-start justify-content-start">
-          <p-card class="mr-4">
-            <form [formGroup]="agentForm">
-              <p-inputgroup class="mb-4">
-                <input placeholder="email" styleClass="w-full" id="agent_email" pInputText formControlName="agent_email"
-                  (keyup)="validateAgentEmailAvailable()" />
+<!-- Tabbed Navigation -->
+<p-tabview [(activeIndex)]="activeTabIndex" styleClass="modern-tabs">
+  
+  <!-- Employee Management Tab -->
+  <p-tabpanel>
+    <ng-template pTemplate="header">
+      <div class="tab-header">
+        <i class="pi pi-users"></i>
+        <span>Employees</span>
+      </div>
+    </ng-template>
+    
+    <div class="tab-content">
+      <div class="content-grid">
+        <!-- Add Employee Card -->
+        <p-card class="add-card">
+          <ng-template pTemplate="header">
+            <div class="card-header-custom">
+              <i class="pi pi-user-plus"></i>
+              <h3>Add Employee</h3>
+            </div>
+          </ng-template>
+          
+          <form [formGroup]="employeeForm">
+            <div class="form-field">
+              <label for="employee_email">Employee Email</label>
+              <p-select 
+                [virtualScroll]="true" 
+                [virtualScrollItemSize]="10" 
+                placeholder="Select Employee" 
+                styleClass="w-full"
+                [options]="registeredUsers" 
+                filter="true" 
+                [loading]="registeredUsersLoading" 
+                optionLabel="email"
+                optionValue="id" 
+                formControlName="employee_id" 
+                appendTo="body"
+              />
+            </div>
+            
+            <div class="form-field">
+              <label for="employee_role">Role</label>
+              <p-select 
+                [virtualScroll]="true" 
+                [virtualScrollItemSize]="10" 
+                placeholder="Select Role" 
+                styleClass="w-full"
+                [options]="registeredEmployeeTypes" 
+                filter="true" 
+                optionLabel="name"
+                optionValue="name" 
+                formControlName="employment_role" 
+                appendTo="body"
+              />
+            </div>
+            
+            <div class="form-field">
+              <label for="uuid">UUID</label>
+              <input 
+                placeholder="Enter UUID" 
+                id="uuid" 
+                pInputText 
+                formControlName="uuid"
+                class="w-full"
+              />
+            </div>
+            
+            <p-button 
+              label="Add Employee" 
+              icon="pi pi-plus"
+              styleClass="w-full mt-3" 
+              (click)="addEmployee()"
+              [disabled]="employeeForm.invalid"
+            />
+          </form>
+        </p-card>
+
+        <!-- Employee List -->
+        <div class="list-card">
+          <div class="list-header">
+            <h3>
+              <i class="pi pi-list"></i>
+              Current Employees
+            </h3>
+            <span class="count-badge">{{ employees.length }}</span>
+          </div>
+          
+          <p-table [value]="employees" [paginator]="true" [rows]="10" [rowsPerPageOptions]="[5, 10, 20]">
+            <ng-template pTemplate="header">
+              <tr>
+                <th pSortableColumn="details.username">
+                  Username <p-sortIcon field="details.username" />
+                </th>
+                <th pSortableColumn="details.email">
+                  Email <p-sortIcon field="details.email" />
+                </th>
+                <th pSortableColumn="role">
+                  Role <p-sortIcon field="role" />
+                </th>
+                <th style="width: 100px">Actions</th>
+              </tr>
+            </ng-template>
+            <ng-template pTemplate="body" let-employee>
+              <tr>
+                <td>
+                  <div class="user-cell">
+                    <p-avatar [label]="employee.details.username.charAt(0).toUpperCase()" shape="circle" />
+                    <span>{{ employee.details.username }}</span>
+                  </div>
+                </td>
+                <td>{{ employee.details.email }}</td>
+                <td>
+                  <span class="role-badge" [class]="'role-' + employee.role">
+                    {{ employee.role }}
+                  </span>
+                </td>
+                <td>
+                  <p-button 
+                    [disabled]="employee.role === 'owner'" 
+                    icon="pi pi-trash"
+                    severity="danger"
+                    [text]="true"
+                    [rounded]="true"
+                    (click)="removeEmployee(employee)"
+                    pTooltip="Remove Employee"
+                    tooltipPosition="top"
+                  />
+                </td>
+              </tr>
+            </ng-template>
+            <ng-template pTemplate="emptymessage">
+              <tr>
+                <td colspan="4" class="empty-state">
+                  <i class="pi pi-users"></i>
+                  <p>No employees found</p>
+                </td>
+              </tr>
+            </ng-template>
+          </p-table>
+        </div>
+      </div>
+    </div>
+  </p-tabpanel>
+
+  <!-- Agent Management Tab -->
+  <p-tabpanel>
+    <ng-template pTemplate="header">
+      <div class="tab-header">
+        <i class="pi pi-user"></i>
+        <span>Agents</span>
+      </div>
+    </ng-template>
+    
+    <div class="tab-content">
+      <div class="content-grid">
+        <!-- Add Agent Card -->
+        <p-card class="add-card">
+          <ng-template pTemplate="header">
+            <div class="card-header-custom">
+              <i class="pi pi-user-plus"></i>
+              <h3>Add Agent</h3>
+            </div>
+          </ng-template>
+          
+          <form [formGroup]="agentForm">
+            <div class="form-field">
+              <label for="agent_email">Agent Email</label>
+              <p-inputgroup>
+                <input 
+                  placeholder="agent@example.com" 
+                  id="agent_email" 
+                  pInputText 
+                  formControlName="agent_email"
+                  (keyup)="validateAgentEmailAvailable()"
+                  class="w-full"
+                />
                 <p-inputgroup-addon>
-                  <i *ngIf="agentEmailValid" class="pi pi-check" style="color: var(--primary-color)"
-                    pTooltip="Email available" tooltipPosition="top"></i>
-                  <i *ngIf="!agentEmailValid" class="pi pi-times" style="color: red" pTooltip="Email not available"
-                    tooltipPosition="top"></i>
+                  <i 
+                    *ngIf="agentEmailValid" 
+                    class="pi pi-check text-green-500"
+                    pTooltip="Email available" 
+                    tooltipPosition="top"
+                  ></i>
+                  <i 
+                    *ngIf="!agentEmailValid && agentForm.get('agent_email')?.value" 
+                    class="pi pi-times text-red-500" 
+                    pTooltip="Email not available"
+                    tooltipPosition="top"
+                  ></i>
                 </p-inputgroup-addon>
               </p-inputgroup>
-              <input placeholder="username" styleClass="w-full" id="agent_username" pInputText
-                formControlName="agent_username" />
-              <button pButton class="p-button-outlined" styleClass="w-full mt-4" label="Add" (click)="addAgent()"
-                [disabled]="agentForm.invalid || !agentEmailValid"></button>
-            </form>
-          </p-card>
-          <div class="card">
-            <p-table [value]="agents" [paginator]="true" [rows]="10">
-              <ng-template pTemplate="header">
-                <tr>
-                  <th pSortableColumn="details.username">
-                    Username <p-sortIcon field="details.username" />
-                  </th>
-                  <th pSortableColumn="details.email">
-                    Email <p-sortIcon field="details.email" />
-                  </th>
-                  <th pSortableColumn="role">
-                    Role <p-sortIcon field="role" />
-                  </th>
-                  <th>Actions</th>
-                </tr>
-              </ng-template>
-              <ng-template pTemplate="body" let-agent>
-                <tr>
-                  <td>{{ agent.details.username }}</td>
-                  <td>{{ agent.details.email }}</td>
-                  <td>{{ agent.role }}</td>
-                  <td>
-                    <button [disabled]="agent.role === 'owner'" pButton type="button" icon="pi pi-trash"
-                      class="p-button-danger" (click)="removeAgent(agent)">
-                    </button>
-                  </td>
-                </tr>
-              </ng-template>
-            </p-table>
-          </div>
-        </div>
-      </p-accordion-content>
-    </p-accordion-panel>
-
-    <p-accordion-panel value="2">
-      <p-accordion-header>Add Custom Fields (Contact)</p-accordion-header>
-      <p-accordion-content>
-        <div class="card" header="Add New Custom Field">
-          <form (ngSubmit)="onCustomFiledsSubmit()" [formGroup]="fieldForm">
-            <div class="field grid">
-              <label for="name" class="col-fixed" style="width:100px">Field Name</label>
-              <div class="col">
-                <input id="name" type="text" pInputText formControlName="name"
-                  class="text-base text-color surface-overlay p-2 border-1 border-solid surface-border border-round appearance-none outline-none focus:border-primary" />
-              </div>
             </div>
-            <div class="field grid">
-              <label for="key" class="col-fixed" style="width:100px">Field Key</label>
-              <div class="col">
-                <input id="key" type="text" pInputText formControlName="key"
-                  class="text-base text-color surface-overlay p-2 border-1 border-solid surface-border border-round appearance-none outline-none focus:border-primary" />
-              </div>
+            
+            <div class="form-field">
+              <label for="agent_username">Username</label>
+              <input 
+                placeholder="Enter username" 
+                id="agent_username" 
+                pInputText
+                formControlName="agent_username"
+                class="w-full"
+              />
             </div>
-            <div class="field grid">
-              <label for="type" class="col-fixed" style="width:100px">Field Type</label>
-              <div class="col">
-                <p-select [options]="fieldTypes" optionLabel="label" optionValue="value" formControlName="field_type"
-                  class="text-base text-color surface-overlay p-2 border-1 border-solid surface-border border-round appearance-none outline-none focus:border-primary"></p-select>
-              </div>
-            </div>
-            <div class="field grid">
-              <label for="required" class="col-fixed" style="width:100px">Required</label>
-              <div class="col">
-                <p-checkbox formControlName="required" binary="true"
-                  class="text-base text-color surface-overlay p-2 border-1 border-solid surface-border border-round appearance-none outline-none focus:border-primary"></p-checkbox>
-              </div>
-            </div>
-            <div class="field grid" *ngIf="showOptionsField()">
-              <label for="options" class="col-fixed" style="width:100px">Options (comma separated)</label>
-              <div class="col">
-                <input id="options" type="text" pInputText formControlName="options"
-                  class="text-base text-color surface-overlay p-2 border-1 border-solid surface-border border-round appearance-none outline-none focus:border-primary" />
-              </div>
-            </div>
-            <div class="col-6">
-              <button pButton label="Add Field" type="submit" [disabled]="fieldForm.invalid"></button>
-            </div>
+            
+            <p-button 
+              label="Add Agent" 
+              icon="pi pi-plus"
+              styleClass="w-full mt-3" 
+              (click)="addAgent()"
+              [disabled]="agentForm.invalid || !agentEmailValid"
+            />
           </form>
-        </div>
-        <p-table [value]="customFields" [paginator]="true" [rows]="5" *ngIf="customFields.length > 0">
-          <ng-template pTemplate="header">
-            <tr>
-              <th>Name</th>
-              <th>Key</th>
-              <th>Type</th>
-              <th>Required</th>
-              <th>Actions</th>
-            </tr>
-          </ng-template>
-          <ng-template pTemplate="body" let-field>
-            <tr>
-              <td>{{ field.name }}</td>
-              <td>{{ field.key }}</td>
-              <td>{{ field.field_type }}</td>
-              <td>{{ field.required ? 'Yes' : 'No' }}</td>
-              <td>
-                <button pButton icon="pi pi-trash" class="p-button-danger p-button-sm"
-                  (click)="deleteField(field)"></button>
-              </td>
-            </tr>
-          </ng-template>
-        </p-table>
-      </p-accordion-content>
-    </p-accordion-panel>
+        </p-card>
 
-    <p-accordion-panel value="3">
-      <p-accordion-header>Block/Unblock Contact</p-accordion-header>
-      <p-accordion-content>
-        <p-table *ngIf="allBlockedContacts.length > 0" [value]="allBlockedContacts" [paginator]="true" [rows]="10">
+        <!-- Agent List -->
+        <div class="list-card">
+          <div class="list-header">
+            <h3>
+              <i class="pi pi-list"></i>
+              Current Agents
+            </h3>
+            <span class="count-badge">{{ agents.length }}</span>
+          </div>
+          
+          <p-table [value]="agents" [paginator]="true" [rows]="10" [rowsPerPageOptions]="[5, 10, 20]">
+            <ng-template pTemplate="header">
+              <tr>
+                <th pSortableColumn="details.username">
+                  Username <p-sortIcon field="details.username" />
+                </th>
+                <th pSortableColumn="details.email">
+                  Email <p-sortIcon field="details.email" />
+                </th>
+                <th pSortableColumn="role">
+                  Role <p-sortIcon field="role" />
+                </th>
+                <th style="width: 100px">Actions</th>
+              </tr>
+            </ng-template>
+            <ng-template pTemplate="body" let-agent>
+              <tr>
+                <td>
+                  <div class="user-cell">
+                    <p-avatar [label]="agent.details.username.charAt(0).toUpperCase()" shape="circle" />
+                    <span>{{ agent.details.username }}</span>
+                  </div>
+                </td>
+                <td>{{ agent.details.email }}</td>
+                <td>
+                  <span class="role-badge role-agent">
+                    {{ agent.role }}
+                  </span>
+                </td>
+                <td>
+                  <p-button 
+                    [disabled]="agent.role === 'owner'" 
+                    icon="pi pi-trash"
+                    severity="danger"
+                    [text]="true"
+                    [rounded]="true"
+                    (click)="removeAgent(agent)"
+                    pTooltip="Remove Agent"
+                    tooltipPosition="top"
+                  />
+                </td>
+              </tr>
+            </ng-template>
+            <ng-template pTemplate="emptymessage">
+              <tr>
+                <td colspan="4" class="empty-state">
+                  <i class="pi pi-user"></i>
+                  <p>No agents found</p>
+                </td>
+              </tr>
+            </ng-template>
+          </p-table>
+        </div>
+      </div>
+    </div>
+  </p-tabpanel>
+
+  <!-- Custom Fields Tab -->
+  <p-tabpanel>
+    <ng-template pTemplate="header">
+      <div class="tab-header">
+        <i class="pi pi-sliders-h"></i>
+        <span>Custom Fields</span>
+      </div>
+    </ng-template>
+    
+    <div class="tab-content">
+      <div class="content-grid">
+        <!-- Add Custom Field Card -->
+        <p-card class="add-card">
+          <ng-template pTemplate="header">
+            <div class="card-header-custom">
+              <i class="pi pi-plus-circle"></i>
+              <h3>Add Custom Field</h3>
+            </div>
+          </ng-template>
+          
+          <form [formGroup]="fieldForm" (ngSubmit)="onCustomFiledsSubmit()">
+            <div class="form-field">
+              <label for="field_name">Field Name</label>
+              <input 
+                id="field_name" 
+                type="text" 
+                pInputText 
+                formControlName="name"
+                placeholder="e.g., Customer Tier"
+                class="w-full"
+              />
+            </div>
+            
+            <div class="form-field">
+              <label for="field_key">Field Key</label>
+              <input 
+                id="field_key" 
+                type="text" 
+                pInputText 
+                formControlName="key"
+                placeholder="e.g., customer_tier"
+                class="w-full"
+              />
+            </div>
+            
+            <div class="form-field">
+              <label for="field_type">Field Type</label>
+              <p-select 
+                [options]="fieldTypes" 
+                optionLabel="label" 
+                optionValue="value" 
+                formControlName="field_type"
+                styleClass="w-full"
+              />
+            </div>
+            
+            <div class="form-field">
+              <label class="flex align-items-center gap-2">
+                <p-checkbox formControlName="required" binary="true" />
+                <span>Required Field</span>
+              </label>
+            </div>
+            
+            <div class="form-field" *ngIf="showOptionsField()">
+              <label for="options">Options (comma separated)</label>
+              <input 
+                id="options" 
+                type="text" 
+                pInputText 
+                formControlName="options"
+                placeholder="Gold, Silver, Bronze"
+                class="w-full"
+              />
+            </div>
+            
+            <p-button 
+              label="Add Field" 
+              icon="pi pi-plus"
+              type="submit" 
+              styleClass="w-full mt-3"
+              [disabled]="fieldForm.invalid"
+            />
+          </form>
+        </p-card>
+
+        <!-- Custom Fields List -->
+        <div class="list-card">
+          <div class="list-header">
+            <h3>
+              <i class="pi pi-list"></i>
+              Custom Fields
+            </h3>
+            <span class="count-badge">{{ customFields.length }}</span>
+          </div>
+          
+          <p-table 
+            [value]="customFields" 
+            [paginator]="true" 
+            [rows]="10" 
+            [rowsPerPageOptions]="[5, 10, 20]"
+          >
+            <ng-template pTemplate="header">
+              <tr>
+                <th>Name</th>
+                <th>Key</th>
+                <th>Type</th>
+                <th>Required</th>
+                <th style="width: 100px">Actions</th>
+              </tr>
+            </ng-template>
+            <ng-template pTemplate="body" let-field>
+              <tr>
+                <td>{{ field.name }}</td>
+                <td><code>{{ field.key }}</code></td>
+                <td>
+                  <span class="field-type-badge">{{ field.field_type }}</span>
+                </td>
+                <td>
+                  <i 
+                    [class]="field.required ? 'pi pi-check text-green-500' : 'pi pi-times text-gray-400'"
+                  ></i>
+                </td>
+                <td>
+                  <p-button 
+                    icon="pi pi-trash" 
+                    severity="danger"
+                    [text]="true"
+                    [rounded]="true"
+                    (click)="deleteField(field)"
+                    pTooltip="Delete Field"
+                    tooltipPosition="top"
+                  />
+                </td>
+              </tr>
+            </ng-template>
+            <ng-template pTemplate="emptymessage">
+              <tr>
+                <td colspan="5" class="empty-state">
+                  <i class="pi pi-sliders-h"></i>
+                  <p>No custom fields created yet</p>
+                </td>
+              </tr>
+            </ng-template>
+          </p-table>
+        </div>
+      </div>
+    </div>
+  </p-tabpanel>
+
+  <!-- Block/Unblock Contacts Tab -->
+  <p-tabpanel>
+    <ng-template pTemplate="header">
+      <div class="tab-header">
+        <i class="pi pi-ban"></i>
+        <span>Blocked Contacts</span>
+      </div>
+    </ng-template>
+    
+    <div class="tab-content">
+      <div class="single-column">
+        <div class="action-bar">
+          <h3>
+            <i class="pi pi-ban"></i>
+            Blocked Contacts
+          </h3>
+          <p-button 
+            icon="pi pi-plus" 
+            label="Block Contact" 
+            (click)="blockDialogVisible = true"
+          />
+        </div>
+        
+        <p-table 
+          *ngIf="allBlockedContacts.length > 0; else noBlockedContacts" 
+          [value]="allBlockedContacts" 
+          [paginator]="true" 
+          [rows]="10"
+          [rowsPerPageOptions]="[10, 20, 50]"
+        >
           <ng-template pTemplate="header">
             <tr>
               <th>Contact</th>
               <th>Type</th>
+              <th>Channel</th>
               <th>Reason</th>
               <th>Blocked At</th>
-              <th>Action</th>
+              <th style="width: 100px">Action</th>
             </tr>
           </ng-template>
           <ng-template pTemplate="body" let-row>
             <tr>
-              <td>{{ row.contact_value }}</td>
-              <td>{{ row.contact_type }}</td>
-              <td>{{ row.reason || '-' }}</td>
-              <td>{{ row.blocked_at | date: 'short' }}</td>
               <td>
-                <button pButton icon="pi pi-times" class="p-button-danger p-button-sm"
-                  (click)="unblockContact(row.platform, row.contact_value)"></button>
+                <strong>{{ row.contact_value }}</strong>
+              </td>
+              <td>
+                <span class="contact-type-badge">{{ row.contact_type }}</span>
+              </td>
+              <td>{{ row.platform_name }}</td>
+              <td>{{ row.reason || '-' }}</td>
+              <td>{{ row.blocked_at | date: 'medium' }}</td>
+              <td>
+                <p-button 
+                  icon="pi pi-unlock" 
+                  severity="success"
+                  [text]="true"
+                  [rounded]="true"
+                  (click)="unblockContact(row.platform, row.contact_value)"
+                  pTooltip="Unblock Contact"
+                  tooltipPosition="top"
+                />
               </td>
             </tr>
           </ng-template>
         </p-table>
-        <p-button icon="pi pi-plus" label="Block New Contact" class="p-button-sm p-mt-2"
-          (click)="blockDialogVisible = true"></p-button>
-      </p-accordion-content>
-    </p-accordion-panel>
-
-        <p-accordion-panel value="4">
-            <p-accordion-header>Platform</p-accordion-header>
-            <p-accordion-content>
-                <!-- Platforms Section -->
-<div *ngIf="profile.user.role == 'owner'" class="mb-4">
-  <h4 class="mb-3">Platforms</h4>
-  <p-table [value]="platforms" editable="true" dataKey="id">
-    <ng-template pTemplate="header">
-      <tr>
-        <th></th>
-        <th>App ID</th>
-        <th>Login ID</th>
-        <th>Secret Key</th>
-        <th>Token</th>
-        <th>Actions</th>
-      </tr>
-    </ng-template>
-    <ng-template pTemplate="body" let-rowData let-editing="editing">
-      <tr tooltipStyleClass="custom-tooltip-wide" [pTooltip]="'Name: ' + rowData.user_platform_name + '\nId: ' + rowData.login_id" tooltipPosition="top">
-        <!-- Icon -->
-        <td>
-          <i *ngIf="rowData.platform_name.startsWith('whatsapp')" class="pi pi-whatsapp text-green-500 text-xl"></i>
-          <i *ngIf="rowData.platform_name.startsWith('web')" class="pi pi-globe text-orange-400 text-xl"></i>
-          <i *ngIf="rowData.platform_name.startsWith('messenger')" class="pi pi-comment text-blue-400 text-xl"></i>
-          <i *ngIf="rowData.platform_name.startsWith('gmail')" class="pi pi-envelope text-red-500 text-xl"></i>
-          <i *ngIf="rowData.platform_name.startsWith('gmessages')" class="pi pi-send text-blue-500 text-xl"></i>
-        </td>
-        <!-- Editable Fields -->
-        <td [pEditableColumn]="rowData.app_id">
-          <p-cellEditor>
-            <ng-template pTemplate="input">
-              <input pInputText [(ngModel)]="rowData.app_id" />
-            </ng-template>
-            <ng-template pTemplate="output">
-              {{ rowData.app_id }}
-            </ng-template>
-          </p-cellEditor>
-        </td>
-        <td [pEditableColumn]="rowData.login_id">
-          <p-cellEditor>
-            <ng-template pTemplate="input">
-              <input pInputText [(ngModel)]="rowData.login_id" />
-            </ng-template>
-            <ng-template pTemplate="output">
-              {{ rowData.login_id }}
-            </ng-template>
-          </p-cellEditor>
-        </td>
-        <td [pEditableColumn]="rowData.secret_key">
-          <p-cellEditor>
-            <ng-template pTemplate="input">
-              <input pInputText [(ngModel)]="rowData.secret_key" />
-            </ng-template>
-            <ng-template pTemplate="output">
-              {{ rowData.secret_key }}
-            </ng-template>
-          </p-cellEditor>
-        </td>
-        <td [pEditableColumn]="rowData.login_credentials">
-          <p-cellEditor>
-            <ng-template pTemplate="input">
-              <textarea pInputTextarea rows="2" cols="30" [(ngModel)]="rowData.login_credentials"></textarea>
-            </ng-template>
-            <ng-template pTemplate="output">
-              {{ rowData.login_credentials | slice:0:40 }}...
-            </ng-template>
-          </p-cellEditor>
-        </td>
-        <td>
-          <div class="flex gap-1">
-            <button pButton icon="pi pi-save" class="p-button-sm p-button-success p-button-outlined" (click)="savePlatform(rowData)"></button>
-          <button
-    *ngIf="rowData.platform_name === 'gmail'"
-    pButton
-    icon="pi pi-sign-in"
-    class="p-button-sm p-button-danger p-button-outlined"
-    (click)="connectGmail(rowData.id)"
-  ></button>
+        
+        <ng-template #noBlockedContacts>
+          <div class="empty-state-large">
+            <i class="pi pi-shield"></i>
+            <h3>No Blocked Contacts</h3>
+            <p>You haven't blocked any contacts yet</p>
+            <p-button 
+              icon="pi pi-plus" 
+              label="Block a Contact" 
+              (click)="blockDialogVisible = true"
+            />
           </div>
-      </tr>
+        </ng-template>
+      </div>
+    </div>
+  </p-tabpanel>
+
+  <!-- Channels Tab -->
+  <p-tabpanel *ngIf="profile.user.role == 'owner'">
+    <ng-template pTemplate="header">
+      <div class="tab-header">
+        <i class="pi pi-send"></i>
+        <span>Channels</span>
+      </div>
     </ng-template>
-  </p-table>
-</div>
-
-    <!-- Action Buttons -->
-    <div *ngIf="profile.user.role == 'owner'" class="flex gap-3">
-        <p-button label="Add" (click)="addNewPlatformDialogVisible=true" icon="pi pi-plus" class="mr-2"></p-button>
-        <!--p-button label="Save" (click)="onSave()" icon="pi pi-save"></p-button-->
+    
+    <div class="tab-content">
+      <div class="single-column">
+        <div class="action-bar">
+          <h3>
+            <i class="pi pi-send"></i>
+            Connected Channels
+          </h3>
+          <p-button 
+            label="Add Channel" 
+            (click)="addNewPlatformDialogVisible=true" 
+            icon="pi pi-plus"
+          />
+        </div>
+        
+        <p-table [value]="platforms" editable="true" dataKey="id">
+          <ng-template pTemplate="header">
+            <tr>
+              <th style="width: 60px"></th>
+              <th>Name</th>
+              <th>App ID</th>
+              <th>Login ID</th>
+              <th>Secret Key</th>
+              <th>Token</th>
+              <th style="width: 150px">Actions</th>
+            </tr>
+          </ng-template>
+          <ng-template pTemplate="body" let-rowData>
+            <tr 
+              tooltipStyleClass="custom-tooltip-wide" 
+              [pTooltip]="'Name: ' + rowData.user_platform_name + '\nId: ' + rowData.login_id" 
+              tooltipPosition="top"
+            >
+              <td>
+                <div class="channel-icon">
+                  <i *ngIf="rowData.platform_name.startsWith('whatsapp')" class="pi pi-whatsapp text-green-500 text-2xl"></i>
+                  <i *ngIf="rowData.platform_name.startsWith('web')" class="pi pi-globe text-orange-400 text-2xl"></i>
+                  <i *ngIf="rowData.platform_name.startsWith('messenger')" class="pi pi-comment text-blue-400 text-2xl"></i>
+                  <i *ngIf="rowData.platform_name.startsWith('gmail')" class="pi pi-envelope text-red-500 text-2xl"></i>
+                  <i *ngIf="rowData.platform_name.startsWith('gmessages')" class="pi pi-send text-blue-500 text-2xl"></i>
+                </div>
+              </td>
+              <td>
+                <strong>{{ rowData.user_platform_name }}</strong>
+              </td>
+              <td [pEditableColumn]="rowData.app_id">
+                <p-cellEditor>
+                  <ng-template pTemplate="input">
+                    <input pInputText [(ngModel)]="rowData.app_id" class="w-full" />
+                  </ng-template>
+                  <ng-template pTemplate="output">
+                    {{ rowData.app_id }}
+                  </ng-template>
+                </p-cellEditor>
+              </td>
+              <td [pEditableColumn]="rowData.login_id">
+                <p-cellEditor>
+                  <ng-template pTemplate="input">
+                    <input pInputText [(ngModel)]="rowData.login_id" class="w-full" />
+                  </ng-template>
+                  <ng-template pTemplate="output">
+                    {{ rowData.login_id }}
+                  </ng-template>
+                </p-cellEditor>
+              </td>
+              <td [pEditableColumn]="rowData.secret_key">
+                <p-cellEditor>
+                  <ng-template pTemplate="input">
+                    <input pInputText [(ngModel)]="rowData.secret_key" class="w-full" />
+                  </ng-template>
+                  <ng-template pTemplate="output">
+                    {{ rowData.secret_key }}
+                  </ng-template>
+                </p-cellEditor>
+              </td>
+              <td [pEditableColumn]="rowData.login_credentials">
+                <p-cellEditor>
+                  <ng-template pTemplate="input">
+                    <textarea pInputTextarea rows="2" [(ngModel)]="rowData.login_credentials" class="w-full"></textarea>
+                  </ng-template>
+                  <ng-template pTemplate="output">
+                    {{ rowData.login_credentials | slice:0:40 }}...
+                  </ng-template>
+                </p-cellEditor>
+              </td>
+              <td>
+                <div class="flex gap-2">
+                  <p-button 
+                    icon="pi pi-save" 
+                    severity="success"
+                    [outlined]="true"
+                    [rounded]="true"
+                    (click)="savePlatform(rowData)"
+                    pTooltip="Save Changes"
+                    tooltipPosition="top"
+                  />
+                  <p-button
+                    *ngIf="rowData.platform_name === 'gmail'"
+                    icon="pi pi-sign-in"
+                    severity="danger"
+                    [outlined]="true"
+                    [rounded]="true"
+                    (click)="connectGmail(rowData.id)"
+                    pTooltip="Connect Gmail"
+                    tooltipPosition="top"
+                  />
+                </div>
+              </td>
+            </tr>
+          </ng-template>
+          <ng-template pTemplate="emptymessage">
+            <tr>
+              <td colspan="7" class="empty-state">
+                <i class="pi pi-send"></i>
+                <p>No channels configured</p>
+              </td>
+            </tr>
+          </ng-template>
+        </p-table>
+      </div>
     </div>
-            </p-accordion-content>
-        </p-accordion-panel>
-  </p-accordion>
-</div>
+  </p-tabpanel>
+</p-tabview>
 
-
-
-
-<p-dialog header="Block Contact" [(visible)]="blockDialogVisible" [modal]="true" [closable]="true"
-  [style]="{ width: '400px' }">
-  <div class="field grid">
-    <label for="platform" class="col-fixed" style="width:100px">Platform</label>
-    <div class="col">
+<!-- Dialogs remain the same -->
+<p-dialog header="Block Contact" [(visible)]="blockDialogVisible" [modal]="true" [closable]="true" [style]="{ width: '450px' }">
+  <div class="dialog-content">
+    <div class="form-field">
+      <label for="platform">Platform</label>
       <p-select
-        class="text-base text-color surface-overlay p-2 border-1 border-solid surface-border border-round appearance-none outline-none focus:border-primary"
-        id="platform" [options]="registeredPlatforms" [(ngModel)]="blockForm.platform" optionLabel="user_platform_name"
-        placeholder="Select Platform" [appendTo]="'body'">
-      </p-select>
+        id="platform" 
+        [options]="registeredPlatforms" 
+        [(ngModel)]="blockForm.platform" 
+        optionLabel="user_platform_name"
+        placeholder="Select Channel" 
+        [appendTo]="'body'"
+        styleClass="w-full"
+      />
     </div>
-  </div>
 
-  <div class="field grid">
-    <label for="contactValue" class="col-fixed" style="width:100px">Contact (Email or Phone)</label>
-    <div class="col">
+    <div class="form-field">
+      <label for="contactValue">Contact (Email or Phone)</label>
       <input
-        class="text-base text-color surface-overlay p-2 border-1 border-solid surface-border border-round appearance-none outline-none focus:border-primary"
-        id="contactValue" type="text" pInputText [(ngModel)]="blockForm.contact_value" />
+        id="contactValue" 
+        type="text" 
+        pInputText 
+        [(ngModel)]="blockForm.contact_value"
+        placeholder="Enter email or phone"
+        class="w-full"
+      />
+    </div>
+    
+    <div class="form-field">
+      <label for="reason">Reason (Optional)</label>
+      
+      <textarea 
+          id="reason" 
+        rows="3" 
+        pInputTextarea 
+        [(ngModel)]="blockForm.reason"
+        placeholder="Why are you blocking this contact?"
+        class="w-full">
+        </textarea>
     </div>
   </div>
-  <div class="field grid">
-    <label for="reason" class="col-fixed" style="width:100px">Reason (Optional)</label>
-    <div class="col">
-      <textarea
-        class="text-base text-color surface-overlay p-2 border-1 border-solid surface-border border-round appearance-none outline-none focus:border-primary"
-        id="reason" rows="2" pInputTextarea [(ngModel)]="blockForm.reason"></textarea>
-    </div>
-  </div>
+  
   <ng-template pTemplate="footer">
-    <button pButton label="Block" icon="pi pi-ban" (click)="submitBlockContact()"
-      [disabled]="!blockForm.contact_value || !blockForm.platform"></button>
+    <p-button 
+      label="Cancel" 
+      icon="pi pi-times" 
+      severity="secondary"
+      (click)="blockDialogVisible = false"
+    />
+    <p-button 
+      label="Block Contact" 
+      icon="pi pi-ban" 
+      severity="danger"
+      (click)="submitBlockContact()"
+      [disabled]="!blockForm.contact_value || !blockForm.platform"
+    />
   </ng-template>
 </p-dialog>
 
+<!-- Add Platform Dialog -->
+<p-dialog header="Add Channel" [modal]="true" [(visible)]="addNewPlatformDialogVisible" [style]="{ width: '500px' }">
+  <form [formGroup]="newPlatformformGroup">
+    <div class="form-field">
+      <label for="platform">Channel Type</label>
+      <p-select 
+        styleClass="w-full" 
+        [options]="supported_platforms" 
+        formControlName="selected_platform_ctrl" 
+        optionLabel="name" 
+        [filter]="true" 
+        filterBy="name" 
+        [showClear]="true" 
+        placeholder="Select a channel"
+      />
+    </div>
+    
+    <div class="form-field">
+      <label for="platform_name">Channel Name</label>
+      <input 
+        pInputText 
+        id="platform_name" 
+        formControlName="platformname_form_field_ctrl" 
+        class="w-full" 
+        placeholder="e.g., Main WhatsApp"
+        autocomplete="off" 
+      />
+    </div>
+    
+    <div class="form-field">
+      <label for="app_id">App ID</label>
+      <input 
+        pInputText 
+        id="app_id" 
+        formControlName="app_id_form_field_ctrl" 
+        class="w-full" 
+        autocomplete="off" 
+      />
+    </div>
+    
+    <div class="form-field">
+      <label for="login_id">Login ID</label>
+      <input 
+        pInputText 
+        id="login_id" 
+        formControlName="login_id_form_filed_ctrl" 
+        class="w-full" 
+        autocomplete="off" 
+      />
+    </div>
+    
+    <div class="form-field">
+      <label for="token">Token</label>
+      <input 
+        pInputText 
+        id="token" 
+        formControlName="token_form_filed_ctrl" 
+        class="w-full" 
+        autocomplete="off" 
+      />
+    </div>
+    
+    <div class="form-field">
+      <label for="secret_key">Secret Key</label>
+      <input 
+        pInputText 
+        id="secret_key" 
+        formControlName="secret_key_field_ctrl" 
+        class="w-full" 
+        autocomplete="off" 
+      />
+    </div>
+  </form>
+  
+  <ng-template pTemplate="footer">
+    <p-button 
+      label="Cancel" 
+      severity="secondary" 
+      (click)="addNewPlatformDialogVisible = false"
+    />
+    <p-button 
+      [disabled]="newPlatformformGroup.invalid" 
+      label="Save Channel" 
+      icon="pi pi-save" 
+      (click)="onAddPlatform()"
+    />
+  </ng-template>
+</p-dialog>
 
-
-
-
-    <!-- Add Platform Dialog -->
-    <p-dialog header="Add Platform" [modal]="true" [(visible)]="addNewPlatformDialogVisible" [style]="{ width: '25rem' }">
-        <form [formGroup]="newPlatformformGroup">
-            <div class="field mb-3">
-                <label for="platform" class="font-semibold">Platform</label>
-                <p-select class="w-full" [options]="supported_platforms" formControlName="selected_platform_ctrl" optionLabel="name" [filter]="true" filterBy="name" [showClear]="true" placeholder="Select a platform"></p-select>
-            </div>
-            <div class="field mb-3">
-                <label for="platform" class="font-semibold">Name</label>
-                <input pInputText id="platform_name" formControlName="platformname_form_field_ctrl" class="w-full" autocomplete="off" />
-            </div>
-            <div class="field mb-3">
-                <label for="app_id" class="font-semibold">App Id</label>
-                <input pInputText id="app_id" formControlName="app_id_form_field_ctrl" class="w-full" autocomplete="off" />
-            </div>
-            <div class="field mb-3">
-                <label for="login_id" class="font-semibold">Login Id</label>
-                <input pInputText id="login_id" formControlName="login_id_form_filed_ctrl" class="w-full" autocomplete="off" />
-            </div>
-            <div class="field mb-3">
-                <label for="token" class="font-semibold">Token</label>
-                <input pInputText id="token" formControlName="token_form_filed_ctrl" class="w-full" autocomplete="off" />
-            </div>
-            <div class="field mb-3">
-                <label for="secret_key" class="font-semibold">Secret Key</label>
-                <input pInputText id="secret_key" formControlName="secret_key_field_ctrl" class="w-full" autocomplete="off" />
-            </div>
-            <div class="flex justify-content-end gap-2">
-                <p-button label="Cancel" severity="secondary" (click)="addNewPlatformDialogVisible = false"></p-button>
-                <p-button [disabled]="newPlatformformGroup.invalid" label="Save" icon="pi pi-save" (click)="onAddPlatform()"></p-button>
-            </div>
-        </form>
-    </p-dialog>
 
 <!-- GMessage QR Code Dialog -->
 <p-dialog 

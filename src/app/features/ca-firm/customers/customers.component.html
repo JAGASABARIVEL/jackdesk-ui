@@ -1,0 +1,900 @@
+<!-- Contacts Dialog -->
+<p-dialog [(visible)]="displayContactsDialog" header="Manage Contacts" [modal]="true" [style]="{width:'700px'}">
+  <div *ngIf="selectedCustomer">
+    <div class="customer-header">
+      <div><h3>{{ selectedCustomer.customer_name }}</h3><p>{{ selectedCustomer.file_no }}</p></div>
+      <div class="header-actions-group">
+        <p-button icon="pi pi-refresh" (onClick)="loadCustomerContacts(selectedCustomer.id!)" [loading]="loadingContacts" styleClass="p-button-outlined" size="small" pTooltip="Refresh"></p-button>
+        <p-button label="Add Existing" icon="pi pi-user-plus" (onClick)="openAddContactsDialog()" styleClass="p-button-primary" size="small"></p-button>
+        <p-button label="Create New" icon="pi pi-plus" (onClick)="openCreateContactDialog()" styleClass="p-button-success" size="small"></p-button>
+      </div>
+    </div>
+    <div *ngIf="!loadingContacts">
+      <p-table [value]="customerContacts" [paginator]="customerContacts.length>5" [rows]="5" styleClass="p-datatable-sm">
+        <ng-template pTemplate="header">
+          <tr><th>Name</th><th>Phone</th><th>Platform</th><th>Role</th><th style="width:120px">Actions</th></tr>
+        </ng-template>
+        <ng-template pTemplate="body" let-contact>
+          <tr>
+            <td>
+              {{ contact.name }}
+              <p-tag *ngIf="contact.role_in_customer?.is_primary" value="PRIMARY" severity="success" styleClass="primary-badge"></p-tag>
+            </td>
+            <td>{{ contact.phone }}</td>
+            <td><p-chip [label]="contact.user_platform_name||'N/A'" styleClass="platform-chip"></p-chip></td>
+            <td><p-tag *ngIf="contact.role_in_customer" [value]="contact.role_in_customer.role_display||contact.role_in_customer.role" [severity]="getRoleSeverity(contact.role_in_customer.role)"></p-tag></td>
+            <td>
+              <p-button icon="pi pi-pencil" (onClick)="openEditContactDialog(contact)" [rounded]="true" [text]="true" severity="success" size="small" pTooltip="Edit"></p-button>
+              <p-button icon="pi pi-trash" (onClick)="removeContactFromCustomer(contact)" [rounded]="true" [text]="true" severity="danger" size="small" pTooltip="Remove"></p-button>
+            </td>
+          </tr>
+        </ng-template>
+        <ng-template pTemplate="emptymessage">
+          <tr><td colspan="5" class="text-center"><p>No contacts</p></td></tr>
+        </ng-template>
+      </p-table>
+    </div>
+    <div *ngIf="loadingContacts" class="loading-contacts"><i class="pi pi-spin pi-spinner"></i><p>Loading...</p></div>
+  </div>
+  <ng-template pTemplate="footer">
+    <p-button label="Close" icon="pi pi-times" (onClick)="displayContactsDialog=false" styleClass="p-button-text"></p-button>
+  </ng-template>
+</p-dialog>
+
+<!-- Add Existing Contacts -->
+<p-dialog [(visible)]="displayAddContactsDialog" header="Add Existing Contacts" [modal]="true" [style]="{width:'600px'}">
+  <span class="p-input-icon-left w-full mb-3">
+    <i class="pi pi-search"></i>
+    <input pInputText (input)="onSearchInput($event, availableContactDt)" [(ngModel)]="searchContactText" placeholder="Search..." class="w-full" />
+  </span>
+  <p-table #availableContactDt [value]="getAvailableContacts()" [(selection)]="selectedContactsForAdd" [paginator]="true" [rows]="5" dataKey="id" styleClass="p-datatable-sm">
+    <ng-template pTemplate="header">
+      <tr><th style="width:3rem"><p-tableHeaderCheckbox></p-tableHeaderCheckbox></th><th>Name</th><th>Phone</th><th>Platform</th></tr>
+    </ng-template>
+    <ng-template pTemplate="body" let-contact>
+      <tr><td><p-tableCheckbox [value]="contact"></p-tableCheckbox></td><td>{{ contact.name }}</td><td>{{ contact.phone }}</td><td><p-chip [label]="contact.user_platform_name||'N/A'"></p-chip></td></tr>
+    </ng-template>
+  </p-table>
+  <ng-template pTemplate="footer">
+    <p-button label="Cancel" icon="pi pi-times" (onClick)="displayAddContactsDialog=false" styleClass="p-button-text"></p-button>
+    <p-button [label]="'Add '+selectedContactsForAdd.length" icon="pi pi-check" (onClick)="addContactsToCustomer()" [disabled]="selectedContactsForAdd.length===0"></p-button>
+  </ng-template>
+</p-dialog>
+
+<!-- ============================================ -->
+<!-- Replace Create Contact Dialog with this -->
+<!-- ============================================ -->
+
+<p-dialog [(visible)]="displayCreateContactDialog" header="Create New Contact" [modal]="true" [style]="{width:'550px'}">
+  <form [formGroup]="contactForm" class="customer-form">
+    <div class="form-grid">
+      <!-- Name Field -->
+      <div class="form-field full-width">
+        <label class="form-label required">Name</label>
+        <input 
+          pInputText 
+          formControlName="name" 
+          placeholder="Contact name" 
+          class="w-full" />
+        <small class="p-error" *ngIf="contactForm.get('name')?.invalid && contactForm.get('name')?.touched">
+          Name is required
+        </small>
+      </div>
+
+      <!-- Platform Type -->
+      <div class="form-field">
+        <label class="form-label required">Platform Type</label>
+        <p-select 
+          formControlName="platform_name" 
+          appendTo="body" 
+          [options]="supported_platforms" 
+          optionValue="name" 
+          optionLabel="name" 
+          (onChange)="onPlatformNameChange($event.value)" 
+          placeholder="Select platform" 
+          [showClear]="true" 
+          styleClass="w-full">
+        </p-select>
+        <small class="p-error" *ngIf="contactForm.get('platform_name')?.invalid && contactForm.get('platform_name')?.touched">
+          Platform is required
+        </small>
+      </div>
+
+      <!-- Platform Instance -->
+      <div class="form-field" *ngIf="contactForm.get('platform_name')?.value">
+        <label class="form-label required">Platform Instance</label>
+        <p-select 
+          formControlName="platform_id" 
+          appendTo="body" 
+          [options]="platforms" 
+          optionValue="id" 
+          optionLabel="user_platform_name" 
+          placeholder="Select instance" 
+          styleClass="w-full">
+        </p-select>
+        <small class="p-error" *ngIf="contactForm.get('platform_id')?.invalid && contactForm.get('platform_id')?.touched">
+          Platform instance is required
+        </small>
+      </div>
+
+      <!-- WhatsApp Phone Number with Country Code -->
+      <ng-container *ngIf="isWhatsAppContact">
+        <div class="form-field full-width">
+          <label class="form-label required">
+            <i class="pi pi-whatsapp mr-1"></i>
+            WhatsApp Number
+          </label>
+          
+          <div class="whatsapp-phone-group">
+            <!-- Country Code Select -->
+            <p-select
+              [(ngModel)]="selectedCountryCode"
+              [ngModelOptions]="{standalone: true}"
+              [options]="supportedCountryCodes"
+              optionLabel="name"
+              placeholder="Country"
+              appendTo="body"
+              [showClear]="false"
+              (onChange)="onCountryCodeChange()"
+              styleClass="country-code-select">
+              
+              <ng-template pTemplate="selectedItem">
+                <div class="country-code-item" *ngIf="selectedCountryCode">
+                  <span class="flag">{{ selectedCountryCode.flag }}</span>
+                  <span class="code">+{{ selectedCountryCode.code }}</span>
+                </div>
+              </ng-template>
+              
+              <ng-template let-country pTemplate="item">
+                <div class="country-code-option">
+                  <span class="flag">{{ country.flag }}</span>
+                  <span class="name">{{ country.name }}</span>
+                  <span class="code">+{{ country.code }}</span>
+                </div>
+              </ng-template>
+            </p-select>
+
+            <!-- Phone Number Input -->
+            <input 
+              pInputText 
+              [(ngModel)]="phoneNumberWithoutCode"
+              [ngModelOptions]="{standalone: true}"
+              type="tel"
+              [placeholder]="selectedCountryCode ? selectedCountryCode.minLength + ' digits' : 'Select country first'"
+              [maxlength]="selectedCountryCode?.maxLength || 10"
+              (input)="onPhoneNumberInput()"
+              [disabled]="!selectedCountryCode"
+              class="phone-number-input" />
+          </div>
+
+          <!-- Phone Number Preview -->
+          <div class="phone-preview" *ngIf="selectedCountryCode && phoneNumberWithoutCode">
+            <i class="pi pi-check-circle" [class.success]="validatePhoneNumber()" [class.error]="!validatePhoneNumber()"></i>
+            <span class="preview-text">
+              Complete Number: <strong>+{{ selectedCountryCode.code }}{{ phoneNumberWithoutCode }}</strong>
+            </span>
+          </div>
+
+          <!-- Validation Message -->
+          <small class="p-error" *ngIf="!validatePhoneNumber() && (selectedCountryCode || phoneNumberWithoutCode)">
+            {{ getPhoneValidationMessage() }}
+          </small>
+
+          <!-- Help Text -->
+          <small class="help-text" *ngIf="!selectedCountryCode">
+            <i class="pi pi-info-circle"></i>
+            Select a country code first, then enter the phone number
+          </small>
+        </div>
+      </ng-container>
+
+      <!-- Standard Phone Number (Non-WhatsApp) -->
+      <div class="form-field full-width" *ngIf="!isWhatsAppContact && contactForm.get('platform_name')?.value">
+        <label class="form-label required">Phone Number</label>
+        <input 
+          pInputText 
+          formControlName="phone" 
+          placeholder="10-digit number" 
+          type="tel"
+          maxlength="10"
+          class="w-full" />
+        <small class="p-error" *ngIf="contactForm.get('phone')?.invalid && contactForm.get('phone')?.touched">
+          Please enter a valid 10-digit phone number
+        </small>
+      </div>
+
+      <!-- Category -->
+      <div class="form-field full-width">
+        <label class="form-label">Category</label>
+        <p-select 
+          formControlName="category" 
+          appendTo="body" 
+          [options]="categoryOptions" 
+          optionValue="value" 
+          optionLabel="label" 
+          styleClass="w-full">
+        </p-select>
+      </div>
+
+      <!-- Description (Optional) -->
+      <div class="form-field full-width">
+        <label class="form-label">Description</label>
+        <textarea 
+          pInputTextarea 
+          formControlName="description" 
+          rows="2"
+          placeholder="Additional notes about this contact"
+          class="w-full">
+        </textarea>
+      </div>
+    </div>
+  </form>
+  
+  <ng-template pTemplate="footer">
+    <p-button 
+      label="Cancel" 
+      icon="pi pi-times" 
+      (onClick)="displayCreateContactDialog=false" 
+      styleClass="p-button-text">
+    </p-button>
+    <p-button 
+      label="Create" 
+      icon="pi pi-check" 
+      (onClick)="saveContact()" 
+      [disabled]="!isContactFormValid()">
+    </p-button>
+  </ng-template>
+</p-dialog>
+
+<!-- ============================================ -->
+<!-- Replace Edit Contact Dialog with this -->
+<!-- ============================================ -->
+
+<p-dialog [(visible)]="displayEditContactDialog" header="Edit Contact" [modal]="true" [style]="{width:'550px'}">
+  <form [formGroup]="contactForm" class="customer-form">
+    <div class="form-grid">
+      <!-- Name Field -->
+      <div class="form-field full-width">
+        <label class="form-label required">Name</label>
+        <input 
+          pInputText 
+          formControlName="name" 
+          class="w-full" />
+        <small class="p-error" *ngIf="contactForm.get('name')?.invalid && contactForm.get('name')?.touched">
+          Name is required
+        </small>
+      </div>
+
+      <!-- Platform Info (Read-only) -->
+      <div class="form-field">
+        <label class="form-label">Platform</label>
+        <input 
+          pInputText 
+          [value]="selectedContact?.platform_name || 'N/A'" 
+          [disabled]="true"
+          class="w-full" />
+      </div>
+
+      <div class="form-field">
+        <label class="form-label">Instance</label>
+        <input 
+          pInputText 
+          [value]="selectedContact?.user_platform_name || 'N/A'" 
+          [disabled]="true"
+          class="w-full" />
+      </div>
+
+      <!-- WhatsApp Phone Number with Country Code (Edit Mode) -->
+      <ng-container *ngIf="isWhatsAppContact">
+        <div class="form-field full-width">
+          <label class="form-label required">
+            <i class="pi pi-whatsapp mr-1"></i>
+            WhatsApp Number
+          </label>
+          
+          <div class="whatsapp-phone-group">
+            <!-- Country Code Select -->
+            <p-select
+              [(ngModel)]="selectedCountryCode"
+              [ngModelOptions]="{standalone: true}"
+              [options]="supportedCountryCodes"
+              optionLabel="name"
+              placeholder="Country"
+              appendTo="body"
+              [showClear]="false"
+              (onChange)="onCountryCodeChange()"
+              styleClass="country-code-select">
+              
+              <ng-template pTemplate="selectedItem">
+                <div class="country-code-item" *ngIf="selectedCountryCode">
+                  <span class="flag">{{ selectedCountryCode.flag }}</span>
+                  <span class="code">+{{ selectedCountryCode.code }}</span>
+                </div>
+              </ng-template>
+              
+              <ng-template let-country pTemplate="item">
+                <div class="country-code-option">
+                  <span class="flag">{{ country.flag }}</span>
+                  <span class="name">{{ country.name }}</span>
+                  <span class="code">+{{ country.code }}</span>
+                </div>
+              </ng-template>
+            </p-select>
+
+            <!-- Phone Number Input -->
+            <input 
+              pInputText 
+              [(ngModel)]="phoneNumberWithoutCode"
+              [ngModelOptions]="{standalone: true}"
+              type="tel"
+              [placeholder]="selectedCountryCode ? selectedCountryCode.minLength + ' digits' : 'Select country first'"
+              [maxlength]="selectedCountryCode?.maxLength || 10"
+              (input)="onPhoneNumberInput()"
+              [disabled]="!selectedCountryCode"
+              class="phone-number-input" />
+          </div>
+
+          <!-- Phone Number Preview -->
+          <div class="phone-preview" *ngIf="selectedCountryCode && phoneNumberWithoutCode">
+            <i class="pi pi-check-circle" [class.success]="validatePhoneNumber()" [class.error]="!validatePhoneNumber()"></i>
+            <span class="preview-text">
+              Complete Number: <strong>+{{ selectedCountryCode.code }}{{ phoneNumberWithoutCode }}</strong>
+            </span>
+          </div>
+
+          <!-- Validation Message -->
+          <small class="p-error" *ngIf="!validatePhoneNumber() && (selectedCountryCode || phoneNumberWithoutCode)">
+            {{ getPhoneValidationMessage() }}
+          </small>
+        </div>
+      </ng-container>
+
+      <!-- Standard Phone Number (Non-WhatsApp Edit) -->
+      <div class="form-field full-width" *ngIf="!isWhatsAppContact">
+        <label class="form-label required">Phone Number</label>
+        <input 
+          pInputText 
+          formControlName="phone" 
+          type="tel"
+          maxlength="10"
+          class="w-full" />
+        <small class="p-error" *ngIf="contactForm.get('phone')?.invalid && contactForm.get('phone')?.touched">
+          Please enter a valid 10-digit phone number
+        </small>
+      </div>
+
+      <!-- Category -->
+      <div class="form-field full-width">
+        <label class="form-label">Category</label>
+        <p-select 
+          formControlName="category" 
+          appendTo="body" 
+          [options]="categoryOptions" 
+          optionValue="value" 
+          optionLabel="label" 
+          styleClass="w-full">
+        </p-select>
+      </div>
+
+      <!-- Description (Optional) -->
+      <div class="form-field full-width">
+        <label class="form-label">Description</label>
+        <textarea 
+          pInputTextarea 
+          formControlName="description" 
+          rows="2"
+          placeholder="Additional notes about this contact"
+          class="w-full">
+        </textarea>
+      </div>
+    </div>
+  </form>
+  
+  <ng-template pTemplate="footer">
+    <p-button 
+      label="Delete" 
+      icon="pi pi-trash" 
+      (onClick)="deleteContact(selectedContact)" 
+      severity="danger" 
+      styleClass="p-button-text">
+    </p-button>
+    <p-button 
+      label="Cancel" 
+      icon="pi pi-times" 
+      (onClick)="displayEditContactDialog=false" 
+      styleClass="p-button-text">
+    </p-button>
+    <p-button 
+      label="Update" 
+      icon="pi pi-check" 
+      (onClick)="updateContact()" 
+      [disabled]="!isContactFormValid()">
+    </p-button>
+  </ng-template>
+</p-dialog>
+
+
+<!-- Customer Form Dialog -->
+<p-dialog 
+  [(visible)]="displayDialog" 
+  [header]="isEditMode ? 'Edit Customer' : 'Add New Customer'"
+  [modal]="true" 
+  [style]="{width: '600px'}" 
+  [breakpoints]="{'960px': '75vw', '640px': '90vw'}"
+  [draggable]="false"
+  [resizable]="false"
+  styleClass="customer-dialog">
+  
+  <form [formGroup]="customerForm" class="customer-form">
+    <div class="form-grid">
+      <div class="form-field full-width">
+        <label for="customer_name" class="form-label required">Customer/Business Name</label>
+        <input 
+          pInputText 
+          id="customer_name" 
+          formControlName="customer_name"
+          placeholder="e.g., ABC Industries Pvt Ltd"
+          class="w-full" />
+        <small class="p-error" *ngIf="customerForm.get('customer_name')?.invalid && customerForm.get('customer_name')?.touched">
+          Customer name is required
+        </small>
+      </div>
+
+      <div class="form-field">
+        <label for="file_no" class="form-label required">File Number</label>
+        <input 
+          pInputText 
+          id="file_no" 
+          formControlName="file_no"
+          placeholder="CA-2024-001"
+          class="w-full" />
+        <small class="p-error" *ngIf="customerForm.get('file_no')?.invalid && customerForm.get('file_no')?.touched">
+          File number is required
+        </small>
+      </div>
+
+      <div class="form-field">
+        <label for="assigned_employee" class="form-label">Assigned Employee</label>
+        <p-select
+          id="assigned_employee"
+          formControlName="assigned_employee"
+          [options]="employees"
+          optionLabel="user_details.username"
+          optionValue="user"
+          placeholder="Select employee"
+          [filter]="true"
+          [showClear]="true"
+          appendTo="body"
+          styleClass="w-full">
+        </p-select>
+      </div>
+
+      <div class="form-field">
+        <label for="gstin" class="form-label">GSTIN</label>
+        <input 
+          pInputText 
+          id="gstin" 
+          formControlName="gstin"
+          placeholder="29ABCDE1234F1Z5"
+          style="text-transform: uppercase"
+          class="w-full" />
+        <small class="p-error" *ngIf="customerForm.get('gstin')?.invalid && customerForm.get('gstin')?.touched">
+          Invalid GSTIN format
+        </small>
+      </div>
+
+      <div class="form-field">
+        <label for="pan" class="form-label">PAN</label>
+        <input 
+          pInputText 
+          id="pan" 
+          formControlName="pan"
+          placeholder="ABCDE1234F"
+          style="text-transform: uppercase"
+          class="w-full" />
+        <small class="p-error" *ngIf="customerForm.get('pan')?.invalid && customerForm.get('pan')?.touched">
+          Invalid PAN format
+        </small>
+      </div>
+
+      <div class="form-field full-width">
+        <label for="address" class="form-label">Business Address</label>
+        <textarea 
+          pInputTextarea 
+          id="address" 
+          formControlName="address"
+          rows="3"
+          placeholder="Complete business address"
+          class="w-full">
+        </textarea>
+      </div>
+
+      <div class="form-field full-width">
+        <label for="notes" class="form-label">Internal Notes</label>
+        <textarea 
+          pInputTextarea 
+          id="notes" 
+          formControlName="notes"
+          rows="2"
+          placeholder="Additional notes or important information about this customer"
+          class="w-full">
+        </textarea>
+      </div>
+    </div>
+  </form>
+
+  <ng-template pTemplate="footer">
+    <div class="dialog-footer">
+      <p-button 
+        label="Cancel" 
+        icon="pi pi-times" 
+        (onClick)="hideDialog()"
+        styleClass="p-button-text">
+      </p-button>
+      <p-button 
+        [label]="isEditMode ? 'Update' : 'Create'" 
+        icon="pi pi-check" 
+        (onClick)="saveCustomer()"
+        [loading]="loading"
+        [disabled]="customerForm.invalid"
+        styleClass="p-button-primary">
+      </p-button>
+    </div>
+  </ng-template>
+</p-dialog>
+
+<!-- View Details Dialog -->
+<p-dialog 
+  [(visible)]="displayDetailsDialog" 
+  header="Customer Details"
+  [modal]="true" 
+  [style]="{width: '500px'}" 
+  [breakpoints]="{'960px': '75vw', '640px': '90vw'}"
+  styleClass="details-dialog">
+  
+  <div *ngIf="selectedCustomer" class="customer-details">
+    <div class="detail-header">
+      <div class="detail-icon">
+        <i class="pi pi-building"></i>
+      </div>
+      <div class="detail-header-info">
+        <h3>{{ selectedCustomer.customer_name }}</h3>
+        <p class="file-no">{{ selectedCustomer.file_no }}</p>
+        <p-tag 
+          [value]="selectedCustomer.is_active ? 'Active' : 'Inactive'" 
+          [severity]="getStatusSeverity(selectedCustomer.is_active)">
+        </p-tag>
+      </div>
+    </div>
+
+    <div class="detail-grid">
+      <div class="detail-item">
+        <label>GSTIN</label>
+        <span>{{ selectedCustomer.gstin || 'N/A' }}</span>
+      </div>
+      <div class="detail-item">
+        <label>PAN</label>
+        <span>{{ selectedCustomer.pan || 'N/A' }}</span>
+      </div>
+      <div class="detail-item full-width">
+        <label>Assigned Employee</label>
+        <span>{{ selectedCustomer.assigned_employee_name || 'Unassigned' }}</span>
+      </div>
+      <div class="detail-item full-width" *ngIf="selectedCustomer.address">
+        <label>Address</label>
+        <span>{{ selectedCustomer.address }}</span>
+      </div>
+      <div class="detail-item full-width" *ngIf="selectedCustomer.notes">
+        <label>Notes</label>
+        <span class="notes-text">{{ selectedCustomer.notes }}</span>
+      </div>
+    </div>
+  </div>
+
+  <ng-template pTemplate="footer">
+    <p-button 
+      label="Close" 
+      icon="pi pi-times" 
+      (onClick)="displayDetailsDialog = false"
+      styleClass="p-button-text">
+    </p-button>
+    <p-button 
+      label="Edit" 
+      icon="pi pi-pencil" 
+      (onClick)="editCustomer(selectedCustomer!); displayDetailsDialog = false"
+      styleClass="p-button-primary">
+    </p-button>
+  </ng-template>
+</p-dialog>
+
+<!-- PART 1: Main Layout, Stats, Filters, Table -->
+<p-toast></p-toast>
+<p-confirmDialog></p-confirmDialog>
+
+<div class="customers-container">
+  <!-- Header Section -->
+  <div class="header-section">
+    <div class="header-content">
+      <div class="title-section">
+        <h1 class="page-title">
+          <i class="pi pi-users"></i>
+          Customer Management
+        </h1>
+        <p class="page-subtitle">Manage your clients and customer relationships</p>
+      </div>
+      
+      <div class="header-actions">
+        <p-button 
+          label="Add Customer" 
+          icon="pi pi-plus" 
+          (onClick)="openNew()"
+          styleClass="p-button-primary">
+        </p-button>
+        <p-button 
+          label="Export" 
+          icon="pi pi-download" 
+          (onClick)="exportToExcel()"
+          styleClass="p-button-outlined">
+        </p-button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Stats Cards -->
+  <div class="summary-grid">
+    <p-card styleClass="summary-card">
+      <div class="summary-content">
+        <div class="summary-icon primary">
+          <i class="pi pi-users"></i>
+        </div>
+        <div class="summary-info">
+          <div class="summary-label">Total Customers</div>
+          <div class="summary-value">{{ customers.length }}</div>
+          <div class="summary-subtext">All registered clients</div>
+        </div>
+      </div>
+    </p-card>
+
+    <p-card styleClass="summary-card">
+      <div class="summary-content">
+        <div class="summary-icon success">
+          <i class="pi pi-check-circle"></i>
+        </div>
+        <div class="summary-info">
+          <div class="summary-label">Active Customers</div>
+          <div class="summary-value">{{ (customers | filter: 'is_active': true).length }}</div>
+          <div class="summary-subtext">Currently active</div>
+        </div>
+      </div>
+    </p-card>
+
+    <p-card styleClass="summary-card" [class.clickable]="getUnmappedContactsCount() > 0" (click)="toggleUnmappedFilter()">
+      <div class="summary-content">
+        <div class="summary-icon" [class.warning]="getUnmappedContactsCount() > 0" [class.success]="getUnmappedContactsCount() === 0">
+          <i class="pi" [class.pi-exclamation-triangle]="getUnmappedContactsCount() > 0" [class.pi-check]="getUnmappedContactsCount() === 0"></i>
+        </div>
+        <div class="summary-info">
+          <div class="summary-label">Unmapped Contacts</div>
+          <div class="summary-value">{{ getUnmappedContactsCount() }}</div>
+          <div class="summary-subtext">{{ showUnmappedOnly ? 'Click to show all' : 'Click to view' }}</div>
+        </div>
+      </div>
+    </p-card>
+  </div>
+
+  <!-- Filters Section -->
+  <p-card styleClass="filter-card">
+    <div class="filter-section">
+      <div class="filter-group">
+        <span class="p-input-icon-left flex-1">
+          <i class="pi pi-search"></i>
+          <input 
+            pInputText 
+            type="text" 
+            (input)="onCustomerSearchInput($event, customerDt)"
+            [(ngModel)]="searchText"
+            placeholder="Search by name, file no..."
+            class="w-full" />
+        </span>
+        
+        <p-select
+          [options]="employees"
+          [(ngModel)]="selectedEmployee"
+          optionLabel="user_details.username"
+          optionValue="id"
+          placeholder="Filter by Employee"
+          [showClear]="true"
+          appendTo="body"
+          styleClass="filter-select">
+        </p-select>
+        
+        <p-select
+          [options]="statusOptions"
+          [(ngModel)]="selectedStatus"
+          placeholder="Filter by Status"
+          [showClear]="true"
+          appendTo="body"
+          styleClass="filter-select">
+        </p-select>
+
+        <p-button 
+          [label]="showUnmappedOnly ? 'Show All' : 'Unmapped Only'" 
+          [icon]="showUnmappedOnly ? 'pi pi-eye' : 'pi pi-filter'" 
+          (onClick)="toggleUnmappedFilter()"
+          [severity]="showUnmappedOnly ? 'warn' : 'secondary'"
+          styleClass="p-button-outlined">
+        </p-button>
+      </div>
+    </div>
+  </p-card>
+
+  <!-- Customers Table -->
+  <p-card styleClass="table-card">
+    <p-table 
+      #customerDt
+      [value]="customers" 
+      [loading]="loading"
+      [paginator]="true" 
+      [rows]="10"
+      [showCurrentPageReport]="true"
+      [rowsPerPageOptions]="[10, 25, 50]"
+      currentPageReportTemplate="Showing {first} to {last} of {totalRecords} customers"
+      styleClass="p-datatable-gridlines p-datatable-striped"
+      responsiveLayout="scroll">
+      
+      <ng-template pTemplate="header">
+        <tr>
+          <th pSortableColumn="customer_name">
+            Customer Name <p-sortIcon field="customer_name"></p-sortIcon>
+          </th>
+          <th pSortableColumn="file_no">
+            File No <p-sortIcon field="file_no"></p-sortIcon>
+          </th>
+          <th pSortableColumn="assigned_employee_name">
+            Assigned To <p-sortIcon field="assigned_employee_name"></p-sortIcon>
+          </th>
+          <th>Contacts</th>
+          <th>Tax Details</th>
+          <th pSortableColumn="is_active">
+            Status <p-sortIcon field="is_active"></p-sortIcon>
+          </th>
+          <th style="width: 14rem">Actions</th>
+        </tr>
+      </ng-template>
+      
+      <ng-template pTemplate="body" let-customer>
+        <tr [class.unmapped-row]="!customer.contacts_count">
+          <td>
+            <div class="customer-info">
+              <div class="customer-name">{{ customer.customer_name }}</div>
+              <div class="customer-notes" *ngIf="customer.notes">
+                <i class="pi pi-info-circle"></i> {{ customer.notes | slice:0:50 }}{{ customer.notes.length > 50 ? '...' : '' }}
+              </div>
+            </div>
+          </td>
+          <td>
+            <p-chip [label]="customer.file_no" icon="pi pi-file"></p-chip>
+          </td>
+          <td>
+            <p-chip 
+              [label]="customer.assigned_employee_name || 'Unassigned'" 
+              icon="pi pi-user"
+              [styleClass]="customer.assigned_employee ? 'employee-chip' : 'unassigned-chip'">
+            </p-chip>
+          </td>
+          <td>
+            <div class="contacts-summary">
+              <p-chip 
+                *ngIf="customer.contacts_count > 0"
+                [label]="customer.contacts_count + ' contact' + (customer.contacts_count > 1 ? 's' : '')" 
+                icon="pi pi-users"
+                styleClass="contacts-chip">
+              </p-chip>
+              <p-tag 
+                *ngIf="!customer.contacts_count"
+                value="No contacts" 
+                severity="warn"
+                icon="pi pi-exclamation-triangle">
+              </p-tag>
+            </div>
+          </td>
+          <td>
+            <div class="tax-details">
+              <div class="tax-item" *ngIf="customer.gstin">
+                <span class="tax-label">GSTIN:</span>
+                <span class="tax-value">{{ customer.gstin }}</span>
+              </div>
+              <div class="tax-item" *ngIf="customer.pan">
+                <span class="tax-label">PAN:</span>
+                <span class="tax-value">{{ customer.pan }}</span>
+              </div>
+              <div *ngIf="!customer.gstin && !customer.pan" class="no-tax">N/A</div>
+            </div>
+          </td>
+          <td>
+            <p-tag 
+              [value]="customer.is_active ? 'Active' : 'Inactive'" 
+              [severity]="getStatusSeverity(customer.is_active)">
+            </p-tag>
+          </td>
+          <td>
+            <div class="action-buttons">
+              <p-button 
+                icon="pi pi-eye" 
+                (onClick)="viewDetails(customer)"
+                [rounded]="true"
+                [text]="true"
+                severity="info"
+                pTooltip="View Details"
+                tooltipPosition="top">
+              </p-button>
+              <p-button 
+                icon="pi pi-users" 
+                (onClick)="manageContacts(customer)"
+                [rounded]="true"
+                [text]="true"
+                severity="secondary"
+                pTooltip="Manage Contacts"
+                tooltipPosition="top"
+                [badge]="customer.contacts_count?.toString()"
+                [badgeClass]="customer.contacts_count ? 'success' : 'danger'">
+              </p-button>
+              <p-button 
+                icon="pi pi-pencil" 
+                (onClick)="editCustomer(customer)"
+                [rounded]="true"
+                [text]="true"
+                severity="success"
+                pTooltip="Edit"
+                tooltipPosition="top">
+              </p-button>
+              <p-button 
+                [icon]="customer.is_active ? 'pi pi-ban' : 'pi pi-check'" 
+                (onClick)="toggleStatus(customer)"
+                [rounded]="true"
+                [text]="true"
+                [severity]="customer.is_active ? 'warn' : 'success'"
+                [pTooltip]="customer.is_active ? 'Deactivate' : 'Activate'"
+                tooltipPosition="top">
+              </p-button>
+              <p-button 
+                icon="pi pi-trash" 
+                (onClick)="deleteCustomer(customer)"
+                [rounded]="true"
+                [text]="true"
+                severity="danger"
+                pTooltip="Delete"
+                tooltipPosition="top">
+              </p-button>
+            </div>
+          </td>
+        </tr>
+      </ng-template>
+      
+      <ng-template pTemplate="emptymessage">
+        <tr>
+          <td colspan="7" class="text-center">
+            <div class="empty-state">
+              <i class="pi pi-users" style="font-size: 3rem; color: #cbd5e1;"></i>
+              <p class="empty-text">{{ showUnmappedOnly ? 'No customers without contacts' : 'No customers found' }}</p>
+              <p-button 
+                *ngIf="!showUnmappedOnly"
+                label="Add First Customer" 
+                icon="pi pi-plus" 
+                (onClick)="openNew()"
+                styleClass="p-button-sm">
+              </p-button>
+              <p-button 
+                *ngIf="showUnmappedOnly"
+                label="Show All Customers" 
+                icon="pi pi-eye" 
+                (onClick)="toggleUnmappedFilter()"
+                styleClass="p-button-sm">
+              </p-button>
+            </div>
+          </td>
+        </tr>
+      </ng-template>
+    </p-table>
+  </p-card>
+</div>

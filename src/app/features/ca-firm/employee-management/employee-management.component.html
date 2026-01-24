@@ -1,0 +1,536 @@
+<!-- src/app/features/ca-firm/employee-management/employee-management.component.html -->
+<p-toast></p-toast>
+<p-confirmDialog></p-confirmDialog>
+
+<div class="employee-management-container">
+  <!-- Header Section -->
+  <div class="header-section">
+    <div class="header-content">
+      <div class="title-section">
+        <h1 class="page-title">
+          <i class="pi pi-users"></i>
+          Employee Management
+        </h1>
+        <p class="page-subtitle">Manage your organization's workforce</p>
+      </div>
+      
+      <div class="header-actions">
+        <p-button 
+          label="Add Employee" 
+          icon="pi pi-plus" 
+          (onClick)="openNew()"
+          styleClass="p-button-primary">
+        </p-button>
+        <p-button 
+          label="Export" 
+          icon="pi pi-download" 
+          (onClick)="exportToExcel()"
+          styleClass="p-button-outlined">
+        </p-button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Filters Section -->
+  <p-card styleClass="filter-card">
+    <div class="filter-section">
+      <div class="filter-group">
+        <span class="p-input-icon-left flex-1">
+          <i class="pi pi-search"></i>
+          <input 
+            pInputText 
+            type="text" 
+            #searchInput (input)="onSearchInput($event, dt)"
+            [(ngModel)]="searchText"
+            placeholder="Search by name, email, or employee ID..."
+            class="w-full" />
+        </span>
+        
+        <p-select
+          [options]="departments"
+          [(ngModel)]="selectedDepartment"
+          optionLabel="name"
+          optionValue="id"
+          placeholder="Filter by Department"
+          [showClear]="true"
+          appendTo="body"
+          styleClass="filter-select">
+        </p-select>
+        
+        <div class="stats-chips">
+          <p-chip 
+            [label]="'Total: ' + employees.length" 
+            icon="pi pi-users">
+          </p-chip>
+          <p-chip 
+            [label]="'Active: ' + (employees | filter: 'is_active': true).length" 
+            styleClass="success-chip">
+          </p-chip>
+        </div>
+      </div>
+    </div>
+  </p-card>
+
+  <!-- Employees Table -->
+  <p-card styleClass="table-card">
+    <p-table 
+    #dt
+      [value]="getFilteredEmployees()" 
+      [loading]="loading"
+      [paginator]="true" 
+      [rows]="10"
+      [showCurrentPageReport]="true"
+      [rowsPerPageOptions]="[10, 25, 50]"
+      currentPageReportTemplate="Showing {first} to {last} of {totalRecords} employees"
+      [globalFilterFields]="['user_details.username', 'user_details.email', 'employee_id', 'designation']"
+      styleClass="p-datatable-gridlines p-datatable-striped"
+      responsiveLayout="scroll"
+      [totalRecords]="totalRecords"
+    [first]="(currentPage - 1) * pageSize"
+    [lazy]="true"
+    [paginator]="true"
+    [rows]="pageSize"
+    (onLazyLoad)="onPageChange($event)"
+      >
+      
+      <ng-template pTemplate="header">
+        <tr>
+          <th style="width: 3rem"></th>
+          <th pSortableColumn="user_details.username">
+            Employee <p-sortIcon field="user_details.username"></p-sortIcon>
+          </th>
+          <th pSortableColumn="employee_id">
+            Employee ID <p-sortIcon field="employee_id"></p-sortIcon>
+          </th>
+          <th pSortableColumn="designation">
+            Designation <p-sortIcon field="designation"></p-sortIcon>
+          </th>
+          <th pSortableColumn="department_name">
+            Department <p-sortIcon field="department_name"></p-sortIcon>
+          </th>
+          <th pSortableColumn="monthly_salary">
+            Salary <p-sortIcon field="monthly_salary"></p-sortIcon>
+          </th>
+          <th pSortableColumn="date_of_joining">
+            Joining Date <p-sortIcon field="date_of_joining"></p-sortIcon>
+          </th>
+          <th pSortableColumn="is_active">
+            Status <p-sortIcon field="is_active"></p-sortIcon>
+          </th>
+          <th style="width: 12rem">Actions</th>
+        </tr>
+      </ng-template>
+      
+      <ng-template pTemplate="body" let-employee>
+        <tr>
+          <td>
+            <p-avatar 
+              [label]="getInitials(employee)" 
+              styleClass="mr-2" 
+              size="large" 
+              shape="circle"
+              [style]="{'background-color': '#667eea', 'color': '#ffffff'}">
+            </p-avatar>
+          </td>
+          <td>
+            <div class="employee-info">
+              <div class="employee-name">{{ employee.user_details?.username || 'N/A' }}</div>
+              <div class="employee-email">{{ employee.user_details?.email || 'N/A' }}</div>
+            </div>
+          </td>
+          <td>
+            <p-chip [label]="employee.employee_id"></p-chip>
+          </td>
+          <td>{{ employee.designation }}</td>
+          <td>
+            <p-chip 
+              [label]="employee.department_name || 'Unassigned'" 
+              icon="pi pi-briefcase"
+              styleClass="department-chip">
+            </p-chip>
+          </td>
+          <td>
+            <span class="salary-amount">{{ formatCurrency(employee.monthly_salary) }}</span>
+            <span class="salary-period">/month</span>
+          </td>
+          <td>{{ employee.date_of_joining | date: 'dd MMM yyyy' }}</td>
+          <td>
+            <p-tag 
+              [value]="employee.is_active ? 'Active' : 'Inactive'" 
+              [severity]="getStatusSeverity(employee.is_active)">
+            </p-tag>
+          </td>
+          <td>
+            <div class="action-buttons">
+              <p-button 
+                icon="pi pi-eye" 
+                (onClick)="viewDetails(employee)"
+                [rounded]="true"
+                [text]="true"
+                severity="info"
+                pTooltip="View Details"
+                tooltipPosition="top">
+              </p-button>
+              <p-button 
+                icon="pi pi-pencil" 
+                (onClick)="editEmployee(employee)"
+                [rounded]="true"
+                [text]="true"
+                severity="success"
+                pTooltip="Edit"
+                tooltipPosition="top">
+              </p-button>
+              <p-button 
+                [icon]="employee.is_active ? 'pi pi-ban' : 'pi pi-check'" 
+                (onClick)="toggleStatus(employee)"
+                [rounded]="true"
+                [text]="true"
+                [severity]="employee.is_active ? 'warn' : 'success'"
+                [pTooltip]="employee.is_active ? 'Deactivate' : 'Activate'"
+                tooltipPosition="top">
+              </p-button>
+              <p-button 
+                icon="pi pi-trash" 
+                (onClick)="deleteEmployee(employee)"
+                [rounded]="true"
+                [text]="true"
+                severity="danger"
+                pTooltip="Delete"
+                tooltipPosition="top">
+              </p-button>
+            </div>
+          </td>
+        </tr>
+      </ng-template>
+      
+      <ng-template pTemplate="emptymessage">
+        <tr>
+          <td colspan="9" class="text-center">
+            <div class="empty-state">
+              <i class="pi pi-users" style="font-size: 3rem; color: #cbd5e1;"></i>
+              <p class="empty-text">No employees found</p>
+              <p-button 
+                label="Add First Employee" 
+                icon="pi pi-plus" 
+                (onClick)="openNew()"
+                styleClass="p-button-sm">
+              </p-button>
+            </div>
+          </td>
+        </tr>
+      </ng-template>
+    </p-table>
+  </p-card>
+</div>
+
+<!-- Add/Edit Employee Dialog -->
+<p-dialog 
+  [(visible)]="displayDialog" 
+  [header]="isEditMode ? 'Edit Employee' : 'Add New Employee'"
+  [modal]="true" 
+  [style]="{width: '50vw'}" 
+  [breakpoints]="{'960px': '75vw', '640px': '90vw'}"
+  [draggable]="false"
+  [resizable]="false">
+  
+  <form [formGroup]="employeeForm" class="employee-form">
+    <div class="form-grid">
+      <!-- User Selection -->
+      <div class="form-field full-width">
+        <label for="user" class="form-label required">User Account</label>
+        <p-select
+          id="user"
+          formControlName="user"
+          [options]="users"
+          optionLabel="email"
+          optionValue="id"
+          placeholder="Select user account"
+          [filter]="true"
+          filterBy="email"
+          [showClear]="true"
+          styleClass="w-full"
+          appendTo="body"
+          [class.ng-invalid]="employeeForm.get('user')?.invalid && employeeForm.get('user')?.touched">
+        </p-select>
+        <small class="p-error" *ngIf="employeeForm.get('user')?.invalid && employeeForm.get('user')?.touched">
+          User account is required
+        </small>
+      </div>
+
+      <!-- Employee ID -->
+      <div class="form-field">
+        <label for="employee_id" class="form-label required">Employee ID</label>
+        <input 
+          pInputText 
+          id="employee_id" 
+          formControlName="employee_id"
+          placeholder="e.g., EMP001"
+          class="w-full"
+          [class.ng-invalid]="employeeForm.get('employee_id')?.invalid && employeeForm.get('employee_id')?.touched" />
+        <small class="p-error" *ngIf="employeeForm.get('employee_id')?.invalid && employeeForm.get('employee_id')?.touched">
+          Employee ID is required
+        </small>
+      </div>
+
+      <!-- Designation -->
+      <div class="form-field">
+        <label for="designation" class="form-label required">Designation</label>
+        <p-select
+          id="designation"
+          formControlName="designation"
+          [options]="designations"
+          placeholder="Select designation"
+          [editable]="true"
+          styleClass="w-full"
+          appendTo="body"
+          [class.ng-invalid]="employeeForm.get('designation')?.invalid && employeeForm.get('designation')?.touched">
+        </p-select>
+        <small class="p-error" *ngIf="employeeForm.get('designation')?.invalid && employeeForm.get('designation')?.touched">
+          Designation is required
+        </small>
+      </div>
+
+      <!-- Department -->
+      <div class="form-field">
+        <label for="department" class="form-label required">Department</label>
+        <p-select
+          id="department"
+          formControlName="department"
+          [options]="departments"
+          optionLabel="name"
+          optionValue="id"
+          placeholder="Select department"
+          [filter]="true"
+          appendTo="body"
+          styleClass="w-full"
+          [class.ng-invalid]="employeeForm.get('department')?.invalid && employeeForm.get('department')?.touched">
+        </p-select>
+        <small class="p-error" *ngIf="employeeForm.get('department')?.invalid && employeeForm.get('department')?.touched">
+          Department is required
+        </small>
+      </div>
+
+      <!-- Monthly Salary -->
+      <div class="form-field">
+        <label for="monthly_salary" class="form-label required">Monthly Salary (₹)</label>
+        <input 
+          pInputText 
+          id="monthly_salary" 
+          formControlName="monthly_salary"
+          type="number"
+          placeholder="50000"
+          class="w-full"
+          [class.ng-invalid]="employeeForm.get('monthly_salary')?.invalid && employeeForm.get('monthly_salary')?.touched" />
+        <small class="p-error" *ngIf="employeeForm.get('monthly_salary')?.invalid && employeeForm.get('monthly_salary')?.touched">
+          Valid salary is required
+        </small>
+      </div>
+
+      <!-- Date of Joining -->
+      <div class="form-field">
+        <label for="date_of_joining" class="form-label required">Date of Joining</label>
+        <p-datepicker
+          id="date_of_joining"
+          formControlName="date_of_joining"
+          [showIcon]="true"
+          dateFormat="yy-mm-dd"
+          placeholder="Select date"
+          styleClass="w-full"
+          [class.ng-invalid]="employeeForm.get('date_of_joining')?.invalid && employeeForm.get('date_of_joining')?.touched">
+        </p-datepicker>
+        <small class="p-error" *ngIf="employeeForm.get('date_of_joining')?.invalid && employeeForm.get('date_of_joining')?.touched">
+          Joining date is required
+        </small>
+      </div>
+
+      <!-- PAN Number -->
+      <div class="form-field">
+        <label for="pan_number" class="form-label">PAN Number</label>
+        <input 
+          pInputText 
+          id="pan_number" 
+          formControlName="pan_number"
+          placeholder="ABCDE1234F"
+          class="w-full"
+          style="text-transform: uppercase"
+          [class.ng-invalid]="employeeForm.get('pan_number')?.invalid && employeeForm.get('pan_number')?.touched" />
+        <small class="p-error" *ngIf="employeeForm.get('pan_number')?.invalid && employeeForm.get('pan_number')?.touched">
+          Invalid PAN format
+        </small>
+      </div>
+
+      <!-- Aadhar Number -->
+      <div class="form-field">
+        <label for="aadhar_number" class="form-label">Aadhar Number</label>
+        <input 
+          pInputText 
+          id="aadhar_number" 
+          formControlName="aadhar_number"
+          placeholder="123456789012"
+          class="w-full"
+          [class.ng-invalid]="employeeForm.get('aadhar_number')?.invalid && employeeForm.get('aadhar_number')?.touched" />
+        <small class="p-error" *ngIf="employeeForm.get('aadhar_number')?.invalid && employeeForm.get('aadhar_number')?.touched">
+          Invalid Aadhar format (12 digits)
+        </small>
+      </div>
+
+      <!-- Emergency Contact -->
+      <div class="form-field">
+        <label for="emergency_contact_name" class="form-label">Emergency Contact Name</label>
+        <input 
+          pInputText 
+          id="emergency_contact_name" 
+          formControlName="emergency_contact_name"
+          placeholder="Contact person name"
+          class="w-full" />
+      </div>
+
+      <div class="form-field">
+        <label for="emergency_contact_phone" class="form-label">Emergency Contact Phone</label>
+        <input 
+          pInputText 
+          id="emergency_contact_phone" 
+          formControlName="emergency_contact_phone"
+          placeholder="9876543210"
+          class="w-full"
+          [class.ng-invalid]="employeeForm.get('emergency_contact_phone')?.invalid && employeeForm.get('emergency_contact_phone')?.touched" />
+        <small class="p-error" *ngIf="employeeForm.get('emergency_contact_phone')?.invalid && employeeForm.get('emergency_contact_phone')?.touched">
+          Invalid phone format (10 digits)
+        </small>
+      </div>
+
+      <!-- Permanent Address -->
+      <div class="form-field full-width">
+        <label for="permanent_address" class="form-label">Permanent Address</label>
+        <textarea 
+          pInputTextarea 
+          id="permanent_address" 
+          formControlName="permanent_address"
+          rows="2"
+          placeholder="Enter permanent address"
+          class="w-full">
+        </textarea>
+      </div>
+
+      <!-- Current Address -->
+      <div class="form-field full-width">
+        <label for="current_address" class="form-label">Current Address</label>
+        <textarea 
+          pInputTextarea 
+          id="current_address" 
+          formControlName="current_address"
+          rows="2"
+          placeholder="Enter current address"
+          class="w-full">
+        </textarea>
+      </div>
+    </div>
+  </form>
+
+  <ng-template pTemplate="footer">
+    <div class="dialog-footer">
+      <p-button 
+        label="Cancel" 
+        icon="pi pi-times" 
+        (onClick)="hideDialog()"
+        styleClass="p-button-text">
+      </p-button>
+      <p-button 
+        [label]="isEditMode ? 'Update' : 'Save'" 
+        icon="pi pi-check" 
+        (onClick)="saveEmployee()"
+        [loading]="loading">
+      </p-button>
+    </div>
+  </ng-template>
+</p-dialog>
+
+<!-- View Details Dialog -->
+<p-dialog 
+  [(visible)]="displayDetailsDialog" 
+  header="Employee Details"
+  [modal]="true" 
+  [style]="{width: '40vw'}" 
+  [breakpoints]="{'960px': '75vw', '640px': '90vw'}">
+  
+  <div *ngIf="selectedEmployee" class="employee-details">
+    <div class="detail-header">
+      <p-avatar 
+        [label]="getInitials(selectedEmployee)" 
+        size="xlarge" 
+        shape="circle"
+        [style]="{'background-color': '#667eea', 'color': '#ffffff'}">
+      </p-avatar>
+      <div class="detail-header-info">
+        <h3>{{ selectedEmployee.user_details?.username }}</h3>
+        <p>{{ selectedEmployee.user_details?.email }}</p>
+        <p-tag 
+          [value]="selectedEmployee.is_active ? 'Active' : 'Inactive'" 
+          [severity]="getStatusSeverity(selectedEmployee.is_active)">
+        </p-tag>
+      </div>
+    </div>
+
+    <div class="detail-grid">
+      <div class="detail-item">
+        <label>Employee ID</label>
+        <span>{{ selectedEmployee.employee_id }}</span>
+      </div>
+      <div class="detail-item">
+        <label>Designation</label>
+        <span>{{ selectedEmployee.designation }}</span>
+      </div>
+      <div class="detail-item">
+        <label>Department</label>
+        <span>{{ selectedEmployee.department_name || 'N/A' }}</span>
+      </div>
+      <div class="detail-item">
+        <label>Monthly Salary</label>
+        <span>{{ formatCurrency(selectedEmployee.monthly_salary) }}</span>
+      </div>
+      <div class="detail-item">
+        <label>Date of Joining</label>
+        <span>{{ selectedEmployee.date_of_joining | date: 'dd MMM yyyy' }}</span>
+      </div>
+      <div class="detail-item">
+        <label>PAN Number</label>
+        <span>{{ selectedEmployee.pan_number || 'N/A' }}</span>
+      </div>
+      <div class="detail-item">
+        <label>Aadhar Number</label>
+        <span>{{ selectedEmployee.aadhar_number || 'N/A' }}</span>
+      </div>
+      <div class="detail-item">
+        <label>Emergency Contact</label>
+        <span>{{ selectedEmployee.emergency_contact_name || 'N/A' }}</span>
+      </div>
+      <div class="detail-item">
+        <label>Emergency Phone</label>
+        <span>{{ selectedEmployee.emergency_contact_phone || 'N/A' }}</span>
+      </div>
+      <div class="detail-item full-width">
+        <label>Permanent Address</label>
+        <span>{{ selectedEmployee.permanent_address || 'N/A' }}</span>
+      </div>
+      <div class="detail-item full-width">
+        <label>Current Address</label>
+        <span>{{ selectedEmployee.current_address || 'N/A' }}</span>
+      </div>
+    </div>
+  </div>
+
+  <ng-template pTemplate="footer">
+    <p-button 
+      label="Close" 
+      icon="pi pi-times" 
+      (onClick)="hideDialog()"
+      styleClass="p-button-text">
+    </p-button>
+    <p-button 
+      label="Edit" 
+      icon="pi pi-pencil" 
+      (onClick)="editEmployee(selectedEmployee!); displayDetailsDialog = false"
+      styleClass="p-button-primary">
+    </p-button>
+  </ng-template>
+</p-dialog>

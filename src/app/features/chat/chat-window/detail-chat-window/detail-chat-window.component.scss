@@ -1,416 +1,31 @@
-.template-status {
-    margin-top: -10px;
-    margin-left: 10px;
-}
-
-.drop-zone {
-  border: 2px dashed #128C7E;
-  padding: 20px;
-  border-radius: 8px;
-  background-color: #f7f7f7;
-  cursor: pointer;
-}
-
-.drop-zone:hover {
-  background-color: #e0f2f1;
-}
-
-.preview-container {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 10px;
-}
-
-.pdf-thumbnail {
-  width: 100px;
-  height: auto;
-  object-fit: contain;
-  border: 1px solid #ccc;
-  border-radius: 4px;
-}
-
-.file-name {
-  font-size: 0.9rem;
-  color: #333;
-}
-
-/* Red Line and Centered Text */
-.status-marker {
-  display: flex;
-  align-items: center;
-  justify-content: center; /* Centers the text with respect to the lines */
-  margin: 1rem 0; /* Space above and below */
- /* Red color for text */
-  font-size: 0.9rem;
-  text-align: center;
-}
-
-.status-marker .closed-text {
-  color: #ff0000;
-}
-.status-marker .open-text {
-  color: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-}
-.status-marker .closed-line {
-  flex: 1; /* Makes the line take up available space */
-  height: 2px; /* Slightly thicker line */
-  background-color: #ff0000; /* Red color */
-  margin: 0 10px; /* Spacing around the text */
-}
-
-.status-marker .open-line {
-  flex: 1; /* Makes the line take up available space */
-  height: 2px; /* Slightly thicker line */
-  background-color: linear-gradient(135deg, #667eea 0%, #764ba2 100%);/* Teal color */
-  margin: 0 10px; /* Spacing around the text */
-}
-
-.status-marker .status-text {
-  white-space: nowrap; /* Prevents text wrapping */
-  padding: 0 5px;
-  background-color: #fff; /* Matches the background to avoid overlap */
-  z-index: 1; /* Ensures the text is above the lines */
-}
-
-.chat-window {
-  background-color: #f5f0ed;
-  background-image: url("https://www.transparenttextures.com/patterns/wild-flowers.png");
-
-  background-repeat: repeat;
-  background-size: cover; /* or 'contain' depending on your design */
-}
-
-.media-grid {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 1rem;
-}
-
-.media-item {
-  width: 160px;
-  text-align: center;
-  background-color: #f8f9fa;
-  border: 1px solid #dcdcdc;
-}
-
-::ng-deep .wide-sidebar {
-  width: 39vw !important;
-  max-width: 39vw !important;
-}
-
-// WhatsApp-like menu button
-::ng-deep .p-button.p-button-text {
-  &:hover {
-    background-color: rgba(0, 0, 0, 0.04);
-  }
-}
-
-// Menu styling
-::ng-deep .p-menu {
-  min-width: 200px;
-  
-  .p-menuitem-link {
-    padding: 0.75rem 1rem;
-    
-    .p-menuitem-icon {
-      margin-right: 0.75rem;
-      color: var(--primary-color);
-    }
-    
-    &:hover {
-      background-color: var(--surface-hover);
-    }
-  }
-}
-
-// Reassignment dialog
-::ng-deep .p-dialog {
-  .p-dialog-header {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
-    
-    .p-dialog-header-icon {
-      color: white;
-      
-      &:hover {
-        background-color: linear-gradient(15deg, #667eea 0%, #764ba2 100%);
-      }
-    }
-  }
-}
-
-/* ============================================================================
-   Add these styles to your detail-chat-window.component.scss
-   ============================================================================ */
-
-/* Drop zone for PDF uploads */
-.drop-zone {
-  border: 2px dashed #128C7E;
-  padding: 20px;
-  border-radius: 8px;
-  background-color: #f0fdf4;
-  cursor: pointer;
-  transition: all 0.3s ease;
-}
-
-.drop-zone:hover {
-  background-color: #dcfce7;
-  border-color: #059669;
-}
-
-/* Preview container for attached files */
-.preview-container {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 10px;
-  padding: 1rem;
-}
-
-/* Template dialog styling */
-::ng-deep .p-dialog {
-  .p-dialog-header {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
-    
-    .p-dialog-title {
-      font-weight: 600;
-    }
-    
-    .p-dialog-header-icon {
-      color: white;
-      
-      &:hover {
-        background-color: rgba(255, 255, 255, 0.1);
-      }
-    }
-  }
-}
-
-/* Template selection dropdown */
-::ng-deep .p-select {
-  &.w-full {
-    width: 100%;
-  }
-  
-  .p-select-label {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-  }
-}
-
-/* Template preview card styling */
-.whatsapp-preview {
-  background-color: #e5ddd5;
-  padding: 15px;
-  border-radius: 10px;
-  max-width: 400px;
-  margin: 0 auto;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-}
-
-.whatsapp-message {
-  background-color: #d1fae5;
-  padding: 12px;
-  border-radius: 10px;
-  box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.1);
-}
-
-/* Parameter input fields */
-::ng-deep .p-float-label {
-  margin-bottom: 1.5rem;
-  
-  input.p-inputtext {
-    width: 100%;
-    padding: 0.75rem;
-    border: 2px solid #e5e7eb;
-    border-radius: 6px;
-    transition: border-color 0.2s;
-    
-    &:focus {
-      border-color: #128C7E;
-      box-shadow: 0 0 0 3px rgba(18, 140, 126, 0.1);
-    }
-  }
-  
-  label {
-    font-weight: 500;
-    color: #6b7280;
-  }
-}
-
-/* Template button in chat footer */
-.p-button-outlined.p-button-secondary {
-  color: #128C7E;
-  border-color: #128C7E;
-  
-  &:hover {
-    background-color: rgba(18, 140, 126, 0.1);
-    border-color: #128C7E;
-    color: #128C7E;
-  }
-  
-  &:focus {
-    box-shadow: 0 0 0 3px rgba(18, 140, 126, 0.2);
-  }
-}
-
-/* Action buttons */
-.p-button-outlined {
-  font-weight: 500;
-  padding: 0.75rem 1.5rem;
-  
-  &.p-button-secondary {
-    color: #6b7280;
-    border-color: #d1d5db;
-    
-    &:hover {
-      background-color: #f3f4f6;
-      border-color: #9ca3af;
-    }
-  }
-  
-  &:not(.p-button-secondary) {
-    color: #128C7E;
-    border-color: #128C7E;
-    
-    &:hover:not(:disabled) {
-      background-color: #128C7E;
-      color: white;
-    }
-    
-    &:disabled {
-      opacity: 0.5;
-      cursor: not-allowed;
-    }
-  }
-}
-
-/* Info cards with colored borders */
-.surface-card {
-  background: white;
-  padding: 1rem;
-  
-  &[style*="border: 2px solid #E5DDD5"] {
-    border-left: 4px solid #128C7E !important;
-  }
-  
-  &[style*="border: 2px solid #DBEAFE"] {
-    border-left: 4px solid #3B82F6 !important;
-  }
-  
-  &[style*="border: 2px solid #FEF3C7"] {
-    border-left: 4px solid #F59E0B !important;
-  }
-}
-
-/* PDF preview iframe */
-iframe[src*="blob:"] {
-  border: 2px solid #e5e7eb;
-  border-radius: 8px;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-}
-
-/* File info display */
-.preview-container {
-  .pi-file-pdf {
-    color: #DC2626;
-    filter: drop-shadow(0 2px 4px rgba(220, 38, 38, 0.2));
-  }
-}
-
-/* Success message styling */
-::ng-deep .p-message {
-  &.p-message-warn {
-    background-color: #FEF3C7;
-    border-left: 4px solid #F59E0B;
-    color: #92400E;
-  }
-  
-  &.p-message-info {
-    background-color: #DBEAFE;
-    border-left: 4px solid #3B82F6;
-    color: #1E40AF;
-  }
-  
-  &.p-message-success {
-    background-color: #D1FAE5;
-    border-left: 4px solid #10B981;
-    color: #065F46;
-  }
-}
-
-/* Responsive adjustments */
-@media (max-width: 768px) {
-  .whatsapp-preview {
-    max-width: 100%;
-  }
-  
-  ::ng-deep .p-dialog {
-    width: 95vw !important;
-  }
-  
-  .grid > div[class*="col-"] {
-    width: 100%;
-  }
-}
-
-/* Animation for dialog appearance */
-@keyframes slideUp {
-  from {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-::ng-deep .p-dialog {
-  animation: slideUp 0.3s ease-out;
-}
-
 // ============================================================================
-// FIXED MODERN CHAT STYLES - All Functionality Preserved
+// VARIABLES
 // ============================================================================
 
-// Variables
 $primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
 $primary-color: #667eea;
 $primary-dark: #764ba2;
-$primary-light: #a5b4fc;
-$success-color: #10b981;
-$warning-color: #f59e0b;
-$danger-color: #ef4444;
-$info-color: #3b82f6;
 
 $text-primary: #1f2937;
 $text-secondary: #6b7280;
 $text-light: #9ca3af;
 
-// Updated: Better message backgrounds
 $bg-chat: #f0f2f5;
 $bg-message-customer: #ffffff;
-$bg-message-agent: #e8eaf6; // Lighter purple for better contrast
+$bg-message-agent: #e8eaf6;
 $bg-hover: #f3f4f6;
-$bg-active-subtle: #f3f0ff; // Subtle purple instead of full gradient
 
 $border-color: #e5e7eb;
 $border-radius: 12px;
 $border-radius-sm: 8px;
-$border-radius-lg: 16px;
 
 $shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-$shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-$shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-$shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-
+$shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+$shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+$shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
 
 // ============================================================================
-// CHAT DETAIL STYLES - FIXED WITH ALL FUNCTIONALITY
+// CHAT CONTAINER
 // ============================================================================
 
 .background-gradient {
@@ -424,7 +39,10 @@ $shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 
   background: $bg-chat;
 }
 
-// FIXED: Header with gradient to match left panel
+// ============================================================================
+// CHAT HEADER
+// ============================================================================
+
 .chat-header {
   background: white;
   border-bottom: 2px solid $border-color;
@@ -433,7 +51,6 @@ $shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 
   z-index: 10;
   position: relative;
   
-  // Gradient accent bar at top to match left panel
   &::before {
     content: '';
     position: absolute;
@@ -474,7 +91,6 @@ $shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 
         align-items: center;
         gap: 0.5rem;
         padding: 0.25rem 0.75rem;
-        background: rgba(102, 126, 234, 0.1);
         border-radius: $border-radius-sm;
         font-size: 0.85rem;
         color: $primary-dark;
@@ -482,29 +98,18 @@ $shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 
         font-weight: 500;
         
         img {
-          width: 16px;
-          height: 16px;
+          width: 28px;
+          height: 28px;
         }
-      }
-    }
-  }
-  
-  .header-actions {
-    ::ng-deep .p-button {
-      border-radius: $border-radius-sm;
-      transition: all 0.2s ease;
-      color: $text-secondary;
-      
-      &:hover {
-        background: $bg-hover;
-        color: $primary-color;
-        transform: scale(1.1);
       }
     }
   }
 }
 
-// Chat messages area
+// ============================================================================
+// MESSAGES AREA
+// ============================================================================
+
 .chat-window {
   flex: 1;
   overflow-y: auto;
@@ -529,7 +134,10 @@ $shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 
   }
 }
 
-// Status markers
+// ============================================================================
+// STATUS MARKERS
+// ============================================================================
+
 .status-marker {
   display: flex;
   align-items: center;
@@ -546,7 +154,7 @@ $shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 
     }
     
     &.closed-line {
-      background: linear-gradient(90deg, transparent 0%, $danger-color 50%, transparent 100%);
+      background: linear-gradient(90deg, transparent 0%, #ef4444 50%, transparent 100%);
     }
   }
   
@@ -568,13 +176,16 @@ $shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 
     
     &.closed-text {
       background: rgba(239, 68, 68, 0.1);
-      color: $danger-color;
+      color: #ef4444;
       border: 1px solid rgba(239, 68, 68, 0.2);
     }
   }
 }
 
-// FIXED: Better message bubble styling
+// ============================================================================
+// MESSAGE BUBBLES
+// ============================================================================
+
 .message-container {
   margin-bottom: 1.5rem;
   animation: messageSlideIn 0.3s ease-out;
@@ -601,9 +212,8 @@ $shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 
         color: $text-primary;
         word-wrap: break-word;
         
-        img, video, audio, iframe {
-          border-radius: $border-radius-sm;
-          margin-bottom: 0.5rem;
+        > * + * {
+          margin-top: 8px;
         }
       }
     }
@@ -611,7 +221,7 @@ $shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 
   
   &.agent-message {
     .message-bubble {
-      background: $bg-message-agent; // FIXED: Lighter purple for better contrast
+      background: $bg-message-agent;
       border: 1px solid rgba(102, 126, 234, 0.2);
       border-radius: $border-radius $border-radius 4px $border-radius;
       box-shadow: $shadow-sm;
@@ -619,33 +229,11 @@ $shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 
       
       .message-content {
         padding: 0.875rem 1rem;
-        color: $text-primary; // FIXED: Dark text for readability
+        color: $text-primary;
         word-wrap: break-word;
-      }
-      
-      .message-meta {
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-        padding: 0.25rem 1rem 0.5rem;
         
-        .sender-name {
-          font-size: 0.75rem;
-          color: $primary-color;
-          font-weight: 600;
-        }
-        
-        .message-time {
-          font-size: 0.75rem;
-          color: $text-light;
-        }
-        
-        .message-status {
-          margin-left: auto;
-          
-          i {
-            font-size: 1rem;
-          }
+        > * + * {
+          margin-top: 8px;
         }
       }
     }
@@ -663,37 +251,378 @@ $shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 
   }
 }
 
-// Media grid
-.media-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-  gap: 0.75rem;
-  margin-top: 0.75rem;
+// ============================================================================
+// MESSAGE META (Status, Time, Sender)
+// ============================================================================
+
+.message-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 4px;
+  width: 100%;
+}
+
+.message-meta-content {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  font-size: 12px;
+  padding: 0.25rem 1rem 0.5rem;
   
-  .media-item {
-    border-radius: $border-radius-sm;
-    overflow: hidden;
-    box-shadow: $shadow-sm;
-    transition: transform 0.2s ease;
-    background: white;
-    border: 1px solid $border-color;
+  .sender-name {
+    font-size: 0.75rem;
+    color: $primary-color;
+    font-weight: 600;
+  }
+  
+  .message-time {
+    color: #9ca3af;
+    white-space: nowrap;
+  }
+  
+  .message-status {
+    display: flex;
+    align-items: center;
+    margin-left: auto;
+  }
+}
+
+.status-icon {
+  font-size: 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  transition: all 0.2s ease;
+  
+  &.status-sending {
+    color: #9ca3af;
+    background: transparent;
+  }
+  
+  &.status-delivered {
+    color: #374151;
+    background: #e5e7eb;
+  }
+  
+  &.status-read {
+    color: #ffffff;
+    background: $primary-gradient;
+  }
+  
+  &.status-failed {
+    color: #ffffff;
+    background: #ef4444;
+    animation: pulse-error 2s infinite;
+  }
+}
+
+@keyframes pulse-error {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+.message-error-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 6px;
+  font-size: 12px;
+  color: #dc2626;
+  margin-top: 4px;
+  
+  i.pi-exclamation-triangle {
+    font-size: 14px;
+  }
+  
+  span {
+    flex: 1;
+    font-weight: 500;
+  }
+}
+
+// ============================================================================
+// WHATSAPP-STYLE MEDIA ATTACHMENTS
+// ============================================================================
+
+.whatsapp-media-container {
+  position: relative;
+  border-radius: 8px;
+  overflow: hidden;
+  max-width: 300px;
+  margin-bottom: 8px;
+  cursor: pointer;
+  
+  &:hover .media-overlay {
+    opacity: 1;
+  }
+}
+
+.whatsapp-image {
+  width: 100%;
+  height: auto;
+  max-height: 300px;
+  object-fit: cover;
+  display: block;
+  border-radius: 8px;
+}
+
+.whatsapp-video {
+  width: 100%;
+  max-width: 300px;
+  max-height: 300px;
+  border-radius: 8px;
+}
+
+.media-overlay {
+  position: absolute;
+  top: 0;
+  right: 0;
+  padding: 8px;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  background: linear-gradient(to bottom, rgba(0,0,0,0.3) 0%, transparent 100%);
+  border-top-right-radius: 8px;
+}
+
+.whatsapp-audio-container {
+  background: rgba(0, 0, 0, 0.05);
+  border-radius: 12px;
+  padding: 12px;
+  max-width: 300px;
+  
+  audio {
+    width: 100%;
+    height: 40px;
+  }
+}
+
+// ============================================================================
+// DOCUMENT ATTACHMENTS
+// ============================================================================
+
+.whatsapp-document-container {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  background: rgba(0, 0, 0, 0.03);
+  border-radius: 8px;
+  max-width: 350px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  
+  &:hover {
+    background: rgba(0, 0, 0, 0.06);
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  }
+  
+  &:active {
+    transform: translateY(0);
+  }
+}
+
+.document-icon-container {
+  width: 48px;
+  height: 48px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  
+  i {
+    color: white;
+  }
+}
+
+.document-info {
+  min-width: 0;
+  flex: 1;
+}
+
+.document-name {
+  font-weight: 500;
+  font-size: 14px;
+  color: #1f2937;
+  margin-bottom: 4px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.document-meta {
+  font-size: 12px;
+  color: #6b7280;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.document-type {
+  text-transform: uppercase;
+  font-weight: 500;
+}
+
+.document-size {
+  color: #9ca3af;
+}
+
+.document-actions {
+  flex-shrink: 0;
+  
+  button {
+    color: #6b7280;
     
     &:hover {
-      transform: scale(1.05);
-      box-shadow: $shadow-md;
+      color: #1f2937;
     }
   }
 }
 
-// Chat footer
+// ============================================================================
+// MEDIA GRID
+// ============================================================================
+
+.whatsapp-media-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 4px;
+  margin-top: 8px;
+  max-width: 320px;
+  
+  &:has(.media-grid-item:nth-child(1):last-child) {
+    grid-template-columns: 1fr;
+    max-width: 300px;
+  }
+  
+  &:has(.media-grid-item:nth-child(2):last-child) {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  &:has(.media-grid-item:nth-child(3):last-child) {
+    grid-template-columns: repeat(2, 1fr);
+    
+    .media-grid-item:first-child {
+      grid-column: 1 / -1;
+    }
+  }
+}
+
+.media-grid-item {
+  position: relative;
+  aspect-ratio: 1;
+  overflow: hidden;
+  border-radius: 4px;
+  cursor: pointer;
+  
+  &:hover .media-grid-overlay {
+    opacity: 1;
+  }
+}
+
+.media-grid-image,
+.media-grid-video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.media-grid-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  
+  i {
+    color: white;
+    font-size: 2rem;
+  }
+}
+
+.media-grid-document {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 12px;
+  background: rgba(0, 0, 0, 0.03);
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  
+  &:hover {
+    background: rgba(0, 0, 0, 0.06);
+    transform: scale(1.05);
+  }
+}
+
+.grid-doc-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 8px;
+  
+  i {
+    color: white;
+    font-size: 1.25rem;
+  }
+}
+
+.grid-doc-name {
+  font-size: 11px;
+  text-align: center;
+  color: #4b5563;
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  word-break: break-word;
+}
+
+// ============================================================================
+// MESSAGE TEXT
+// ============================================================================
+
+.message-text {
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  font-size: 14px;
+  line-height: 1.5;
+  tab-size: 4;
+  -moz-tab-size: 4;
+}
+
+// ============================================================================
+// CHAT FOOTER & INPUT
+// ============================================================================
+
 .chat-footer {
-  background: white;
+  background: #f0f2f5;
   border-top: 2px solid $border-color;
   padding: 1rem 1.5rem;
   box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.05);
   position: relative;
   
-  // Subtle gradient accent at top
   &::before {
     content: '';
     position: absolute;
@@ -703,104 +632,441 @@ $shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 
     height: 2px;
     background: $primary-gradient;
   }
-  
-  .attachment-preview {
-    border: 1px solid $border-color;
-    border-radius: $border-radius;
-    overflow: hidden;
-    margin-bottom: 1rem;
-    background: white;
-    box-shadow: $shadow-sm;
-    
-    .preview-close {
-      position: absolute;
-      top: 0.5rem;
-      right: 0.5rem;
-      z-index: 2;
-    }
-    
-    .caption-input {
-      border: none;
-      border-top: 1px solid $border-color;
-      border-radius: 0;
-      
-      &:focus {
-        box-shadow: none;
-        border-top-color: $primary-color;
-      }
-    }
-  }
-  
-  .message-input-container {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    
-    input {
-      flex: 1;
-      border: 1px solid $border-color;
-      border-radius: $border-radius;
-      padding: 0.75rem 1rem;
-      transition: all 0.2s ease;
-      
-      &:focus {
-        border-color: $primary-color;
-        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
-      }
-    }
-    
-    .action-button {
-      border-radius: $border-radius-sm;
-      transition: all 0.2s ease;
-      color: $text-secondary;
-      
-      &:hover {
-        transform: scale(1.1);
-        color: $primary-color;
-      }
-      
-      &.send-button {
-        background: $primary-gradient;
-        border: none;
-        color: white;
-        
-        &:hover {
-          box-shadow: $shadow-md;
-          transform: scale(1.05);
-        }
-        
-        &:disabled {
-          opacity: 0.5;
-          cursor: not-allowed;
-          transform: scale(1);
-        }
-      }
-    }
-  }
 }
 
-// Drag and drop overlay
-.drag-overlay {
-  background: rgba(102, 126, 234, 0.95);
-  border: 3px dashed white;
-  border-radius: $border-radius-lg;
-  backdrop-filter: blur(10px);
+.message-input-area {
+  min-height: 52px;
+  transition: all 0.2s ease;
+}
+
+.message-input-wrapper {
+  position: relative;
+}
+
+.input-container {
+  position: relative;
+  background: white;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+  border: 2px solid transparent;
   
-  .drag-text {
-    color: white;
-    font-size: 1.25rem;
-    font-weight: 600;
-    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  &:focus-within {
+    border-color: $primary-color;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+  }
+  
+  &.disabled {
+    background: #f5f5f5;
+    cursor: not-allowed;
+    opacity: 0.6;
+  }
+  
+  &.zombie-disabled {
+    background: #fef3c7;
+    border-color: #fbbf24;
+    
+    &:focus-within {
+      border-color: #f59e0b;
+      box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.1);
+    }
   }
 }
 
 // ============================================================================
-// DIALOG STYLES
+// AUTO-GROWING TEXTAREA
+// ============================================================================
+
+.message-textarea {
+  width: 100%;
+  min-height: 42px;
+  max-height: 200px;
+  padding: 10px 16px;
+  border: none;
+  outline: none;
+  resize: none;
+  font-size: 15px;
+  line-height: 1.5;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  color: #3b4a54;
+  background: transparent;
+  overflow-y: auto;
+  transition: height 0.1s ease;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  
+  &::-webkit-scrollbar {
+    width: 6px;
+  }
+  
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  
+  &::-webkit-scrollbar-thumb {
+    background: #d1d7db;
+    border-radius: 3px;
+    
+    &:hover {
+      background: #b3b9bd;
+    }
+  }
+  
+  &::placeholder {
+    color: #8696a0;
+    font-style: normal;
+  }
+  
+  &:disabled {
+    cursor: not-allowed;
+    color: #8696a0;
+    
+    &::placeholder {
+      color: #aebac1;
+    }
+  }
+}
+
+.char-counter {
+  position: absolute;
+  bottom: 8px;
+  right: 12px;
+  font-size: 11px;
+  color: #8696a0;
+  background: rgba(255, 255, 255, 0.9);
+  padding: 2px 6px;
+  border-radius: 10px;
+  font-weight: 500;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.formatting-hint {
+  position: absolute;
+  bottom: -28px;
+  left: 0;
+  font-size: 12px;
+  color: #667781;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  opacity: 0;
+  animation: fadeIn 0.3s ease 0.5s forwards;
+  pointer-events: none;
+  
+  i {
+    font-size: 11px;
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-5px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+// ============================================================================
+// ACTION BUTTONS
+// ============================================================================
+
+.action-buttons {
+  flex-shrink: 0;
+}
+
+.action-btn,
+.attach-button {
+  width: 42px;
+  height: 42px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: #54656f;
+  transition: all 0.2s ease;
+  border: none;
+  background: transparent;
+  border-radius: 50%;
+  
+  &:hover:not(.disabled) {
+    background: rgba(0, 0, 0, 0.05);
+    color: #3b4a54;
+  }
+  
+  &:active:not(.disabled) {
+    transform: scale(0.95);
+  }
+  
+  &.disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+  
+  i {
+    font-size: 22px;
+  }
+}
+
+.send-button {
+  width: 42px;
+  height: 42px;
+  background: #d1d7db;
+  color: white;
+  transition: all 0.2s ease;
+  
+  &.has-content {
+    background: $primary-gradient;
+    transform: scale(1.05);
+    
+    &:hover {
+      background: $primary-gradient;
+    }
+    
+    &:active {
+      transform: scale(1);
+    }
+  }
+  
+  &:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+    transform: scale(1);
+  }
+  
+  i {
+    font-size: 18px;
+  }
+}
+
+// ============================================================================
+// ATTACHMENT PREVIEW
+// ============================================================================
+
+.attachment-preview-container {
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+}
+
+.attachment-preview {
+  position: relative;
+}
+
+.image-preview-wrapper {
+  position: relative;
+  max-height: 300px;
+  overflow: hidden;
+}
+
+.attachment-preview-image {
+  width: 100%;
+  height: auto;
+  max-height: 300px;
+  object-fit: contain;
+  display: block;
+  background: #f0f2f5;
+}
+
+.attachment-remove-btn {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 2;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.attachment-caption-wrapper {
+  position: relative;
+  padding: 12px;
+  border-top: 1px solid #e9edef;
+}
+
+.attachment-caption-input {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid #d1d7db;
+  border-radius: 6px;
+  font-size: 14px;
+  line-height: 1.5;
+  resize: none;
+  outline: none;
+  transition: all 0.2s ease;
+  font-family: inherit;
+  
+  &:focus {
+    border-color: $primary-color;
+    box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.1);
+  }
+  
+  &::placeholder {
+    color: #8696a0;
+  }
+}
+
+.char-count {
+  position: absolute;
+  bottom: 16px;
+  right: 16px;
+  font-size: 11px;
+  color: #8696a0;
+  font-weight: 500;
+  pointer-events: none;
+}
+
+.document-preview-wrapper {
+  padding: 12px;
+}
+
+.document-preview-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  background: #f0f2f5;
+  border-radius: 8px;
+}
+
+.document-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+// ============================================================================
+// ZOMBIE WARNING
+// ============================================================================
+
+.zombie-warning-banner {
+  background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+  border: 2px solid #f59e0b;
+  border-radius: 8px;
+  margin-bottom: 16px;
+  box-shadow: 0 4px 6px rgba(245, 158, 11, 0.1);
+  
+  h4 {
+    color: #92400e;
+    font-weight: 600;
+  }
+  
+  p {
+    color: #78350f;
+  }
+  
+  button {
+    flex-shrink: 0;
+  }
+}
+
+.zombie-input-warning {
+  background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+  border: 1px solid #fbbf24;
+  border-radius: 6px;
+  animation: pulse-warning 2s infinite;
+  
+  i {
+    color: #f59e0b;
+    font-size: 16px;
+  }
+  
+  span {
+    color: #92400e;
+    font-weight: 500;
+  }
+}
+
+@keyframes pulse-warning {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.2);
+  }
+  50% {
+    box-shadow: 0 0 0 4px rgba(245, 158, 11, 0);
+  }
+}
+
+// ============================================================================
+// TEMPLATE DIALOGS
+// ============================================================================
+
+.drop-zone {
+  border: 2px dashed #128C7E;
+  padding: 20px;
+  border-radius: 8px;
+  background-color: #f0fdf4;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  
+  &:hover {
+    background-color: #dcfce7;
+    border-color: #059669;
+  }
+}
+
+.preview-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 1rem;
+}
+
+.file-name {
+  font-size: 0.9rem;
+  color: #333;
+}
+
+.file-preview-container {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f9fafb;
+  border-radius: 8px;
+}
+
+// ============================================================================
+// PRIMENG OVERRIDES
 // ============================================================================
 
 ::ng-deep {
+  // Sidebar
+  .wide-sidebar {
+    width: 39vw !important;
+    max-width: 39vw !important;
+  }
+  
+  .p-sidebar {
+    box-shadow: $shadow-xl;
+    
+    .p-sidebar-header {
+      background: white;
+      border-bottom: 2px solid $border-color;
+      position: relative;
+      
+      &::after {
+        content: '';
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        height: 2px;
+        background: $primary-gradient;
+      }
+    }
+  }
+  
+  // Dialogs
   .p-dialog {
-    border-radius: $border-radius-lg;
+    border-radius: $border-radius;
     overflow: hidden;
     box-shadow: $shadow-xl;
     
@@ -835,20 +1101,6 @@ $shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 
     }
   }
   
-  // Form elements
-  .p-inputtext,
-  .p-select,
-  .p-textarea {
-    border-radius: $border-radius-sm;
-    border: 1px solid $border-color;
-    transition: all 0.2s ease;
-    
-    &:focus {
-      border-color: $primary-color;
-      box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
-    }
-  }
-  
   // Buttons
   .p-button {
     border-radius: $border-radius-sm;
@@ -878,26 +1130,45 @@ $shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 
         transform: translateY(-1px);
       }
     }
+    
+    &.p-button-text {
+      &:hover {
+        background-color: rgba(0, 0, 0, 0.04);
+      }
+    }
   }
   
-  // Sidebar
-  .p-sidebar {
-    box-shadow: $shadow-xl;
+  // Form elements
+  .p-inputtext,
+  .p-select,
+  .p-textarea {
+    border-radius: $border-radius-sm;
+    border: 1px solid $border-color;
+    transition: all 0.2s ease;
     
-    .p-sidebar-header {
-      background: white;
-      border-bottom: 2px solid $border-color;
-      position: relative;
+    &:focus {
+      border-color: $primary-color;
+      box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    }
+  }
+  
+  // Float label
+  .p-float-label {
+    margin-bottom: 1.5rem;
+    
+    input.p-inputtext {
+      width: 100%;
+      padding: 0.75rem;
       
-      &::after {
-        content: '';
-        position: absolute;
-        bottom: 0;
-        left: 0;
-        right: 0;
-        height: 2px;
-        background: $primary-gradient;
+      &:focus {
+        border-color: $primary-color;
+        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
       }
+    }
+    
+    label {
+      font-weight: 500;
+      color: $text-secondary;
     }
   }
   
@@ -906,10 +1177,12 @@ $shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 
     border-radius: $border-radius;
     border: 1px solid $border-color;
     box-shadow: $shadow-lg;
+    min-width: 200px;
     
     .p-menuitem-link {
       border-radius: $border-radius-sm;
       transition: all 0.2s ease;
+      padding: 0.75rem 1rem;
       
       &:hover {
         background: rgba(102, 126, 234, 0.1);
@@ -917,6 +1190,7 @@ $shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 
       
       .p-menuitem-icon {
         color: $primary-color;
+        margin-right: 0.75rem;
       }
     }
     
@@ -937,7 +1211,7 @@ $shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 
       transition: color 0.2s ease;
       
       &:hover {
-        color: $danger-color;
+        color: #ef4444;
       }
     }
   }
@@ -960,16 +1234,41 @@ $shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 
     }
   }
   
-  // Badges
-  .p-badge {
-    border-radius: $border-radius-sm;
-    font-weight: 600;
-  }
-  
-  // Messages (info panels)
+  // Messages
   .p-message {
     border-radius: $border-radius-sm;
     border-left-width: 4px;
+    
+    &.p-message-warn {
+      background-color: #fef3c7;
+      border-left-color: #f59e0b;
+      color: #92400e;
+    }
+    
+    &.p-message-info {
+      background-color: #dbeafe;
+      border-left-color: #3b82f6;
+      color: #1e40af;
+    }
+    
+    &.p-message-success {
+      background-color: #d1fae5;
+      border-left-color: #10b981;
+      color: #065f46;
+    }
+  }
+  
+  // Select dropdown
+  .p-select {
+    &.w-full {
+      width: 100%;
+    }
+    
+    .p-select-label {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
   }
 }
 
@@ -978,12 +1277,6 @@ $shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 
 // ============================================================================
 
 @media (max-width: 768px) {
-  .chat-list-container {
-    .user-profile-section {
-      padding: 1rem;
-    }
-  }
-  
   .chat-header {
     padding: 0.75rem 1rem;
   }
@@ -1000,28 +1293,612 @@ $shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 
       }
     }
   }
-}
-
-// ============================================================================
-// UTILITY CLASSES
-// ============================================================================
-
-.gradient-border {
-  border: 2px solid transparent;
-  background-image: linear-gradient(white, white), $primary-gradient;
-  background-origin: border-box;
-  background-clip: padding-box, border-box;
-}
-
-.pulse-animation {
-  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-}
-
-@keyframes pulse {
-  0%, 100% {
-    opacity: 1;
+  
+  .whatsapp-media-container,
+  .whatsapp-media-grid {
+    max-width: 250px;
   }
-  50% {
-    opacity: 0.5;
+  
+  .whatsapp-document-container {
+    max-width: 100%;
+  }
+  
+  .message-textarea {
+    font-size: 16px;
+    max-height: 150px;
+  }
+  
+  .action-btn,
+  .attach-button,
+  .send-button {
+    width: 38px;
+    height: 38px;
+    
+    i {
+      font-size: 20px;
+    }
+  }
+  
+  .attachment-preview-image {
+    max-height: 200px;
+  }
+  
+  .formatting-hint {
+    display: none;
+  }
+}
+
+@media (max-width: 480px) {
+  .chat-footer {
+    padding: 8px;
+  }
+  
+  .message-input-area {
+    gap: 8px;
+  }
+  
+  .action-buttons {
+    gap: 4px;
+  }
+  
+  ::ng-deep .p-dialog {
+    width: 95vw !important;
+  }
+}
+
+// ============================================================================
+// DARK MODE SUPPORT
+// ============================================================================
+
+@media (prefers-color-scheme: dark) {
+  .input-container {
+    background: #2a3942;
+    
+    &.disabled {
+      background: #1f2c33;
+    }
+  }
+  
+  .whatsapp-document-container {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.12);
+    
+    &:hover {
+      background: rgba(255, 255, 255, 0.12);
+    }
+  }
+  
+  .document-name {
+    color: #f3f4f6;
+  }
+  
+  .document-meta {
+    color: #d1d5db;
+  }
+  
+  .message-textarea {
+    color: #e9edef;
+    
+    &::placeholder {
+      color: #667781;
+    }
+  }
+  
+  .char-counter {
+    background: rgba(42, 57, 66, 0.9);
+    color: #8696a0;
+  }
+  
+  .formatting-hint {
+    color: #8696a0;
+  }
+  
+  .action-btn,
+  .attach-button {
+    color: #aebac1;
+    
+    &:hover:not(.disabled) {
+      background: rgba(255, 255, 255, 0.05);
+      color: #e9edef;
+    }
+  }
+  
+  .attachment-caption-input {
+    background: #1f2c33;
+    border-color: #374248;
+    color: #e9edef;
+    
+    &:focus {
+      border-color: $primary-color;
+    }
+  }
+  
+  .document-preview-card {
+    background: #1f2c33;
+  }
+  
+  .file-preview-container {
+    background: #1f2937;
+  }
+  
+  .message-container {
+    &.customer-message .message-bubble {
+      background: #262d31;
+    }
+    
+    &.agent-message .message-bubble {
+      background: #005c4b;
+    }
+  }
+}
+
+// ============================================================================
+// GMAIL EMAIL CONTENT STYLES
+// ============================================================================
+
+// Email container with proper isolation and styling
+::ng-deep {
+  .message-content {
+    // Email-specific content wrapper
+    .email-content-wrapper {
+      background: #ffffff;
+      border-radius: 8px;
+      padding: 20px;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+      overflow: hidden;
+      
+      // Reset and base styles for email content
+      * {
+        max-width: 100%;
+        box-sizing: border-box;
+      }
+      
+      // Typography improvements
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      font-size: 14px;
+      line-height: 1.6;
+      color: #1f2937;
+      word-wrap: break-word;
+      overflow-wrap: break-word;
+      
+      // Headings
+      h1, h2, h3, h4, h5, h6 {
+        margin-top: 1.5em;
+        margin-bottom: 0.5em;
+        font-weight: 600;
+        line-height: 1.3;
+        color: #111827;
+        
+        &:first-child {
+          margin-top: 0;
+        }
+      }
+      
+      h1 { font-size: 2em; }
+      h2 { font-size: 1.5em; }
+      h3 { font-size: 1.25em; }
+      h4 { font-size: 1.1em; }
+      h5 { font-size: 1em; }
+      h6 { font-size: 0.9em; }
+      
+      // Paragraphs
+      p {
+        margin: 0 0 1em 0;
+        
+        &:last-child {
+          margin-bottom: 0;
+        }
+      }
+      
+      // Links - modern styling
+      a {
+        color: #2563eb;
+        text-decoration: none;
+        border-bottom: 1px solid rgba(37, 99, 235, 0.3);
+        transition: all 0.2s ease;
+        
+        &:hover {
+          color: #1d4ed8;
+          border-bottom-color: #1d4ed8;
+          background-color: rgba(37, 99, 235, 0.05);
+        }
+        
+        &:visited {
+          color: #7c3aed;
+          border-bottom-color: rgba(124, 58, 237, 0.3);
+        }
+      }
+      
+      // Lists
+      ul, ol {
+        margin: 1em 0;
+        padding-left: 2em;
+        
+        li {
+          margin: 0.5em 0;
+        }
+      }
+      
+      // Blockquotes - Gmail style
+      blockquote {
+        margin: 1em 0;
+        padding: 0.5em 0 0.5em 1em;
+        border-left: 3px solid #e5e7eb;
+        color: #6b7280;
+        font-style: italic;
+        background-color: #f9fafb;
+        border-radius: 0 4px 4px 0;
+      }
+      
+      // Code blocks
+      pre, code {
+        font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New', monospace;
+        font-size: 0.9em;
+        background-color: #f3f4f6;
+        border-radius: 4px;
+      }
+      
+      code {
+        padding: 0.2em 0.4em;
+        color: #dc2626;
+      }
+      
+      pre {
+        padding: 1em;
+        overflow-x: auto;
+        line-height: 1.5;
+        
+        code {
+          padding: 0;
+          background-color: transparent;
+          color: inherit;
+        }
+      }
+      
+      // Tables - enhanced styling
+      table {
+        border-collapse: collapse;
+        width: 100%;
+        margin: 1em 0;
+        font-size: 0.95em;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        border-radius: 8px;
+        overflow: hidden;
+        
+        thead {
+          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+          color: white;
+          
+          th {
+            font-weight: 600;
+            text-align: left;
+            padding: 12px 15px;
+            border-bottom: 2px solid rgba(255, 255, 255, 0.3);
+          }
+        }
+        
+        tbody {
+          tr {
+            border-bottom: 1px solid #e5e7eb;
+            transition: background-color 0.2s ease;
+            
+            &:hover {
+              background-color: #f9fafb;
+            }
+            
+            &:last-child {
+              border-bottom: none;
+            }
+          }
+          
+          td {
+            padding: 12px 15px;
+          }
+        }
+        
+        // Zebra striping
+        tr:nth-child(even) {
+          background-color: #f9fafb;
+          
+          &:hover {
+            background-color: #f3f4f6;
+          }
+        }
+        
+        // Cell alignment
+        th, td {
+          &[align="right"] { text-align: right; }
+          &[align="center"] { text-align: center; }
+          &[align="left"] { text-align: left; }
+        }
+      }
+      
+      // Images - responsive and styled
+      img {
+        max-width: 100%;
+        height: auto;
+        border-radius: 4px;
+        margin: 0.5em 0;
+        display: block;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        
+        &[align="left"] {
+          float: left;
+          margin-right: 1em;
+        }
+        
+        &[align="right"] {
+          float: right;
+          margin-left: 1em;
+        }
+        
+        &[align="center"] {
+          margin-left: auto;
+          margin-right: auto;
+        }
+      }
+      
+      // Horizontal rules
+      hr {
+        border: none;
+        border-top: 2px solid #e5e7eb;
+        margin: 2em 0;
+      }
+      
+      // Email signatures - special styling
+      .gmail_signature,
+      [class*="signature"],
+      [id*="signature"] {
+        margin-top: 2em;
+        padding-top: 1em;
+        border-top: 1px solid #e5e7eb;
+        font-size: 0.9em;
+        color: #6b7280;
+      }
+      
+      // Email quotes/replies - Gmail style
+      .gmail_quote,
+      [class*="quote"] {
+        margin: 1em 0;
+        padding-left: 1em;
+        border-left: 3px solid #9ca3af;
+        color: #6b7280;
+        font-size: 0.95em;
+      }
+      
+      // Buttons in emails
+      a[style*="button"],
+      .button,
+      [role="button"] {
+        display: inline-block;
+        padding: 10px 20px;
+        border-radius: 6px;
+        text-decoration: none !important;
+        border: none !important;
+        transition: all 0.2s ease;
+        
+        &:hover {
+          transform: translateY(-1px);
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+      }
+      
+      // Prevent layout breaking
+      iframe {
+        max-width: 100%;
+        border-radius: 4px;
+        margin: 1em 0;
+      }
+      
+      video {
+        max-width: 100%;
+        height: auto;
+        border-radius: 4px;
+        margin: 1em 0;
+      }
+      
+      // Fix for overly wide elements
+      [style*="width"] {
+        max-width: 100% !important;
+      }
+      
+      // Email client specific fixes
+      // Outlook conditional comments
+      [if],
+      [endif] {
+        display: none !important;
+      }
+      
+      // Apple Mail specific
+      .__apple__,
+      [class*="apple"] {
+        // Reset Apple Mail specific styles
+      }
+      
+      // Gmail specific
+      .gmail_default,
+      [class*="gmail"] {
+        // Gmail injected styles
+      }
+    }
+    
+    // Plain text email styling
+    .plain-text-email {
+      font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New', monospace;
+      font-size: 13px;
+      line-height: 1.6;
+      color: #374151;
+      white-space: pre-wrap;
+      word-wrap: break-word;
+      background-color: #f9fafb;
+      padding: 16px;
+      border-radius: 6px;
+      border: 1px solid #e5e7eb;
+      
+      a {
+        color: #2563eb;
+        text-decoration: underline;
+        
+        &:hover {
+          color: #1d4ed8;
+        }
+      }
+    }
+  }
+  
+  // Dark mode support for emails
+  @media (prefers-color-scheme: dark) {
+    .message-content .email-content-wrapper {
+      background: #1f2937;
+      color: #e5e7eb;
+      
+      h1, h2, h3, h4, h5, h6 {
+        color: #f3f4f6;
+      }
+      
+      a {
+        color: #60a5fa;
+        border-bottom-color: rgba(96, 165, 250, 0.3);
+        
+        &:hover {
+          color: #93c5fd;
+          background-color: rgba(96, 165, 250, 0.1);
+        }
+        
+        &:visited {
+          color: #a78bfa;
+        }
+      }
+      
+      blockquote {
+        background-color: #374151;
+        border-left-color: #4b5563;
+        color: #9ca3af;
+      }
+      
+      pre, code {
+        background-color: #374151;
+      }
+      
+      code {
+        color: #fca5a5;
+      }
+      
+      table {
+        thead {
+          background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+        }
+        
+        tbody tr {
+          border-bottom-color: #374151;
+          
+          &:hover {
+            background-color: #374151;
+          }
+        }
+        
+        tr:nth-child(even) {
+          background-color: #2d3748;
+        }
+      }
+      
+      hr {
+        border-top-color: #374151;
+      }
+      
+      .gmail_signature,
+      [class*="signature"] {
+        border-top-color: #374151;
+        color: #9ca3af;
+      }
+      
+      .plain-text-email {
+        background-color: #374151;
+        border-color: #4b5563;
+        color: #d1d5db;
+        
+        a {
+          color: #60a5fa;
+        }
+      }
+    }
+  }
+}
+
+// ============================================================================
+// EMAIL LOADING & ERROR STATES
+// ============================================================================
+
+.email-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  color: #6b7280;
+  
+  .spinner {
+    margin-right: 12px;
+    animation: spin 1s linear infinite;
+  }
+  
+  @keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+}
+
+.email-error {
+  background-color: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+  padding: 16px;
+  margin: 8px 0;
+  color: #dc2626;
+  
+  .error-icon {
+    margin-right: 8px;
+  }
+}
+
+// ============================================================================
+// EMAIL METADATA (Sender, Date, etc.)
+// ============================================================================
+
+.email-metadata {
+  background: #f9fafb;
+  border-radius: 8px;
+  padding: 12px 16px;
+  margin-bottom: 12px;
+  font-size: 13px;
+  
+  .metadata-row {
+    display: flex;
+    align-items: center;
+    margin: 4px 0;
+    
+    .label {
+      font-weight: 600;
+      color: #6b7280;
+      min-width: 60px;
+    }
+    
+    .value {
+      color: #1f2937;
+      flex: 1;
+    }
+  }
+  
+  .cc-recipients {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    
+    .cc-chip {
+      background: #dbeafe;
+      color: #1e40af;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 12px;
+    }
   }
 }

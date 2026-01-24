@@ -1,26 +1,56 @@
 import { CommonModule } from '@angular/common';
-import { AfterViewChecked, ChangeDetectorRef, Component, ElementRef, EventEmitter, Input, OnDestroy, OnInit, Output, signal, ViewChild } from '@angular/core';
-import { ListChatWindowComponent } from './list-chat-window/list-chat-window.component';
-import { DetailChatWindowComponent } from './detail-chat-window/detail-chat-window.component';
-import { DividerModule } from 'primeng/divider';
-import { ButtonModule } from 'primeng/button';
-import { AvatarModule } from 'primeng/avatar';
-import { FormsModule } from '@angular/forms';
-import { InputTextModule } from 'primeng/inputtext';
-import { InputGroupAddon, InputGroupAddonModule } from 'primeng/inputgroupaddon';
-import { InputGroupModule } from 'primeng/inputgroup';
-import { ContactManagerService } from '../../../shared/services/contact-manager.service';
-import { ChatManagerService } from '../../../shared/services/chat-manager.service';
-import { CUstomEventService } from '../../../shared/services/Events/custom-events.service';
-import { ConversationNotificationTemplate, LayoutService } from '../../../layout/service/app.layout.service';
-import { SocketService } from '../../../shared/services/socketio.service';
-import { Subject, takeUntil } from 'rxjs';
-import { UserManagerService } from '../../../shared/services/user-manager.service';
+import { 
+  Component, 
+  OnDestroy, 
+  OnInit, 
+  signal, 
+  computed,
+  inject,
+  ViewChild,
+  ElementRef
+} from '@angular/core';
 import { Router } from '@angular/router';
+import { FormsModule } from '@angular/forms';
+import { Subject, debounceTime, distinctUntilChanged, forkJoin, of, switchMap, tap } from 'rxjs';
+import { catchError, map, takeUntil } from 'rxjs/operators';
+
+// PrimeNG
+import { DividerModule } from 'primeng/divider';
+import { AvatarModule } from 'primeng/avatar';
+import { InputTextModule } from 'primeng/inputtext';
+import { InputGroupAddonModule } from 'primeng/inputgroupaddon';
+import { InputGroupModule } from 'primeng/inputgroup';
 import { BadgeModule } from 'primeng/badge';
+import { ProgressSpinnerModule } from 'primeng/progressspinner';
+import { ButtonModule } from 'primeng/button';
+
+// Services
+import { CachedChatDataService } from '../../../shared/services/chat-cache.service';
+import { LayoutService } from '../../../layout/service/app.layout.service';
+import { SocketService } from '../../../shared/services/socketio.service';
+import { ChatManagerService } from '../../../shared/services/chat-manager.service';
+
+// Components
+import { DetailChatWindowComponent } from './detail-chat-window/detail-chat-window.component';
 import { PerformJsonOpPipe } from '../../../shared/pipes/perform-json-op.pipe';
 
-
+// Types
+interface Conversation {
+  id: number;
+  contact: {
+    id: number;
+    name: string;
+    phone: string;
+    platform_name: string;
+    image?: string;
+  };
+  messages: any[];
+  status: string;
+  assigned: { id: number };
+  subject?: string;
+  created_at: string;
+  updated_at: string;
+}
 
 @Component({
   selector: 'app-chat-window',
@@ -28,55 +58,69 @@ import { PerformJsonOpPipe } from '../../../shared/pipes/perform-json-op.pipe';
   imports: [
     CommonModule,
     FormsModule,
-
     DividerModule,
     AvatarModule,
     InputTextModule,
     InputGroupAddonModule,
     InputGroupModule,
     BadgeModule,
-
-    ListChatWindowComponent,
+    ProgressSpinnerModule,
+    ButtonModule,
     DetailChatWindowComponent,
     PerformJsonOpPipe
-
-  ],
-  providers: [
-
   ],
   templateUrl: './chat-window.component.html',
   styleUrl: './chat-window.component.scss'
 })
-export class ChatWindowComponent implements OnInit {
-  profile !: any;
-  all_contacts = signal<any>(null);
-  conversations = signal<any>(null);
-  filterconversations = signal<any>(null);
-  selectedConversation = signal<any>(null);
-  searchQuery !: any;
-  private destroy$ = new Subject<void>();
+export class ChatWindowComponent implements OnInit, OnDestroy {
+  @ViewChild('conversationList') conversationListRef!: ElementRef;
+
+  private readonly destroy$ = new Subject<void>();
+  private readonly PLATFORM = 'chat';
+  private readonly PAGE_SIZE = 10;
+
+  // Signals
+  profile = signal<any>(null);
+  conversations = signal<Conversation[]>([]);
+  selectedConversation = signal<Conversation | null>(null);
+  employees = signal<any[]>([]);
+  
+  // Pagination state
+  currentPage = signal<number>(1);
+  totalRecords = signal<number>(0);
+  hasMorePages = signal<boolean>(true);
+  isLoading = signal<boolean>(false);
+  isLoadingMore = signal<boolean>(false);
+  
+  // Search state
+  searchQuery = signal<string>('');
+  isSearching = signal<boolean>(false);
+  searchResultsPage = signal<number>(1);
+  searchHasMore = signal<boolean>(true);
+  private searchSubject$ = new Subject<string>();
+
+  // Computed
+  displayedConversations = computed(() => {
+    return this.sortByLastMessage(this.conversations());
+  });
+
+  // Helper for template - get username initial safely
+  getUsernameInitial(): string {
+    const profile = this.profile();
+    return profile?.user?.username?.charAt(0)?.toUpperCase() || '?';
+  }
 
   constructor(
     private router: Router,
-    private cdr: ChangeDetectorRef,
     private layoutService: LayoutService,
     private socketService: SocketService,
-    private eventService: CUstomEventService,
-    private contactService: ContactManagerService,
-    private conversationService: ChatManagerService,
-    private userManagerService: UserManagerService
-  ) { }
+    private cachedDataService: CachedChatDataService,
+    private conversationService: ChatManagerService
+  ) {}
 
   ngOnInit(): void {
-
-    this.profile = JSON.parse(localStorage.getItem('profile'));
-    if (!this.profile) {
-      this.router.navigate(["/apps/login"])
-    }
-    else {
-      this.layoutService.state.staticMenuDesktopInactive = true;
-      this.initEmployees();
-    }
+    this.initializeComponent();
+    this.setupSearchHandler();
   }
 
   ngOnDestroy(): void {
@@ -84,479 +128,615 @@ export class ChatWindowComponent implements OnInit {
     this.destroy$.complete();
   }
 
-  employees = []
-  initEmployees() {
-    this.userManagerService.list_users().pipe(takeUntil(this.destroy$)).subscribe((data) => {
-      this.employees = data;
-      this.initContents();
-    },
-      (err) => {
-        console.error("List conversation | Error getting users ", err);
-      }
-    );
-  }
+  // ============================================================================
+  // INITIALIZATION
+  // ============================================================================
 
-  async initContents() {
-    await this.loadContacts();
-    await this.loadConversations(); // Explicit call
-    this.initSubscriptions();
-  }
-
-  initSubscriptions() {
-    this.initwebsocketSubscriptions();
-  }
-
-  initwebsocketSubscriptions() {
-    if (this.socketService.isSocketConnected) {
-      this.subscribeToWebSocketChatMessages();
+  private initializeComponent(): void {
+    const storedProfile = localStorage.getItem('profile');
+    
+    if (!storedProfile) {
+      this.router.navigate(['/apps/login']);
+      return;
     }
-    else {
-      console.error("Socket connection not available for chat window subscription");
-      this.layoutService.addNotification(
-        { 'severity': 'error', 'app': 'ChatWindow', 'text': 'Socket connection not available for new notification' }
-      )
-    }
+
+    this.profile.set(JSON.parse(storedProfile));
+    this.layoutService.state.staticMenuDesktopInactive = true;
+    
+    // For topbar
+    this.loadConversationsForNotification();
+    this.invalidateCacheAndRefreshNotifications();
+
+    this.loadUsers();
+    this.loadInitialConversations();
+    this.initializeWebSocket();
   }
 
-
-
-
-  filterContacts() {
-  const query = this.searchQuery.toLowerCase();
-
-  const matchesQuery = (entry: any): boolean => {
-  const contact = entry.contact;
-  const baseMatch =
-    contact.name?.toLowerCase().includes(query) ||
-    contact.phone?.toLowerCase().includes(query) ||
-    contact.description?.toLowerCase().includes(query) ||
-    entry.subject?.toLowerCase().includes(query); // also match subject
-
-  const customFieldsMatch = contact.custom_fields &&
-    Object.values(contact.custom_fields).some((val: any) =>
-      String(val).toLowerCase().includes(query)
-    );
-
-  return baseMatch || customFieldsMatch;
-};
-
-
-  if (query.length === 0) {
-    this.filterconversations.set(this.conversations());
-    this.sortUsersByLastMessageTime();
-  } else {
-    const filtered = this.all_contacts().filter(user =>
-      matchesQuery(user)
-    );
-    this.filterconversations.set(filtered);
-    this.sortUsersByLastMessageTime();
-  }
-}
-
-
-  async reloadContactsIfNeeded(contactObject) {
-    let foundIndex = this.all_contacts().findIndex((contact) => contactObject.contact.id === contact.contact.id)
-    // New contact message but the user in chat window
-    if (foundIndex < 0) {
-      await this.loadContacts();
-      await this.loadConversations();
-    }
-    this.updateContactForNewConversation(contactObject)
-  }
-
-  updateContactForNewConversation(conversation) {
-    const updatedContacts = this.all_contacts().map((contactObject) =>
-      contactObject.contact.id === conversation.contact.id
-        ? { ...conversation }
-        : contactObject
-    )
-    this.all_contacts.set(updatedContacts);
-    // This would update the contacts already loaded but the conversation is new and user has searched and selected the conversation via contact search open
-    let foundIndex = this.all_contacts().findIndex((contact) => conversation.contact.id === contact.contact.id)
-    if (foundIndex >= 0) {
-      if (this.selectedConversation()?.id === this.all_contacts()[foundIndex].id) {
-        this.selectedConversation.set({ ...conversation });
-      }
-      this.updateAllConversationsSignals(conversation)
-    }
-  }
-
-  updateAllConversationsSignals(conversation) {
-        const updatedFilteredContacts = this.filterconversations().map((contactFilterObject) =>
-          contactFilterObject.contact.id === conversation.contact.id
-            ? { ...contactFilterObject, ...conversation }
-            : contactFilterObject
-        )
-        this.filterconversations.set(updatedFilteredContacts);
-  }
-
-  playNewConversationNotificationSound() {
-    const audio = new Audio("../../../../assets/media/new_conversation_notofication.mp3");
-    audio.play();
-  }
-
-  playNewMessageNotificationSound() {
-    const audio = new Audio("../../../../assets/media/new_message.mp3");
-    audio.play();
-  }
-
-  subscribeToWebSocketChatMessages(): void {
-    this.socketService.getMessages().pipe(takeUntil(this.destroy$)).subscribe((message) => {
-      const conversations = this.conversations(); // snapshot of current conversations
-      const conversationIndex = conversations.findIndex(
-        (c) => c.id === message.conversation_id
-      );
-      if (message.msg_from_type === "CUSTOMER") {
-        if (conversationIndex !== -1) {
-          const updatedConversation = {
-            ...conversations[conversationIndex],
-            messages: [...conversations[conversationIndex].messages, message],
-          };
-          const updatedConversations = [...conversations];
-          updatedConversations[conversationIndex] = updatedConversation;
-          // Update conversations and selected conversation (if affected)
-          this.conversations.set(updatedConversations);
-          this.filterconversations.set(this.conversations());
-          this.refreshFilterList();
-          if (this.selectedConversation()?.id === updatedConversation.id) {
-            this.selectedConversation.set({ ...updatedConversation });
-          }
-          this.playNewMessageNotificationSound();
-        } else {
-          this.conversationService
-            .list_conversation_from_id("chat", message.conversation_id).pipe(takeUntil(this.destroy$)).subscribe(
-              {
-                next: (conversation: any) => {
-                  this.reloadContactsIfNeeded(conversation).then(() => {
-                    if (this.layoutService.newTaskUpdateToken()) {
-                      this.layoutService.newTaskUpdateToken.set(false);
-                      this.refreshNewTasksNotifications();
-                    }
-                    this.playNewConversationNotificationSound();
-                  }).catch((err) => console.error("Failed to reload contacts"));
-                },
-                error: () => ''
-              }
-            );
-        }
-        //this.updateNewConversationList();
-        this.refreshUnrespondedConversationNotifications();
-      }
-      else if (message.msg_from_type === "ORG") {
-        if (conversationIndex !== -1) {
-          this.playNewMessageNotificationSound();
-          const conversationId = conversations[conversationIndex].id;
-          this.conversationService
-            .list_conversation_from_id("chat", conversationId)
-            .pipe(takeUntil(this.destroy$))
-            .subscribe({
-              next: (conv) => {
-                const updatedConversation = {
-                  ...conversations[conversationIndex],
-                  messages: conv.messages,
-                };
-                const updatedConversations = [...conversations];
-                updatedConversations[conversationIndex] = updatedConversation;
-                this.conversations.set(updatedConversations);
-                this.filterconversations.set(this.conversations());
-                this.refreshFilterList();
-                if (this.selectedConversation()?.id === updatedConversation.id) {
-                  this.selectedConversation.set({ ...updatedConversation });
-                }
-                this.refreshUnrespondedConversationNotifications();
-              },
-              error: (err) => {
-                console.error("Failed to refresh conversation:", err);
-              },
-            });
-        }
-      }
-    });
-  }
-
-
-  refreshUnrespondedConversationNotifications() {
-    this.conversationService.list_notification("chat").pipe(takeUntil(this.destroy$)).subscribe({
-      next: (notificationData: ConversationNotificationTemplate) => {
-        this.layoutService.unrespondedConversationNotification.update((prev) => notificationData)
-      },
-      error: (err) => { console.error(`Could not get the conversation notifications ${err}`) }
-    });
-  }
-
-  refreshNewTasksNotifications() {
-    this.conversationService.list_new_conversations("chat").pipe(takeUntil(this.destroy$)).subscribe((data) => {
-      let new_parsed_messages = [].concat(...data.map((unparsed_data) => {
-        return {
-          'customerName': unparsed_data?.contact?.name === '' ? unparsed_data?.contact?.phone : unparsed_data?.contact?.name,
-          'text': unparsed_data?.messages[0].message_body
-        }
-      }))
-      this.layoutService.newTaskmessages.update(() => new_parsed_messages);
-      this.layoutService.newTaskUpdateToken.set(true);
-    },
-      (err) => {
-        console.error("List conversation | Error getting conversations ", err);
-        this.layoutService.newTaskUpdateToken.set(true);
-      }
-    )
-  }
-
-
-
-  onConversationSelected(_selectedConversation) {
-    this.selectedConversation.set(_selectedConversation);
-  }
-
-  onChatDetailsPageLoad() {
-    this.cdr.detectChanges();
-  }
-
-  setContacts(data, conversationObject = null, resetAll = false) {
-
-    this.all_contacts() 
-
-    this.all_contacts.set(data().map((ctxt) =>
-      (conversationObject && ctxt.id === conversationObject.id) || (resetAll === true)
-        ?
-        ({
-          id: -1,
-          contact: {
-            id: ctxt.contact.id,
-            name: ctxt.contact.name,
-            phone: ctxt.contact.phone,
-            platform_name: ctxt.contact.platform_name,
-            description: ctxt.contact.description,
-            custom_fields: ctxt.contact.custom_fields
-          },
-          messages: [],
-          subject: ctxt.subject,
-          img: ctxt.img,//'http://emilcarlsson.se/assets/louislitt.png', // You can replace this with actual avatar if available
-          status: 'org_new', // Add default status for demo purposes
-          assigned: {
-            id: -1
-          }
-        })
-        : ctxt
-    ));
-  }
-async loadContacts(): Promise<void> {
-  return new Promise((resolve, reject) => {
-    this.contactService.list_contact().pipe(takeUntil(this.destroy$)).subscribe({
-      next: (contactsData) => {
-        this.conversationService.list_new_active_conversations("chat").pipe(takeUntil(this.destroy$)).subscribe({
-          next: (conversationsData: any[]) => {
-            const entries = contactsData.map((contact) => {
-              const conv = conversationsData.find((c) => c.contact.id === contact.id);
-
-              return {
-                id: conv?.id ?? null,
-                contact: {
-                  id: contact.id,
-                  name: contact.name,
-                  phone: contact.phone,
-                  platform_name: contact.platform_name,
-                  description: contact.description,
-                  custom_fields: contact.custom_fields,
-                  image: contact.image
-                },
-                subject: conv?.subject ?? null,
-                messages: conv?.messages ?? [],
-                status: conv?.status ?? 'org_new', // or null, based on your use case
-                assigned: { id: conv?.assigned?.id ?? -1 }
-              };
-            });
-
-            this.all_contacts.set(entries);
-            resolve();
-          },
-          error: (error) => {
-            console.error("Error loading new active conversations", error);
-            reject(error);
-          }
-        });
-      },
-      error: (err) => {
-        console.error("Contacts | Error getting contacts", err);
-        reject(err);
-      }
-    });
-  });
-}
-
-
-
-
-  loadConversations(reassignment = false): Promise<void> {
-  return new Promise((resolve, reject) => {
-    this.conversationService.list_active_coversations_for_user("chat")
+  private loadUsers(): void {
+    this.cachedDataService.getUsers()
       .pipe(takeUntil(this.destroy$))
       .subscribe({
-        next: (data) => {
-          this.conversations.set(data);
-          this.filterconversations.set(this.conversations());
-          this.sortUsersByLastMessageTime();
+        next: (users) => this.employees.set(users),
+        error: (err) => console.error('Failed to load users:', err)
+      });
+  }
+
+  loadConversationsForNotification() {
+  this.conversationService.list_new_conversations("non-chat", 1, 13)
+    .pipe(takeUntil(this.destroy$))
+    .subscribe({
+      next: (result) => {
+        // Normalize response
+        let data: any[];
+        // Always expect DRF pagination
+        if (!result || !Array.isArray(result.results)) {
+          console.error("Unexpected response format:", data);
+          this.layoutService.totalNewMessageRecords = 0;
+          return;
+        }
+        data = result.results;
+        
+        // Always assign an array
+        this.layoutService.totalNewMessageRecords = result.count ?? data.length; // DRF count or fallback
+
+        // Update messages for layout
+        const newParsedMessages = data.map((unparsed) => ({
+          customerName: unparsed?.contact?.name || unparsed?.contact?.phone,
+          text: unparsed?.messages?.[0]?.message_body,
+          total_count: result.count // TODO: Including the count in every payload until we add pagination to notification topbar
+        }));
+        this.layoutService.newTaskmessages.update(() => newParsedMessages);
+        this.layoutService.newTaskUpdateToken.set(true);
+      },
+      error: (err) => {
+        this.layoutService.newTaskUpdateToken.set(true);
+        console.error("List conversation | Error getting conversations", err);
+      }
+    });
+}
+
+  private loadInitialConversations(): void {
+    this.isLoading.set(true);
+    
+    this.cachedDataService
+      .getActiveConversationsForUserPaginated(this.PLATFORM, 1, this.PAGE_SIZE)
+      .pipe(
+        takeUntil(this.destroy$),
+        catchError(err => {
+          console.error('Failed to load conversations:', err);
+          this.showError('Failed to load conversations');
+          return of({ results: [], count: 0 });
+        })
+      )
+      .subscribe({
+        next: (response: any) => {
+          // Handle both paginated and non-paginated responses
+          const results = response.results || response;
+          const count = response.count || results.length;
           
-          // ✅ Handle reassignment safely
-          if (reassignment) {
-            const conversations = this.filterconversations();
-            
-            if (conversations && conversations.length > 0) {
-              // Select first conversation if available
-              this.selectedConversation.set(conversations[0]);
-              this.reassignmentProcessResponse = true;
-            } else {
-              // No conversations available
-              console.warn('No conversations available after reassignment');
-              this.selectedConversation.set(null);
-              this.reassignmentProcessResponse = true;
-            }
-          }
+          this.conversations.set(Array.isArray(results) ? results : []);
+          this.totalRecords.set(count);
+          this.currentPage.set(1);
+          this.hasMorePages.set(this.conversations().length < count);
+          this.isLoading.set(false);
           
-          resolve();
         },
-        error: (error_details) => {
-          console.error("Cannot load conversations", error_details);
-          // ✅ Reset state on error
-          this.conversations.set([]);
-          this.filterconversations.set([]);
-          this.selectedConversation.set(null);
-          reject(error_details);
+        error: (err) => {
+          console.error('Load error:', err);
+          this.isLoading.set(false);
         }
       });
-  });
-}
-
-
-  onOwnThisConversation(conversationObject) {
-    this.conversations.update((prevConversations) => [...prevConversations, conversationObject]);
-    this.selectedConversation.set(conversationObject);
-    this.refreshNewTasksNotifications()
-    this.refreshUnrespondedConversationNotifications();
-    //this.updateNewConversationList();
-    this.moveUserConversationToTop(conversationObject);
   }
 
-  reassignmentProcessResponse = false;
-  onReassignThisConversationEvent($event) {
-  this.reassignmentProcessResponse = false;
-  this.loadConversations(true).catch(err => {
-    console.error('Failed to reload conversations after reassignment:', err);
-    this.reassignmentProcessResponse = true;
-  });
-}
+  // ============================================================================
+  // INFINITE SCROLL / LOAD MORE
+  // ============================================================================
 
-  /** Callbacks and their actions */
-  onMessageSent(conversationObject) {
-    //this.updateNewConversationList();
-    this.moveUserConversationToTop(conversationObject);
+  onScrollConversationList(event: Event): void {
+    const element = event.target as HTMLElement;
+    const threshold = 100; // pixels from bottom
+    
+    const scrollPosition = element.scrollTop + element.clientHeight;
+    const scrollHeight = element.scrollHeight;
+    
+    if (scrollHeight - scrollPosition < threshold && !this.isLoadingMore()) {
+      this.loadMoreConversations();
+    }
   }
 
-  onConversationClosed(conversationObject) {
-    this.setContacts(this.all_contacts, conversationObject);
-    const conversations = this.conversations();
-    const index = conversations.findIndex(c => c.id === conversationObject.id);
-    if (index === -1) return;
-    const [deletedConversation] = conversations.splice(index, 1);
-    this.conversations.set([...conversations]); // ✅ ensure reactivity
-    this.selectedConversation.set(null);
-    this.refreshFilterList();
-    this.refreshUnrespondedConversationNotifications();
+  loadMoreConversations(): void {
+    // Don't load more if searching or no more pages
+    if (this.isSearching() || !this.hasMorePages() || this.isLoadingMore()) {
+      return;
+    }
+
+    this.isLoadingMore.set(true);
+    const nextPage = this.currentPage() + 1;
+
+    this.cachedDataService
+      .getActiveConversationsForUserPaginated(this.PLATFORM, nextPage, this.PAGE_SIZE)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (response) => {
+          // Append new conversations
+          this.conversations.update(convs => [...convs, ...response.results]);
+          this.currentPage.set(nextPage);
+          this.hasMorePages.set(this.conversations().length < response.count);
+          this.isLoadingMore.set(false);
+          
+        },
+        error: (err) => {
+          console.error('Failed to load more conversations:', err);
+          this.isLoadingMore.set(false);
+        }
+      });
   }
 
-  total_new_conversation_count: any[] = [];
+  // ============================================================================
+  // SEARCH FUNCTIONALITY
+  // ============================================================================
 
-  /** Count unread messages */
-  updateNewConversationList() {
-    this.total_new_conversation_count = this.conversations().filter(conversation =>
-      conversation.messages?.some((msg: any) => msg?.status === 'unread')
-    );
-    this.eventService.emitNewConversationCount(this.total_new_conversation_count.length);
-  }
+  private setupSearchHandler(): void {
+    this.searchSubject$
+      .pipe(
+        debounceTime(400),
+        distinctUntilChanged(),
+        tap(query => {
+          this.isSearching.set(query.trim().length > 0);
+          this.searchResultsPage.set(1);
+        }),
+        switchMap(query => {
+          if (!query.trim()) {
+            // Clear search - reload owned conversations
+            return this.cachedDataService.getActiveConversationsForUserPaginated(
+              this.PLATFORM, 
+              1, 
+              this.PAGE_SIZE
+            ).pipe(
+              map(response => ({ conversations: response, contacts: null }))
+            );
+          }
 
-  /** Move specific conversation to top */
-  moveUserConversationToTop(conversationObject: any) {
-    this.conversations.update((prevConversations) =>
-      prevConversations.map((conversation) =>
-        conversation.id === conversationObject.id
-          ? conversationObject // replace
-          : conversation
+          // Perform parallel search: conversations + contacts
+          return forkJoin({
+            conversations: this.cachedDataService.searchConversations(
+              this.PLATFORM,
+              query.trim(),
+              1,
+              this.PAGE_SIZE
+            ).pipe(
+              catchError(err => {
+                console.error('Conversation search failed:', err);
+                return of({ results: [], count: 0 });
+              })
+            ),
+            contacts: this.cachedDataService.searchContacts(
+              query.trim(),
+              1,
+              50 // Load more contacts for search
+            ).pipe(
+              catchError(err => {
+                console.error('Contact search failed:', err);
+                return of({ results: [], count: 0 });
+              })
+            )
+          });
+        }),
+        takeUntil(this.destroy$)
       )
+      .subscribe({
+        next: (result: any) => {
+          if (result.contacts) {
+            // Search mode - merge conversations and contacts
+            this.mergeConversationsAndContacts(result.conversations, result.contacts);
+          } else {
+            // Normal mode - just conversations
+            const response = result.conversations;
+            const results = response.results || response;
+            const count = response.count || results.length;
+            
+            this.conversations.set(Array.isArray(results) ? results : []);
+            this.totalRecords.set(count);
+            this.searchHasMore.set(this.conversations().length < count);
+          }
+          
+        },
+        error: (err) => {
+          console.error('Search subscription error:', err);
+          this.showError('Search failed');
+        }
+      });
+  }
+
+  /**
+   * Merge conversations with contacts that don't have active conversations
+   * This allows users to search and start conversations with any contact
+   */
+  private mergeConversationsAndContacts(conversationsResponse: any, contactsResponse: any): void {
+    const conversations = conversationsResponse.results || conversationsResponse;
+    const contacts = contactsResponse.results || contactsResponse;
+    
+    // Create a Set of contact IDs that already have conversations
+    const conversationContactIds = new Set(
+      (Array.isArray(conversations) ? conversations : [])
+        .map(conv => conv.contact?.id)
+        .filter(id => id !== undefined)
     );
-    const conversations = this.conversations();
-
-
-    const index = conversations.findIndex(c => c.id === conversationObject.id);
-    if (index === -1) return;
-
-    const [deletedConversation] = conversations.splice(index, 1);
-    conversations.unshift(deletedConversation);
-
-    this.conversations.set([...conversations]); // ✅ ensure reactivity
-    this.refreshFilterList();
+    
+    // Filter contacts that don't have active conversations
+    const contactsWithoutConversations = (Array.isArray(contacts) ? contacts : [])
+      .filter(contact => !conversationContactIds.has(contact.id))
+      .map(contact => this.createConversationFromContact(contact));
+    
+    // Merge: conversations first, then contacts without conversations
+    const merged = [
+      ...(Array.isArray(conversations) ? conversations : []),
+      ...contactsWithoutConversations
+    ];
+    
+    this.conversations.set(merged);
+    this.totalRecords.set(
+      (conversationsResponse.count || conversations.length) + 
+      contactsWithoutConversations.length
+    );
+    this.searchHasMore.set(false); // Simple mode: don't paginate search results with contacts
   }
 
-  /** Refresh filtered list */
-  refreshFilterList() {
-    this.filterconversations.set([...this.conversations()]);  // ✅ must clone to ensure change detection
-    this.sortUsersByLastMessageTime();
+  /**
+   * Create a conversation-like object from a contact
+   * This allows displaying contacts in the conversation list
+   */
+  private createConversationFromContact(contact: any): Conversation {
+    return {
+      id: -1, // Negative ID indicates this is a contact, not an active conversation
+      contact: {
+        id: contact.id,
+        name: contact.name || contact.phone,
+        phone: contact.phone,
+        platform_name: contact.platform_name || this.PLATFORM,
+        image: contact.image
+      },
+      messages: [],
+      status: 'new',
+      assigned: { id: -1 },
+      subject: undefined,
+      created_at: contact.created_at || new Date().toISOString(),
+      updated_at: contact.updated_at || new Date().toISOString()
+    };
   }
 
-  /** Sort conversations by last message time */
-  sortUsersByLastMessageTime() {
-    const sorted = [...this.filterconversations()].sort((a, b) => {
-      const getLastMessageTime = (conversation: any): number => {
-        const lastMsg = conversation.messages?.[conversation.messages.length - 1];
-        const timeStr = lastMsg?.received_time || lastMsg?.sent_time;
-        return timeStr ? new Date(timeStr).getTime() : 0;
+  onSearchInput(query: string): void {
+    this.searchQuery.set(query);
+    this.searchSubject$.next(query);
+  }
+
+  loadMoreSearchResults(): void {
+    if (!this.isSearching() || !this.searchHasMore() || this.isLoadingMore()) {
+      return;
+    }
+
+    this.isLoadingMore.set(true);
+    const nextPage = this.searchResultsPage() + 1;
+
+    this.cachedDataService
+      .searchConversations(
+        this.PLATFORM,
+        this.searchQuery().trim(),
+        nextPage,
+        this.PAGE_SIZE
+      )
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (response) => {
+          this.conversations.update(convs => [...convs, ...response.results]);
+          this.searchResultsPage.set(nextPage);
+          this.searchHasMore.set(this.conversations().length < response.count);
+          this.isLoadingMore.set(false);
+        },
+        error: (err) => {
+          console.error('Failed to load more search results:', err);
+          this.isLoadingMore.set(false);
+        }
+      });
+  }
+
+  // ============================================================================
+  // WEBSOCKET HANDLING
+  // ============================================================================
+
+  private initializeWebSocket(): void {
+    if (!this.socketService.isSocketConnected) {
+      console.error('Socket not connected');
+      return;
+    }
+
+    this.socketService.getMessages()
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (message: any) => this.handleWebSocketMessage(message),
+        error: (err) => console.error('WebSocket error:', err)
+      });
+  }
+
+  private handleWebSocketMessage(message: any): void {
+    const convId = message.conversation_id;
+    
+    // Check if conversation is in current list
+    const convIndex = this.conversations().findIndex(c => c.id === convId);
+    if (['INTERNAL', 'CUSTOMER'].includes(message.msg_from_type)) {
+      if (convIndex !== -1) {
+        // Update existing conversation
+        this.updateConversationWithMessage(convIndex, message);
+        
+        this.playMessageSound();
+      } else if (convIndex === -1 && this.profile()?.user?.id ===  message?.assigned_user_id){
+        // New conversation - fetch and add
+        this.fetchAndAddConversation(convId);
+      }
+    } else if (message.msg_from_type === 'ORG') {
+      if (convIndex !== -1) {
+        this.refreshConversation(convId);
+      }
+    }
+
+    this.invalidateCacheAndRefreshNotifications();
+  }
+
+  private updateConversationWithMessage(index: number, message: any): void {
+    this.conversations.update(convs => {
+      const updated = [...convs];
+      updated[index] = {
+        ...updated[index],
+        messages: [...updated[index].messages, message],
+        status: message?.conversation_status ?? updated[index].status,
       };
-      return getLastMessageTime(b) - getLastMessageTime(a); // Descending
+      return updated;
     });
 
-    this.filterconversations.set(sorted);
+    // Update selected if matches
+    const selected = this.selectedConversation();
+    if (selected && selected.id === this.conversations()[index].id) {
+      this.selectedConversation.set(this.conversations()[index]);
+    }
   }
 
-  // Add these helper methods to your ChatWindowComponent class
-
-/**
- * Get formatted last message time for a conversation
- */
-getLastMessageTime(conversation: any): string {
-  if (!conversation.messages || conversation.messages.length === 0) {
-    return '';
+  private fetchAndAddConversation(conversationId: number): void {
+    this.cachedDataService
+      .getConversation(this.PLATFORM, conversationId, true)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (conv) => {
+          // Add to top of list
+          this.conversations.update(convs => [conv, ...convs]);
+          this.totalRecords.update(count => count + 1);
+          this.playNewConversationSound();
+        },
+        error: (err) => console.error('Failed to fetch new conversation:', err)
+      });
   }
-  
-  const lastMessage = conversation.messages[conversation.messages.length - 1];
-  const time = lastMessage.type === 'customer' ? lastMessage.received_time : lastMessage.sent_time;
-  
-  if (!time) return '';
-  
-  const messageDate = new Date(time);
-  const now = new Date();
-  const diffInMs = now.getTime() - messageDate.getTime();
-  const diffInHours = diffInMs / (1000 * 60 * 60);
-  
-  // Less than 24 hours: show time only
-  if (diffInHours < 24) {
-    return messageDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-  }
-  
-  // Less than 7 days: show day of week
-  if (diffInHours < 168) {
-    return messageDate.toLocaleDateString('en-US', { weekday: 'short' });
-  }
-  
-  // Older: show date
-  return messageDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-}
 
-/**
- * Get unread message count for a conversation
- */
-getUnreadCount(conversation: any): number {
-  if (!conversation.messages) return 0;
-  
-  return conversation.messages.filter((msg: any) => msg.status === 'unread').length;
-}
+  private refreshConversation(conversationId: number): void {
+    this.cachedDataService
+      .getConversation(this.PLATFORM, conversationId, true)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (conv) => {
+          const index = this.conversations().findIndex(c => c.id === conversationId);
+          if (index !== -1) {
+            this.updateConversationInState(index, conv);
+          }
+        },
+        error: (err) => console.error('Failed to refresh conversation:', err)
+      });
+  }
 
+  private updateConversationInState(index: number, conversation: Conversation): void {
+    this.conversations.update(convs => {
+      const updated = [...convs];
+      updated[index] = conversation;
+      return updated;
+    });
+
+    const selected = this.selectedConversation();
+    if (selected && selected.id === conversation.id) {
+      this.selectedConversation.set(conversation);
+    }
+  }
+
+  // ============================================================================
+  // EVENT HANDLERS
+  // ============================================================================
+
+  onConversationSelected(conversation: Conversation): void {
+    // If it's a contact without an active conversation (id === -1), 
+    // we could either:
+    // 1. Show a "Start Conversation" option
+    // 2. Automatically create a conversation
+    // 3. Show contact details with option to message
+    
+    if (conversation.id === -1) {
+      // This is a contact without active conversation
+      // You can customize this behavior
+      
+      // Option: Show in detail view but with "Start Conversation" button
+      this.selectedConversation.set(conversation);
+    } else {
+      // Normal active conversation
+      this.selectedConversation.set(conversation);
+    }
+  }
+
+  /**
+   * Start a new conversation with a contact that doesn't have an active conversation
+   */
+  startNewConversationWithContact(conversation: Conversation): void {
+    if (conversation.id !== -1) {
+      console.warn('This contact already has an active conversation');
+      return;
+    }
+
+    // Create payload for new conversation
+    const payload = {
+      contact_id: conversation.contact.id,
+      platform_id: conversation.contact.platform_name, // Adjust if needed
+      message_body: '' // Will be filled when user sends first message
+    };
+
+    this.isLoading.set(true);
+
+    // Call the service to create a new conversation
+    this.conversationService.start_new_conversation(this.PLATFORM, payload)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (newConversation: Conversation) => {
+          
+          // Add to conversations list
+          this.conversations.update(convs => [newConversation, ...convs]);
+          this.totalRecords.update(count => count + 1);
+          
+          // Select the new conversation
+          this.selectedConversation.set(newConversation);
+          
+          // Invalidate cache
+          this.cachedDataService.invalidateConversations(this.PLATFORM, 'new_conversation_created');
+          
+          this.isLoading.set(false);
+          
+          this.layoutService.addNotification({
+            severity: 'success',
+            app: 'ChatWindow',
+            text: `Started conversation with ${conversation.contact.name || conversation.contact.phone}`
+          });
+        },
+        error: (err) => {
+          console.error('Failed to start conversation:', err);
+          this.isLoading.set(false);
+          this.showError('Failed to start conversation. Please try again.');
+        }
+      });
+  }
+
+  onMessageSent(conversation: Conversation): void {
+    // Move to top and update
+    this.conversations.update(convs => {
+      const filtered = convs.filter(c => c.id !== conversation.id);
+      return [conversation, ...filtered];
+    });
+
+    this.cachedDataService.invalidateConversation(conversation.id, this.PLATFORM, 'message_sent');
+  }
+
+  onConversationClosed(conversation: Conversation): void {
+    // Remove from list
+    this.conversations.update(convs => 
+      convs.filter(c => c.id !== conversation.id)
+    );
+
+    if (this.selectedConversation()?.id === conversation.id) {
+      this.selectedConversation.set(null);
+    }
+
+    this.cachedDataService.invalidateConversations(this.PLATFORM, 'conversation_closed');
+    this.invalidateCacheAndRefreshNotifications();
+  }
+
+  onOwnThisConversation(conversation: Conversation): void {
+    this.conversations.update(convs => [conversation, ...convs]);
+    this.selectedConversation.set(conversation);
+    this.cachedDataService.invalidateConversations(this.PLATFORM, 'ownership_changed');
+    this.invalidateCacheAndRefreshNotifications();
+  }
+
+  onReassignThisConversation(): void {
+    // Reload conversations after reassignment
+    this.loadInitialConversations();
+  }
+
+  // ============================================================================
+  // UTILITIES
+  // ============================================================================
+
+  private sortByLastMessage(conversations: Conversation[]): Conversation[] {
+    return [...conversations].sort((a, b) => {
+      const timeA = this.getLastMessageTimestamp(a);
+      const timeB = this.getLastMessageTimestamp(b);
+      return timeB - timeA;
+    });
+  }
+
+  private getLastMessageTimestamp(conversation: Conversation): number {
+    if (!conversation.messages || conversation.messages.length === 0) {
+      return new Date(conversation.created_at).getTime();
+    }
+
+    const lastMsg = conversation.messages[conversation.messages.length - 1];
+    const timeStr = lastMsg.received_time || lastMsg.sent_time;
+    return timeStr ? new Date(timeStr).getTime() : 0;
+  }
+
+  getLastMessageTime(conversation: Conversation): string {
+    if (!conversation.messages || conversation.messages.length === 0) {
+      return '';
+    }
+
+    const lastMessage = conversation.messages[conversation.messages.length - 1];
+    const time = lastMessage.received_time || lastMessage.sent_time;
+    if (!time) return '';
+
+    const messageDate = new Date(time);
+    const now = new Date();
+    const diffInHours = (now.getTime() - messageDate.getTime()) / (1000 * 60 * 60);
+
+    if (diffInHours < 24) {
+      return messageDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    }
+    if (diffInHours < 168) {
+      return messageDate.toLocaleDateString('en-US', { weekday: 'short' });
+    }
+    return messageDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  }
+
+  getUnreadCount(conversation: Conversation): number {
+    if (!conversation.messages) return 0;
+    return conversation.messages.filter(msg => msg.status === 'unread').length;
+  }
+
+  trackConversation(index: number, conversation: Conversation): string | number {
+    // For contacts without conversations (id === -1), use contact ID
+    if (conversation.id === -1) {
+      return `contact-${conversation.contact.id}`;
+    }
+    // For actual conversations, use conversation ID
+    return conversation.id;
+  }
+
+  private invalidateCacheAndRefreshNotifications(): void {
+    // Refresh notification counts
+    this.conversationService.list_notification(this.PLATFORM)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (data: any) => {
+          this.layoutService.unrespondedConversationNotification.update(() => data);
+        },
+        error: (err) => console.error('Failed to refresh notifications:', err)
+      });
+  }
+
+  private playMessageSound(): void {
+    const audio = new Audio('../../../../assets/media/new_message.mp3');
+    audio.play().catch(() => {});
+  }
+
+  private playNewConversationSound(): void {
+    const audio = new Audio('../../../../assets/media/new_message.mp3');
+    audio.play().catch(() => {});
+  }
+
+  private showError(message: string): void {
+    this.layoutService.addNotification({
+      severity: 'error',
+      app: 'ChatWindow',
+      text: message
+    });
+  }
 }

@@ -1,0 +1,433 @@
+<!-- src/app/features/ca-firm/department-management/department-management.component.html -->
+<p-toast></p-toast>
+<p-confirmDialog></p-confirmDialog>
+
+<div class="department-management-container">
+  <!-- Header Section -->
+  <div class="header-section">
+    <div class="header-content">
+      <div class="title-section">
+        <h1 class="page-title">
+          <i class="pi pi-sitemap"></i>
+          Department Management
+        </h1>
+        <p class="page-subtitle">Organize your firm's departmental structure</p>
+      </div>
+      
+      <div class="header-actions">
+        <p-button 
+          label="Add Department" 
+          icon="pi pi-plus" 
+          (onClick)="openNew()"
+          styleClass="p-button-primary">
+        </p-button>
+        <p-button 
+          label="Export" 
+          icon="pi pi-download" 
+          (onClick)="exportToExcel()"
+          styleClass="p-button-outlined">
+        </p-button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Stats Section -->
+  <div class="stats-grid">
+    <p-card styleClass="stat-card">
+      <div class="stat-content">
+        <div class="stat-icon total">
+          <i class="pi pi-building"></i>
+        </div>
+        <div class="stat-details">
+          <div class="stat-value">{{ stats.total }}</div>
+          <div class="stat-label">Total Departments</div>
+        </div>
+      </div>
+    </p-card>
+
+    <p-card styleClass="stat-card">
+      <div class="stat-content">
+        <div class="stat-icon active">
+          <i class="pi pi-check-circle"></i>
+        </div>
+        <div class="stat-details">
+          <div class="stat-value">{{ stats.active }}</div>
+          <div class="stat-label">Active Departments</div>
+        </div>
+      </div>
+    </p-card>
+
+    <p-card styleClass="stat-card">
+      <div class="stat-content">
+        <div class="stat-icon head">
+          <i class="pi pi-user"></i>
+        </div>
+        <div class="stat-details">
+          <div class="stat-value">{{ stats.withHead }}</div>
+          <div class="stat-label">With Department Head</div>
+        </div>
+      </div>
+    </p-card>
+
+    <p-card styleClass="stat-card">
+      <div class="stat-content">
+        <div class="stat-icon triage">
+          <i class="pi pi-filter"></i>
+        </div>
+        <div class="stat-details">
+          <div class="stat-value">{{ stats.triage }}</div>
+          <div class="stat-label">Triage Departments</div>
+        </div>
+      </div>
+    </p-card>
+  </div>
+
+  <!-- Departments Tree -->
+  <p-card styleClass="tree-card">
+    <ng-template pTemplate="header">
+      <div class="card-header-content">
+        <span class="card-title">
+          <i class="pi pi-list"></i>
+          Department Hierarchy
+        </span>
+        <span class="p-input-icon-left">
+          <i class="pi pi-search"></i>
+          <input 
+            pInputText 
+            type="text" 
+            [(ngModel)]="searchText"
+            placeholder="Search departments..."
+            class="search-input" />
+        </span>
+      </div>
+    </ng-template>
+
+    <p-treeTable 
+      [value]="treeNodes" 
+      [loading]="loading"
+      styleClass="p-treetable-gridlines">
+      
+      <ng-template pTemplate="header">
+        <tr>
+          <th style="width: 40%">Department</th>
+          <th style="width: 20%">Department Head</th>
+          <th style="width: 10%">Employees</th>
+          <th style="width: 15%">Type</th>
+          <th style="width: 10%">Status</th>
+          <th style="width: 15%">Actions</th>
+        </tr>
+      </ng-template>
+      
+      <ng-template pTemplate="body" let-rowNode let-rowData="rowData">
+        <tr>
+          <td>
+            <p-treeTableToggler [rowNode]="rowNode"></p-treeTableToggler>
+            <div class="department-cell">
+              <div class="department-name">{{ rowData.name }}</div>
+              <div class="department-desc" *ngIf="rowData.description">
+                {{ rowData.description }}
+              </div>
+            </div>
+          </td>
+          <td>
+            <div *ngIf="rowData.head_details" class="head-cell">
+              <p-avatar 
+                [label]="getInitials(rowData)" 
+                styleClass="mr-2" 
+                size="normal" 
+                shape="circle"
+                [style]="{'background-color': '#667eea', 'color': '#ffffff'}">
+              </p-avatar>
+              <div class="head-info">
+                <div class="head-name">{{ rowData.head_details.username }}</div>
+                <div class="head-email">{{ rowData.head_details.email }}</div>
+              </div>
+            </div>
+            <span *ngIf="!rowData.head_details" class="text-muted">Not assigned</span>
+          </td>
+          <td>
+            <p-badge 
+              [value]="(rowData.employee_count || 0).toString()" 
+              severity="info">
+            </p-badge>
+          </td>
+          <td>
+            <div class="type-tags">
+              <p-tag 
+                *ngIf="rowData.is_triage" 
+                value="Triage" 
+                severity="warn"
+                icon="pi pi-filter">
+              </p-tag>
+              <p-tag 
+                *ngIf="rowData.parent_department" 
+                value="Sub-Dept" 
+                severity="info">
+              </p-tag>
+            </div>
+          </td>
+          <td>
+            <p-tag 
+              [value]="rowData.is_active ? 'Active' : 'Inactive'" 
+              [severity]="getStatusSeverity(rowData.is_active)">
+            </p-tag>
+          </td>
+          <td>
+            <div class="action-buttons">
+              <p-button 
+                icon="pi pi-eye" 
+                (onClick)="viewDetails(rowData)"
+                [rounded]="true"
+                [text]="true"
+                severity="info"
+                pTooltip="View Details"
+                tooltipPosition="top">
+              </p-button>
+              <p-button 
+                icon="pi pi-pencil" 
+                (onClick)="editDepartment(rowData)"
+                [rounded]="true"
+                [text]="true"
+                severity="success"
+                pTooltip="Edit"
+                tooltipPosition="top">
+              </p-button>
+              <p-button 
+                [icon]="rowData.is_active ? 'pi pi-ban' : 'pi pi-check'" 
+                (onClick)="toggleStatus(rowData)"
+                [rounded]="true"
+                [text]="true"
+                [severity]="rowData.is_active ? 'warn' : 'success'"
+                [pTooltip]="rowData.is_active ? 'Deactivate' : 'Activate'"
+                tooltipPosition="top">
+              </p-button>
+              <p-button 
+                icon="pi pi-trash" 
+                (onClick)="deleteDepartment(rowData)"
+                [rounded]="true"
+                [text]="true"
+                severity="danger"
+                pTooltip="Delete"
+                tooltipPosition="top">
+              </p-button>
+            </div>
+          </td>
+        </tr>
+      </ng-template>
+      
+      <ng-template pTemplate="emptymessage">
+        <tr>
+          <td colspan="6" class="text-center">
+            <div class="empty-state">
+              <i class="pi pi-sitemap" style="font-size: 3rem; color: #cbd5e1;"></i>
+              <p class="empty-text">No departments found</p>
+              <p-button 
+                label="Add First Department" 
+                icon="pi pi-plus" 
+                (onClick)="openNew()"
+                styleClass="p-button-sm">
+              </p-button>
+            </div>
+          </td>
+        </tr>
+      </ng-template>
+    </p-treeTable>
+  </p-card>
+</div>
+
+<!-- Add/Edit Department Dialog -->
+<p-dialog 
+  [(visible)]="displayDialog" 
+  [header]="isEditMode ? 'Edit Department' : 'Add New Department'"
+  [modal]="true" 
+  [style]="{width: '40vw'}" 
+  [breakpoints]="{'960px': '75vw', '640px': '90vw'}"
+  [draggable]="false"
+  [resizable]="false">
+  
+  <form [formGroup]="departmentForm" class="department-form">
+    <div class="form-grid">
+      <!-- Department Name -->
+      <div class="form-field full-width">
+        <label for="name" class="form-label required">Department Name</label>
+        <input 
+          pInputText 
+          id="name" 
+          formControlName="name"
+          placeholder="e.g., Tax Consulting"
+          class="w-full"
+          [class.ng-invalid]="departmentForm.get('name')?.invalid && departmentForm.get('name')?.touched" />
+        <small class="p-error" *ngIf="departmentForm.get('name')?.invalid && departmentForm.get('name')?.touched">
+          Department name is required
+        </small>
+      </div>
+
+      <!-- Description -->
+      <div class="form-field full-width">
+        <label for="description" class="form-label">Description</label>
+        <textarea 
+          pInputTextarea 
+          id="description" 
+          formControlName="description"
+          rows="3"
+          placeholder="Brief description of the department"
+          class="w-full">
+        </textarea>
+      </div>
+
+      <!-- Parent Department -->
+      <div class="form-field">
+        <label for="parent_department" class="form-label">Parent Department</label>
+        <p-select
+          id="parent_department"
+          formControlName="parent_department"
+          [options]="departments"
+          optionLabel="name"
+          optionValue="id"
+          placeholder="Select parent (optional)"
+          [filter]="true"
+          [showClear]="true"
+          appendTo="body"
+          styleClass="w-full">
+        </p-select>
+      </div>
+
+      <!-- Department Head -->
+      <div class="form-field">
+        <label for="head" class="form-label">Department Head</label>
+        <p-select
+          id="head"
+          formControlName="head"
+          [options]="employees"
+          optionLabel="details.username"
+          optionValue="details.id"
+          placeholder="Select head (optional)"
+          [filter]="true"
+          [showClear]="true"
+          appendTo="body"
+          styleClass="w-full">
+        </p-select>
+      </div>
+
+      <!-- Checkboxes -->
+      <div class="form-field full-width">
+        <div class="checkbox-group">
+          <div class="checkbox-item">
+            <p-checkbox 
+              formControlName="is_triage" 
+              [binary]="true" 
+              inputId="is_triage">
+            </p-checkbox>
+            <label for="is_triage" class="checkbox-label">
+              Mark as Triage Department
+              <small>New conversations will be assigned to this department</small>
+            </label>
+          </div>
+
+          <div class="checkbox-item">
+            <p-checkbox 
+              formControlName="is_active" 
+              [binary]="true" 
+              inputId="is_active">
+            </p-checkbox>
+            <label for="is_active" class="checkbox-label">
+              Active Department
+            </label>
+          </div>
+        </div>
+      </div>
+    </div>
+  </form>
+
+  <ng-template pTemplate="footer">
+    <div class="dialog-footer">
+      <p-button 
+        label="Cancel" 
+        icon="pi pi-times" 
+        (onClick)="hideDialog()"
+        styleClass="p-button-text">
+      </p-button>
+      <p-button 
+        [label]="isEditMode ? 'Update' : 'Create'" 
+        icon="pi pi-check" 
+        (onClick)="saveDepartment()"
+        [loading]="loading">
+      </p-button>
+    </div>
+  </ng-template>
+</p-dialog>
+
+<!-- View Details Dialog -->
+<p-dialog 
+  [(visible)]="displayDetailsDialog" 
+  header="Department Details"
+  [modal]="true" 
+  [style]="{width: '35vw'}" 
+  [breakpoints]="{'960px': '75vw', '640px': '90vw'}">
+  
+  <div *ngIf="selectedDepartment" class="department-details">
+    <div class="detail-header">
+      <div class="detail-icon">
+        <i class="pi pi-building"></i>
+      </div>
+      <div class="detail-header-info">
+        <h3>{{ selectedDepartment.name }}</h3>
+        <p *ngIf="selectedDepartment.description">{{ selectedDepartment.description }}</p>
+        <div class="detail-tags">
+          <p-tag 
+            [value]="selectedDepartment.is_active ? 'Active' : 'Inactive'" 
+            [severity]="getStatusSeverity(selectedDepartment.is_active)">
+          </p-tag>
+          <p-tag 
+            *ngIf="selectedDepartment.is_triage" 
+            value="Triage" 
+            severity="warn">
+          </p-tag>
+        </div>
+      </div>
+    </div>
+
+    <div class="detail-grid">
+      <div class="detail-item full-width" *ngIf="selectedDepartment.head_details">
+        <label>Department Head</label>
+        <div class="head-detail">
+          <p-avatar 
+            [label]="getInitials(selectedDepartment)" 
+            size="large" 
+            shape="circle"
+            [style]="{'background-color': '#667eea', 'color': '#ffffff'}">
+          </p-avatar>
+          <div>
+            <div class="head-name">{{ selectedDepartment.head_details.username }}</div>
+            <div class="head-email">{{ selectedDepartment.head_details.email }}</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="detail-item">
+        <label>Total Employees</label>
+        <span>{{ selectedDepartment.employee_count || 0 }}</span>
+      </div>
+
+      <div class="detail-item">
+        <label>Department Type</label>
+        <span>{{ selectedDepartment.parent_department ? 'Sub-Department' : 'Main Department' }}</span>
+      </div>
+    </div>
+  </div>
+
+  <ng-template pTemplate="footer">
+    <p-button 
+      label="Close" 
+      icon="pi pi-times" 
+      (onClick)="hideDialog()"
+      styleClass="p-button-text">
+    </p-button>
+    <p-button 
+      label="Edit" 
+      icon="pi pi-pencil" 
+      (onClick)="editDepartment(selectedDepartment!); displayDetailsDialog = false"
+      styleClass="p-button-primary">
+    </p-button>
+  </ng-template>
+</p-dialog>

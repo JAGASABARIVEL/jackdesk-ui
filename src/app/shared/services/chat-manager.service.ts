@@ -20,7 +20,7 @@ export class ChatManagerService {
   chat_uri = `chat/`;
 
   new_conversation_uri = "?status=new"
-  active_conversation_uri = "?status=active"
+  active_conversation_uri = "?statuses=zombie,active"
   active_conversation_for_user_uri = "active_conversation_for_user/"
   all_conversation_for_user_uri = "all_conversation_for_user"
   history_by_contact_uri = "history_by_contact"
@@ -117,11 +117,22 @@ export class ChatManagerService {
     page: number = 1,
     pageSize: number = 1000, search='', ordering?): Observable<any> {
     const headers = new HttpHeaders().set('Authorization', `Bearer ${this.auth_token}`);
-    const params: any = {
-    page: page,
-    page_size: pageSize,
-    search: search,
-  };
+    let params: any;
+    if (is_user_specific === true) {
+        params = {
+        page: page,
+        page_size: pageSize,
+        is_user_specific: 'true',
+        search: search,
+      }
+    }
+    else {
+      params = {
+        page: page,
+        page_size: pageSize,
+        search: search,
+      }
+    }
   if (ordering) params.ordering = ordering;
   if (base_url_type !== "chat") {
     return this.http.get(`${this.conversations_url}${this.non_chat_conversations_uri}${this.active_conversation_uri}`, { headers, params });
@@ -130,22 +141,34 @@ export class ChatManagerService {
     return this.http.get(`${this.conversations_url}${this.chat_uri}${this.active_conversation_uri}`, { headers, params });
   }
 
-  list_new_active_conversations(base_url_type="chat"): Observable<any> {
+  list_new_active_conversations(base_url_type="chat", page: number = 1, pageSize: number = 1000, search='', ordering?): Observable<any> {
+    const params: any = {
+    page: page,
+    page_size: pageSize,
+    search: search
+  };
+  if (ordering) params.ordering = ordering;
     const headers = new HttpHeaders().set('Authorization', `Bearer ${this.auth_token}`);
     if (base_url_type !== "chat") {
-      return this.http.get(`${this.conversations_url}${this.non_chat_conversations_uri}${this.active_conversation_for_org_uri}`, { headers });
+      return this.http.get(`${this.conversations_url}${this.non_chat_conversations_uri}${this.active_conversation_for_org_uri}`, { headers, params });
     
   }
-    return this.http.get(`${this.conversations_url}${this.chat_uri}${this.active_conversation_for_org_uri}`, { headers });
+    return this.http.get(`${this.conversations_url}${this.chat_uri}${this.active_conversation_for_org_uri}`, { headers, params });
   }
 
-  list_active_coversations_for_user(base_url_type="chat"): Observable<any> {
+  list_active_coversations_for_user(base_url_type="chat", page: number = 1, pageSize: number = 1000, search='', ordering?): Observable<any> {
+    const params: any = {
+    page: page,
+    page_size: pageSize,
+    search: search
+  };
+  if (ordering) params.ordering = ordering;
     const headers = new HttpHeaders().set('Authorization', `Bearer ${this.auth_token}`);
     if (base_url_type !== "chat") {
-      return this.http.get(`${this.conversations_url}${this.non_chat_conversations_uri}${this.active_conversation_for_user_uri}`, { headers });
+      return this.http.get(`${this.conversations_url}${this.non_chat_conversations_uri}${this.active_conversation_for_user_uri}`, { headers, params });
     
   }
-    return this.http.get(`${this.conversations_url}${this.chat_uri}${this.active_conversation_for_user_uri}`, { headers });
+    return this.http.get(`${this.conversations_url}${this.chat_uri}${this.active_conversation_for_user_uri}`, { headers, params });
   }
 
   list_all_coversations_for_user(base_url_type="chat"): Observable<any> {
@@ -517,4 +540,82 @@ export class ChatManagerService {
   getUnreadTicketCount(): Observable<any> {
     return this.http.get<any>(`${this.tickets_url}unread-count/`);
   }
+
+  // Add these methods to your existing ChatManagerService class
+
+/**
+ * Search conversations across organization
+ * This method searches through conversations by contact name, phone, and message content
+ */
+search_conversations(
+  base_url_type = "chat",
+  search: string,
+  page: number = 1,
+  pageSize: number = 20,
+  ordering?: string
+): Observable<any> {
+  const headers = new HttpHeaders().set('Authorization', `Bearer ${this.auth_token}`);
+  
+  const params: any = {
+    search: search,
+    page: page,
+    page_size: pageSize
+  };
+  
+  if (ordering) {
+    params.ordering = ordering;
+  }
+
+  if (base_url_type !== "chat") {
+    return this.http.get(
+      `${this.conversations_url}${this.non_chat_conversations_uri}`,
+      { headers, params }
+    );
+  }
+
+  return this.http.get(
+    `${this.conversations_url}${this.chat_uri}`,
+    { headers, params }
+  );
+}
+
+/**
+ * Get conversations with enhanced pagination support
+ * Consolidates the various list methods into one with better parameter handling
+ */
+list_conversations_paginated(
+  base_url_type = "chat",
+  options: {
+    page?: number;
+    pageSize?: number;
+    search?: string;
+    status?: string;
+    is_user_specific?: boolean;
+    ordering?: string;
+  } = {}
+): Observable<any> {
+  const headers = new HttpHeaders().set('Authorization', `Bearer ${this.auth_token}`);
+  
+  const params: any = {
+    page: options.page || 1,
+    page_size: options.pageSize || 20
+  };
+
+  if (options.search) params.search = options.search;
+  if (options.status) params.status = options.status;
+  if (options.is_user_specific) params.is_user_specific = 'true';
+  if (options.ordering) params.ordering = options.ordering;
+
+  if (base_url_type !== "chat") {
+    return this.http.get(
+      `${this.conversations_url}${this.non_chat_conversations_uri}`,
+      { headers, params }
+    );
+  }
+
+  return this.http.get(
+    `${this.conversations_url}${this.chat_uri}`,
+    { headers, params }
+  );
+}
 }

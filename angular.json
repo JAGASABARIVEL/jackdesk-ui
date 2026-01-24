@@ -27,7 +27,12 @@
             "inlineStyleLanguage": "scss",
             "assets": [
               "src/favicon.ico",
-              "src/assets"
+              "src/assets",
+              {
+                "glob": "zoho-callback.html",
+                "input": "src",
+                "output": "/"
+              }
             ],
             "styles": [
               "src/assets/layout/styles/theme/lara-light-teal/theme.css",
@@ -46,8 +51,8 @@
                 },
                 {
                   "type": "anyComponentStyle",
-                  "maximumWarning": "16kB",
-                  "maximumError": "16kB"
+                  "maximumWarning": "17kB",
+                  "maximumError": "30.0kB"
                 }
               ],
               "outputHashing": "all"

@@ -1,157 +1,425 @@
-// Accordion Styling
-::ng-deep {
-  .p-accordion {
-    .p-accordion-panel {
-      margin-bottom: 1rem;
-      border-radius: 16px;
-      overflow: hidden;
-      box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
-      border: none;
-      transition: all 0.3s ease;
+// Modern Admin Settings Styles
 
-      &:hover {
-        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.12);
-      }
-    }
+// Settings Header
+.settings-header {
+  margin-bottom: 2rem;
+  padding: 2rem;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 16px;
+  color: white;
+  box-shadow: 0 4px 20px rgba(102, 126, 234, 0.3);
 
-    .p-accordion-header {
-      border: none;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  .settings-title {
+    font-size: 2rem;
+    font-weight: 700;
+    margin: 0 0 0.5rem 0;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
 
-      .p-accordion-header-link {
-        padding: 1.5rem 2rem;
-        border: none;
-        background: transparent;
-        color: white;
-        font-weight: 600;
-        font-size: 1.125rem;
-        transition: all 0.3s ease;
-
-        &:hover {
-          background: rgba(255, 255, 255, 0.1);
-        }
-
-        .p-accordion-toggle-icon {
-          color: white;
-          font-size: 1.25rem;
-        }
-      }
-    }
-
-    .p-accordion-content {
-      background: white;
-      padding: 2rem;
-      border: none;
+    i {
+      font-size: 2.5rem;
     }
   }
 
-  // Card Styling
-  .p-card {
-    border-radius: 16px;
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
-    border: 1px solid #e2e8f0;
-    transition: all 0.3s ease;
+  .settings-subtitle {
+    font-size: 1rem;
+    margin: 0;
+    opacity: 0.95;
+    font-weight: 400;
+  }
+}
 
-    &:hover {
-      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
-      transform: translateY(-2px);
+// Tab Styling
+::ng-deep {
+  .modern-tabs {
+    .p-tabview-nav {
+      background: white;
+      border: none;
+      border-radius: 12px;
+      padding: 0.5rem;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+      margin-bottom: 2rem;
+
+      .p-tabview-nav-link {
+        border: none;
+        background: transparent;
+        border-radius: 8px;
+        padding: 1rem 1.5rem;
+        transition: all 0.3s ease;
+
+        &:hover {
+          background: rgba(102, 126, 234, 0.1);
+        }
+      }
+
+      .p-highlight .p-tabview-nav-link {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+      }
     }
 
-    .p-card-body {
-      padding: 1.5rem;
-    }
-
-    .p-card-content {
+    .p-tabview-panels {
+      background: transparent;
+      border: none;
       padding: 0;
     }
   }
 
-  // Form Elements
-  .p-select {
-    border: 2px solid #e2e8f0;
-    border-radius: 10px;
-    transition: all 0.3s ease;
-    width: 100% !important;
+  .tab-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    font-weight: 600;
 
-    &:hover {
-      border-color: #cbd5e0;
+    i {
+      font-size: 1.25rem;
     }
+  }
+}
 
-    &.p-focus {
-      border-color: #667eea;
-      box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+// Content Layout
+.tab-content {
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.content-grid {
+  display: grid;
+  grid-template-columns: 400px 1fr;
+  gap: 2rem;
+  align-items: start;
+
+  @media (max-width: 1200px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.single-column {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+// Card Styling
+.add-card {
+  ::ng-deep {
+    .p-card {
+      border-radius: 16px;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+      border: 1px solid #e2e8f0;
+      position: sticky;
+      top: 2rem;
+
+      .p-card-body {
+        padding: 0;
+      }
+
+      .p-card-content {
+        padding: 1.5rem;
+      }
     }
+  }
+}
 
-    .p-select-label {
-      padding: 0.75rem 1rem;
+.card-header-custom {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  border-radius: 16px 16px 0 0;
+
+  i {
+    font-size: 1.5rem;
+  }
+
+  h3 {
+    margin: 0;
+    font-size: 1.25rem;
+    font-weight: 600;
+  }
+}
+
+.list-card {
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+  overflow: hidden;
+}
+
+.list-header {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 1.5rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+
+  h3 {
+    margin: 0;
+    font-size: 1.25rem;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+
+    i {
+      font-size: 1.5rem;
     }
   }
 
-  .p-inputtext,
-  .p-inputtextarea {
-    border: 2px solid #e2e8f0;
-    border-radius: 10px;
-    padding: 0.75rem 1rem;
-    transition: all 0.3s ease;
-    font-size: 0.95rem;
-    width: 100%;
+  .count-badge {
+    background: rgba(255, 255, 255, 0.2);
+    padding: 0.25rem 0.75rem;
+    border-radius: 20px;
+    font-size: 0.875rem;
+    font-weight: 600;
+  }
+}
 
-    &:hover {
-      border-color: #cbd5e0;
-    }
+// Action Bar
+.action-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.5rem;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
 
-    &:focus {
-      border-color: #667eea;
-      box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
-      outline: none;
-    }
+  h3 {
+    margin: 0;
+    font-size: 1.25rem;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    color: #2d3748;
 
-    &::placeholder {
-      color: #a0aec0;
+    i {
+      font-size: 1.5rem;
+      color: #667eea;
     }
   }
+}
 
-  // Input Group
-  .p-inputgroup {
-    border-radius: 10px;
-    overflow: hidden;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
-    margin-bottom: 1rem;
+// Form Fields
+.form-field {
+  margin-bottom: 1.5rem;
 
-    .p-inputgroup-addon {
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      color: white;
-      border: none;
-      padding: 0.75rem 1rem;
-      display: flex;
-      align-items: center;
-      justify-content: center;
+  label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: 600;
+    color: #4a5568;
+    font-size: 0.9rem;
+  }
 
-      i {
-        font-size: 1.125rem;
+  ::ng-deep {
+    .p-inputtext,
+    .p-select,
+    .p-inputtextarea {
+      width: 100%;
+      border: 2px solid #e2e8f0;
+      border-radius: 10px;
+      padding: 0.75rem;
+      transition: all 0.3s ease;
+
+      &:hover {
+        border-color: #cbd5e0;
+      }
+
+      &:focus {
+        border-color: #667eea;
+        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
       }
     }
 
-    input {
-      border-left: none;
+    .p-inputgroup {
+      border-radius: 10px;
+      overflow: hidden;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+
+      .p-inputgroup-addon {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border: none;
+        padding: 0.75rem;
+
+        i {
+          font-size: 1.125rem;
+        }
+      }
+
+      input {
+        border-left: none;
+      }
     }
   }
 
-  // Table Styling
-  .p-table {
-    border-radius: 12px;
-    overflow: hidden;
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
-    margin-top: 1.5rem;
+  &:last-child {
+    margin-bottom: 0;
+  }
+}
 
+// User Cell
+.user-cell {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+
+  ::ng-deep .p-avatar {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    font-weight: 600;
+  }
+
+  span {
+    font-weight: 500;
+  }
+}
+
+// Role Badges
+.role-badge {
+  display: inline-block;
+  padding: 0.25rem 0.75rem;
+  border-radius: 16px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-transform: capitalize;
+
+  &.role-owner {
+    background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+    color: white;
+  }
+
+  &.role-employee,
+  &.role-manager {
+    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+    color: white;
+  }
+
+  &.role-intern {
+    background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+    color: white;
+  }
+
+  &.role-nontech {
+    background: linear-gradient(135deg, #64748b 0%, #475569 100%);
+    color: white;
+  }
+
+  &.role-agent {
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    color: white;
+  }
+}
+
+// Field Type Badge
+.field-type-badge {
+  display: inline-block;
+  padding: 0.25rem 0.75rem;
+  border-radius: 16px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  background: rgba(102, 126, 234, 0.1);
+  color: #667eea;
+  text-transform: capitalize;
+}
+
+// Contact Type Badge
+.contact-type-badge {
+  display: inline-block;
+  padding: 0.25rem 0.75rem;
+  border-radius: 16px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  background: rgba(239, 68, 68, 0.1);
+  color: #dc2626;
+  text-transform: capitalize;
+}
+
+// Channel Icon
+.channel-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: rgba(102, 126, 234, 0.1);
+}
+
+// Empty States
+.empty-state {
+  text-align: center;
+  padding: 3rem 1rem;
+  color: #94a3b8;
+
+  i {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+    display: block;
+    opacity: 0.5;
+  }
+
+  p {
+    margin: 0;
+    font-size: 1rem;
+  }
+}
+
+.empty-state-large {
+  text-align: center;
+  padding: 4rem 2rem;
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+
+  i {
+    font-size: 4rem;
+    color: #cbd5e0;
+    margin-bottom: 1.5rem;
+    display: block;
+  }
+
+  h3 {
+    font-size: 1.5rem;
+    color: #2d3748;
+    margin: 0 0 0.5rem 0;
+  }
+
+  p {
+    color: #64748b;
+    margin: 0 0 1.5rem 0;
+    font-size: 1rem;
+  }
+}
+
+// Table Enhancements
+::ng-deep {
+  .p-table {
     .p-table-thead > tr > th {
       background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
       color: white;
       font-weight: 600;
-      padding: 1.25rem 1rem;
+      padding: 1rem;
       border: none;
       text-transform: uppercase;
-      font-size: 0.875rem;
+      font-size: 0.85rem;
       letter-spacing: 0.5px;
 
       .p-sortable-column-icon {
@@ -164,25 +432,22 @@
 
       &:hover {
         background: #f7fafc;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
       }
 
       > td {
         padding: 1rem;
         border-bottom: 1px solid #e2e8f0;
-        color: #2d3748;
-        font-size: 0.95rem;
+        vertical-align: middle;
 
-        .p-button {
-          border-radius: 8px;
-          transition: all 0.3s ease;
-
-          &:hover:not(:disabled) {
-            transform: translateY(-2px);
-          }
-
-          &:disabled {
-            opacity: 0.4;
-          }
+        code {
+          background: rgba(102, 126, 234, 0.1);
+          color: #667eea;
+          padding: 0.2rem 0.5rem;
+          border-radius: 4px;
+          font-size: 0.85rem;
+          font-family: 'Courier New', monospace;
         }
       }
     }
@@ -190,7 +455,7 @@
     .p-paginator {
       background: #f7fafc;
       border-top: 1px solid #e2e8f0;
-      padding: 1rem;
+      border-radius: 0 0 16px 16px;
 
       .p-paginator-pages .p-paginator-page {
         border-radius: 8px;
@@ -199,10 +464,6 @@
         &.p-highlight {
           background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
           color: white;
-        }
-
-        &:hover {
-          background: #e2e8f0;
         }
       }
     }
@@ -213,7 +474,6 @@
     border-radius: 10px;
     font-weight: 600;
     transition: all 0.3s ease;
-    border: none;
     padding: 0.75rem 1.5rem;
 
     &:hover:not(:disabled) {
@@ -221,62 +481,30 @@
       box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
     }
 
-    &:disabled {
-      opacity: 0.5;
-      cursor: not-allowed;
+    &.p-button-rounded {
+      border-radius: 50%;
+      width: 2.5rem;
+      height: 2.5rem;
+      padding: 0;
     }
 
-    &.p-button-outlined {
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      color: white;
+    &.p-button-text {
+      background: transparent;
       border: none;
 
       &:hover:not(:disabled) {
-        box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
+        background: rgba(102, 126, 234, 0.1);
       }
     }
 
-    &.p-button-success {
-      background: linear-gradient(135deg, #48bb78 0%, #38a169 100%);
-
-      &.p-button-outlined {
-        background: transparent;
-        color: #48bb78;
-        border: 2px solid #48bb78;
-
-        &:hover:not(:disabled) {
-          background: #48bb78;
-          color: white;
-        }
-      }
-    }
-
-    &.p-button-danger {
-      background: linear-gradient(135deg, #f56565 0%, #e53e3e 100%);
-
-      &.p-button-outlined {
-        background: transparent;
-        color: #f56565;
-        border: 2px solid #f56565;
-
-        &:hover:not(:disabled) {
-          background: #f56565;
-          color: white;
-        }
-      }
-    }
-
-    &.p-button-secondary {
-      background: #718096;
+    &.p-button-outlined {
+      background: transparent;
+      border: 2px solid;
 
       &:hover:not(:disabled) {
-        background: #4a5568;
+        background: currentColor;
+        color: white;
       }
-    }
-
-    &.p-button-sm {
-      padding: 0.5rem 1rem;
-      font-size: 0.875rem;
     }
   }
 
@@ -308,13 +536,23 @@
 
     .p-dialog-content {
       padding: 2rem;
-      background: white;
     }
 
     .p-dialog-footer {
       background: #f7fafc;
       padding: 1.5rem 2rem;
       border-top: 1px solid #e2e8f0;
+      gap: 1rem;
+    }
+  }
+
+  .dialog-content {
+    .form-field {
+      margin-bottom: 1.5rem;
+
+      &:last-child {
+        margin-bottom: 0;
+      }
     }
   }
 
@@ -330,107 +568,90 @@
         border-color: #667eea;
       }
     }
-
-    &:hover .p-checkbox-box {
-      border-color: #667eea;
-    }
   }
 }
 
-// Layout Helpers
-.flex.align-items-start.justify-content-start {
-  gap: 2rem;
-  flex-wrap: wrap;
-
-  > .p-card {
-    flex: 0 0 auto;
-    min-width: 300px;
-  }
-
-  > .card {
-    flex: 1;
-    min-width: 0;
-  }
+// Utility Classes
+.text-green-500 {
+  color: #10b981;
 }
 
-// Form Fields
-.field.grid {
-  align-items: center;
-  margin-bottom: 1.5rem;
-
-  label {
-    font-weight: 600;
-    color: #4a5568;
-    margin-bottom: 0;
-  }
-
-  .col {
-    .p-inputtext,
-    .p-inputtextarea,
-    .p-select,
-    .p-checkbox {
-      width: 100%;
-    }
-  }
+.text-red-500 {
+  color: #ef4444;
 }
 
-// Badge/Status Indicators
+.text-gray-400 {
+  color: #9ca3af;
+}
+
+.text-2xl {
+  font-size: 1.5rem;
+}
+
 .bg-green-100 {
-  background: #c6f6d5;
-  border-radius: 12px;
+  background: #d1fae5;
+}
 
-  .text-green-600 {
-    color: #38a169;
-  }
+.text-green-600 {
+  color: #059669;
+}
 
-  .text-green-700 {
-    color: #2f855a;
-  }
+.text-green-700 {
+  color: #047857;
+}
 
-  .text-green-900 {
-    color: #22543d;
-  }
+.text-green-900 {
+  color: #064e3b;
 }
 
 .bg-red-100 {
-  background: #fed7d7;
-  border-radius: 12px;
+  background: #fee2e2;
+}
 
-  .text-red-600 {
-    color: #e53e3e;
+.text-red-600 {
+  color: #dc2626;
+}
+
+.text-red-900 {
+  color: #7f1d1d;
+}
+
+// Responsive Design
+@media (max-width: 768px) {
+  .settings-header {
+    padding: 1.5rem;
+
+    .settings-title {
+      font-size: 1.5rem;
+
+      i {
+        font-size: 2rem;
+      }
+    }
+
+    .settings-subtitle {
+      font-size: 0.9rem;
+    }
   }
 
-  .text-red-900 {
-    color: #742a2a;
+  .content-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .add-card {
+    ::ng-deep .p-card {
+      position: static;
+    }
+  }
+
+  .action-bar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 1rem;
   }
 }
 
-// QR Code Dialog Specific
-.border-2.border-300 {
-  border: 2px solid #e2e8f0;
-  padding: 1.5rem;
-  background: white;
-
-  img {
-    display: block;
-    border-radius: 8px;
-  }
-}
-
-.text-sm {
-  font-size: 0.875rem;
-}
-
-.text-600 {
-  color: #718096;
-}
-
-ol {
-  margin: 0.5rem 0;
-  padding-left: 1.5rem;
-
-  li {
-    margin: 0.5rem 0;
-    color: #4a5568;
-  }
+// Smooth Scrolling
+html {
+  scroll-behavior: smooth;
 }

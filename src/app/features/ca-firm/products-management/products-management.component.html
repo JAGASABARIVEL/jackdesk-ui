@@ -1,0 +1,667 @@
+<!-- src/app/features/ca-firm/products-management/products-management.component.html -->
+<p-toast></p-toast>
+<p-confirmDialog></p-confirmDialog>
+
+<div class="products-management-container">
+  <!-- Header Section -->
+  <div class="header-section">
+    <div class="header-content">
+      <div class="title-section">
+        <h1 class="page-title">
+          <i class="pi pi-box"></i>
+          Products & Services Management
+        </h1>
+        <p class="page-subtitle">Manage your firm's products, services, and categories</p>
+      </div>
+      
+      <div class="header-actions">
+        <p-button 
+          label="Add Category" 
+          icon="pi pi-folder-plus" 
+          (onClick)="openNewCategory()"
+          styleClass="p-button-outlined p-button-primary">
+        </p-button>
+        <p-button 
+          label="Add Product/Service" 
+          icon="pi pi-plus" 
+          (onClick)="openNewProduct()"
+          styleClass="p-button-primary">
+        </p-button>
+        <p-button 
+          label="Export" 
+          icon="pi pi-download" 
+          (onClick)="exportToExcel()"
+          styleClass="p-button-outlined">
+        </p-button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Stats and Filters Section -->
+  <div class="top-section-grid">
+    <!-- Categories Card -->
+    <p-card styleClass="categories-card">
+      <ng-template pTemplate="header">
+        <div class="card-header-custom">
+          <span class="card-title">
+            <i class="pi pi-folder"></i>
+            Categories
+          </span>
+          <p-button 
+            icon="pi pi-plus" 
+            (onClick)="openNewCategory()"
+            [rounded]="true"
+            [text]="true"
+            size="small"
+            pTooltip="Add Category">
+          </p-button>
+        </div>
+      </ng-template>
+      
+      <div class="categories-list">
+        <div 
+          *ngFor="let category of categories"
+          class="category-item"
+          [class.active]="selectedCategoryFilter === category.id"
+          (click)="selectedCategoryFilter = category.id">
+          <div class="category-info">
+            <div class="category-name">{{ category.name }}</div>
+            <div class="category-type">
+              <p-tag 
+                [value]="category.category_type" 
+                [severity]="getTypeBadge(category.category_type)"
+                [rounded]="true">
+              </p-tag>
+            </div>
+          </div>
+          <div class="category-actions">
+            <p-button 
+              icon="pi pi-pencil" 
+              (onClick)="editCategory(category); $event.stopPropagation()"
+              [rounded]="true"
+              [text]="true"
+              size="small"
+              severity="success"
+              pTooltip="Edit">
+            </p-button>
+            <p-button 
+              icon="pi pi-trash" 
+              (onClick)="deleteCategory(category); $event.stopPropagation()"
+              [rounded]="true"
+              [text]="true"
+              size="small"
+              severity="danger"
+              pTooltip="Delete">
+            </p-button>
+          </div>
+        </div>
+        
+        <div *ngIf="categories.length === 0" class="empty-categories">
+          <i class="pi pi-folder-open"></i>
+          <p>No categories yet</p>
+        </div>
+      </div>
+    </p-card>
+
+    <!-- Filters and Stats Card -->
+    <p-card styleClass="filters-card">
+      <div class="filters-section">
+        <div class="filter-group">
+          <span class="p-input-icon-left flex-1">
+            <i class="pi pi-search"></i>
+            <input 
+              #searchInput (input)="onSearchInput($event, dt)"
+              pInputText 
+              type="text" 
+              [(ngModel)]="searchText"
+              placeholder="Search products, services, HSN/SAC..."
+              class="w-full" />
+          </span>
+          
+          <p-select
+            [options]="categories"
+            [(ngModel)]="selectedCategoryFilter"
+            optionLabel="name"
+            optionValue="id"
+            placeholder="Filter by Category"
+            [showClear]="true"
+            appendTo="body"
+            styleClass="filter-select">
+          </p-select>
+          
+          <p-select
+            [options]="categoryTypes"
+            [(ngModel)]="selectedTypeFilter"
+            placeholder="Filter by Type"
+            [showClear]="true"
+            appendTo="body"
+            styleClass="filter-select">
+          </p-select>
+        </div>
+        
+        <div class="stats-chips">
+          <p-chip 
+            [label]="'Total: ' + products.length" 
+            icon="pi pi-box">
+          </p-chip>
+          <p-chip 
+            [label]="'Active: ' + (products | filter: 'is_active': true).length" 
+            styleClass="success-chip">
+          </p-chip>
+          <p-chip 
+            [label]="'Services: ' + (products | filter: 'product_type': 'service').length" 
+            styleClass="info-chip">
+          </p-chip>
+          <p-chip 
+            [label]="'Products: ' + (products | filter: 'product_type': 'product').length" 
+            styleClass="primary-chip">
+          </p-chip>
+        </div>
+      </div>
+    </p-card>
+  </div>
+
+  <!-- Products Table -->
+  <p-card styleClass="table-card">
+    <p-table 
+    #dt
+      [value]="getFilteredProducts()" 
+      [loading]="loading"
+      [paginator]="true" 
+      [rows]="10"
+      [showCurrentPageReport]="true"
+      [rowsPerPageOptions]="[10, 25, 50]"
+      currentPageReportTemplate="Showing {first} to {last} of {totalRecords} items"
+      styleClass="p-datatable-gridlines p-datatable-striped"
+      responsiveLayout="scroll"
+      [totalRecords]="totalRecords"
+    [first]="(currentPage - 1) * pageSize"
+    [lazy]="true"
+    [paginator]="true"
+    [rows]="pageSize"
+    (onLazyLoad)="onPageChange($event)"
+    >
+      
+      <ng-template pTemplate="header">
+        <tr>
+          <th pSortableColumn="name">
+            Name <p-sortIcon field="name"></p-sortIcon>
+          </th>
+          <th pSortableColumn="product_type">
+            Type <p-sortIcon field="product_type"></p-sortIcon>
+          </th>
+          <th pSortableColumn="category_name">
+            Category <p-sortIcon field="category_name"></p-sortIcon>
+          </th>
+          <th pSortableColumn="hsn_sac_code">
+            HSN/SAC Code <p-sortIcon field="hsn_sac_code"></p-sortIcon>
+          </th>
+          <th pSortableColumn="base_price" class="text-right">
+            Base Price <p-sortIcon field="base_price"></p-sortIcon>
+          </th>
+          <th pSortableColumn="tax_percentage" class="text-right">
+            Tax % <p-sortIcon field="tax_percentage"></p-sortIcon>
+          </th>
+          <th class="text-right">Total Price</th>
+          <th pSortableColumn="is_active">
+            Status <p-sortIcon field="is_active"></p-sortIcon>
+          </th>
+          <th style="width: 12rem">Actions</th>
+        </tr>
+      </ng-template>
+      
+      <ng-template pTemplate="body" let-product>
+        <tr>
+          <td>
+            <div class="product-cell">
+              <div class="product-name">{{ product.name }}</div>
+              <div class="product-desc" *ngIf="product.description">
+                {{ product.description }}
+              </div>
+            </div>
+          </td>
+          <td>
+            <p-tag 
+              [value]="product.product_type" 
+              [severity]="getTypeBadge(product.product_type)"
+              [rounded]="true">
+            </p-tag>
+          </td>
+          <td>
+            <p-chip 
+              [label]="product.category_name || 'Uncategorized'" 
+              icon="pi pi-folder"
+              styleClass="category-chip">
+            </p-chip>
+          </td>
+          <td>
+            <span class="hsn-code">{{ product.hsn_sac_code || 'N/A' }}</span>
+          </td>
+          <td class="text-right">
+            <span class="price-amount">{{ formatCurrency(product.base_price) }}</span>
+          </td>
+          <td class="text-right">
+            <p-tag 
+              [value]="product.tax_percentage + '%'" 
+              severity="warn"
+              [rounded]="true">
+            </p-tag>
+          </td>
+          <td class="text-right">
+            <span class="total-price">
+              {{ formatCurrency(calculateTotal(product.base_price, product.tax_percentage)) }}
+            </span>
+          </td>
+          <td>
+            <p-tag 
+              [value]="product.is_active ? 'Active' : 'Inactive'" 
+              [severity]="getStatusSeverity(product.is_active)">
+            </p-tag>
+          </td>
+          <td>
+            <div class="action-buttons">
+              <p-button 
+                icon="pi pi-eye" 
+                (onClick)="viewDetails(product)"
+                [rounded]="true"
+                [text]="true"
+                severity="info"
+                pTooltip="View Details"
+                tooltipPosition="top">
+              </p-button>
+              <p-button 
+                icon="pi pi-pencil" 
+                (onClick)="editProduct(product)"
+                [rounded]="true"
+                [text]="true"
+                severity="success"
+                pTooltip="Edit"
+                tooltipPosition="top">
+              </p-button>
+              <p-button 
+                [icon]="product.is_active ? 'pi pi-ban' : 'pi pi-check'" 
+                (onClick)="toggleProductStatus(product)"
+                [rounded]="true"
+                [text]="true"
+                [severity]="product.is_active ? 'warn' : 'success'"
+                [pTooltip]="product.is_active ? 'Deactivate' : 'Activate'"
+                tooltipPosition="top">
+              </p-button>
+              <p-button 
+                icon="pi pi-trash" 
+                (onClick)="deleteProduct(product)"
+                [rounded]="true"
+                [text]="true"
+                severity="danger"
+                pTooltip="Delete"
+                tooltipPosition="top">
+              </p-button>
+            </div>
+          </td>
+        </tr>
+      </ng-template>
+      
+      <ng-template pTemplate="emptymessage">
+        <tr>
+          <td colspan="9" class="text-center">
+            <div class="empty-state">
+              <i class="pi pi-box" style="font-size: 3rem; color: #cbd5e1;"></i>
+              <p class="empty-text">No products or services found</p>
+              <p-button 
+                label="Add First Product/Service" 
+                icon="pi pi-plus" 
+                (onClick)="openNewProduct()"
+                styleClass="p-button-sm">
+              </p-button>
+            </div>
+          </td>
+        </tr>
+      </ng-template>
+    </p-table>
+  </p-card>
+</div>
+
+<!-- Add/Edit Category Dialog -->
+<p-dialog 
+  [(visible)]="displayCategoryDialog" 
+  [header]="isEditMode ? 'Edit Category' : 'Add New Category'"
+  [modal]="true" 
+  [style]="{width: '35vw'}" 
+  [breakpoints]="{'960px': '75vw', '640px': '90vw'}"
+  [draggable]="false"
+  [resizable]="false">
+  
+  <form [formGroup]="categoryForm" class="category-form">
+    <div class="form-grid">
+      <!-- Category Name -->
+      <div class="form-field full-width">
+        <label for="category_name" class="form-label required">Category Name</label>
+        <input 
+          pInputText 
+          id="category_name" 
+          formControlName="name"
+          placeholder="e.g., GST Services"
+          class="w-full"
+          [class.ng-invalid]="categoryForm.get('name')?.invalid && categoryForm.get('name')?.touched" />
+        <small class="p-error" *ngIf="categoryForm.get('name')?.invalid && categoryForm.get('name')?.touched">
+          Category name is required
+        </small>
+      </div>
+
+      <!-- Category Type -->
+      <div class="form-field full-width">
+        <label for="category_type" class="form-label required">Category Type</label>
+        <p-select
+          id="category_type"
+          formControlName="category_type"
+          [options]="categoryTypes"
+          placeholder="Select type"
+          styleClass="w-full"
+          appendTo="body"
+          [class.ng-invalid]="categoryForm.get('category_type')?.invalid && categoryForm.get('category_type')?.touched">
+        </p-select>
+        <small class="p-error" *ngIf="categoryForm.get('category_type')?.invalid && categoryForm.get('category_type')?.touched">
+          Category type is required
+        </small>
+      </div>
+
+      <!-- Description -->
+      <div class="form-field full-width">
+        <label for="category_description" class="form-label">Description</label>
+        <textarea 
+          pInputTextarea 
+          id="category_description" 
+          formControlName="description"
+          rows="3"
+          placeholder="Brief description of the category"
+          class="w-full">
+        </textarea>
+      </div>
+    </div>
+  </form>
+
+  <ng-template pTemplate="footer">
+    <div class="dialog-footer">
+      <p-button 
+        label="Cancel" 
+        icon="pi pi-times" 
+        (onClick)="hideCategoryDialog()"
+        styleClass="p-button-text">
+      </p-button>
+      <p-button 
+        [label]="isEditMode ? 'Update' : 'Create'" 
+        icon="pi pi-check" 
+        (onClick)="saveCategory()"
+        [loading]="loading">
+      </p-button>
+    </div>
+  </ng-template>
+</p-dialog>
+
+<!-- Add/Edit Product Dialog -->
+<p-dialog 
+  [(visible)]="displayProductDialog" 
+  [header]="isEditMode ? 'Edit Product/Service' : 'Add New Product/Service'"
+  [modal]="true" 
+  [style]="{width: '50vw'}" 
+  [breakpoints]="{'960px': '75vw', '640px': '90vw'}"
+  [draggable]="false"
+  [resizable]="false">
+  
+  <form [formGroup]="productForm" class="product-form">
+    <div class="form-grid">
+      <!-- Name -->
+      <div class="form-field full-width">
+        <label for="product_name" class="form-label required">Name</label>
+        <input 
+          pInputText 
+          id="product_name" 
+          formControlName="name"
+          placeholder="e.g., GST Filing Service"
+          class="w-full"
+          [class.ng-invalid]="productForm.get('name')?.invalid && productForm.get('name')?.touched" />
+        <small class="p-error" *ngIf="productForm.get('name')?.invalid && productForm.get('name')?.touched">
+          Name is required
+        </small>
+      </div>
+
+      <!-- Description -->
+      <div class="form-field full-width">
+        <label for="product_description" class="form-label">Description</label>
+        <textarea 
+          pInputTextarea 
+          id="product_description" 
+          formControlName="description"
+          rows="2"
+          placeholder="Brief description"
+          class="w-full">
+        </textarea>
+      </div>
+
+      <!-- Product Type -->
+      <div class="form-field">
+        <label for="product_type" class="form-label required">Type</label>
+        <p-select
+          id="product_type"
+          formControlName="product_type"
+          [options]="categoryTypes"
+          placeholder="Select type"
+          styleClass="w-full"
+          appendTo="body"
+          [class.ng-invalid]="productForm.get('product_type')?.invalid && productForm.get('product_type')?.touched">
+        </p-select>
+        <small class="p-error" *ngIf="productForm.get('product_type')?.invalid && productForm.get('product_type')?.touched">
+          Type is required
+        </small>
+      </div>
+
+      <!-- Category -->
+      <div class="form-field">
+        <label for="product_category" class="form-label required">Category</label>
+        <p-select
+          id="product_category"
+          formControlName="category"
+          [options]="categories"
+          optionLabel="name"
+          optionValue="id"
+          placeholder="Select category"
+          [filter]="true"
+          styleClass="w-full"
+          appendTo="body"
+          [class.ng-invalid]="productForm.get('category')?.invalid && productForm.get('category')?.touched">
+        </p-select>
+        <small class="p-error" *ngIf="productForm.get('category')?.invalid && productForm.get('category')?.touched">
+          Category is required
+        </small>
+      </div>
+
+      <!-- Base Price -->
+      <div class="form-field">
+        <label for="base_price" class="form-label required">Base Price (₹)</label>
+        <p-inputNumber
+          id="base_price"
+          formControlName="base_price"
+          mode="currency"
+          currency="INR"
+          locale="en-IN"
+          [minFractionDigits]="2"
+          placeholder="5000.00"
+          styleClass="w-full"
+          [class.ng-invalid]="productForm.get('base_price')?.invalid && productForm.get('base_price')?.touched">
+        </p-inputNumber>
+        <small class="p-error" *ngIf="productForm.get('base_price')?.invalid && productForm.get('base_price')?.touched">
+          Valid base price is required
+        </small>
+      </div>
+
+      <!-- Tax Percentage -->
+      <div class="form-field">
+        <label for="tax_percentage" class="form-label required">Tax Percentage (%)</label>
+        <p-inputNumber
+          id="tax_percentage"
+          formControlName="tax_percentage"
+          [min]="0"
+          [max]="100"
+          [minFractionDigits]="2"
+          [maxFractionDigits]="2"
+          suffix="%"
+          placeholder="18.00"
+          styleClass="w-full"
+          [class.ng-invalid]="productForm.get('tax_percentage')?.invalid && productForm.get('tax_percentage')?.touched">
+        </p-inputNumber>
+        <small class="p-error" *ngIf="productForm.get('tax_percentage')?.invalid && productForm.get('tax_percentage')?.touched">
+          Valid tax percentage is required (0-100)
+        </small>
+      </div>
+
+      <!-- Price Calculator Display -->
+      <div class="form-field full-width" *ngIf="productForm.get('base_price')?.value && productForm.get('tax_percentage')?.value">
+        <div class="price-calculator">
+          <div class="calc-row">
+            <span class="calc-label">Base Price:</span>
+            <span class="calc-value">{{ formatCurrency(productForm.get('base_price')?.value) }}</span>
+          </div>
+          <div class="calc-row">
+            <span class="calc-label">Tax ({{ productForm.get('tax_percentage')?.value }}%):</span>
+            <span class="calc-value">
+              {{ formatCurrency((productForm.get('base_price')?.value * productForm.get('tax_percentage')?.value) / 100) }}
+            </span>
+          </div>
+          <div class="calc-row total">
+            <span class="calc-label">Total Price:</span>
+            <span class="calc-value">
+              {{ formatCurrency(calculateTotal(productForm.get('base_price')?.value, productForm.get('tax_percentage')?.value)) }}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <!-- HSN/SAC Code -->
+      <div class="form-field">
+        <label for="hsn_sac_code" class="form-label">HSN/SAC Code</label>
+        <input 
+          pInputText 
+          id="hsn_sac_code" 
+          formControlName="hsn_sac_code"
+          placeholder="998361"
+          class="w-full" />
+        <small class="help-text">Harmonized System/Service Accounting Code</small>
+      </div>
+
+      <!-- Unit -->
+      <div class="form-field">
+        <label for="unit" class="form-label required">Unit</label>
+        <p-select
+          id="unit"
+          formControlName="unit"
+          [options]="units"
+          [editable]="true"
+          placeholder="Select unit"
+          styleClass="w-full"
+          appendTo="body"
+          [class.ng-invalid]="productForm.get('unit')?.invalid && productForm.get('unit')?.touched">
+        </p-select>
+        <small class="p-error" *ngIf="productForm.get('unit')?.invalid && productForm.get('unit')?.touched">
+          Unit is required
+        </small>
+      </div>
+    </div>
+  </form>
+
+  <ng-template pTemplate="footer">
+    <div class="dialog-footer">
+      <p-button 
+        label="Cancel" 
+        icon="pi pi-times" 
+        (onClick)="hideProductDialog()"
+        styleClass="p-button-text">
+      </p-button>
+      <p-button 
+        [label]="isEditMode ? 'Update' : 'Save'" 
+        icon="pi pi-check" 
+        (onClick)="saveProduct()"
+        [loading]="loading">
+      </p-button>
+    </div>
+  </ng-template>
+</p-dialog>
+
+<!-- View Product Details Dialog -->
+<p-dialog 
+  [(visible)]="displayDetailsDialog" 
+  header="Product/Service Details"
+  [modal]="true" 
+  [style]="{width: '40vw'}" 
+  [breakpoints]="{'960px': '75vw', '640px': '90vw'}">
+  
+  <div *ngIf="selectedProduct" class="product-details">
+    <div class="detail-header">
+      <div class="detail-icon">
+        <i class="pi pi-box"></i>
+      </div>
+      <div class="detail-header-info">
+        <h3>{{ selectedProduct.name }}</h3>
+        <p *ngIf="selectedProduct.description">{{ selectedProduct.description }}</p>
+        <div class="detail-tags">
+          <p-tag 
+            [value]="selectedProduct.is_active ? 'Active' : 'Inactive'" 
+            [severity]="getStatusSeverity(selectedProduct.is_active)">
+          </p-tag>
+          <p-tag 
+            [value]="selectedProduct.product_type" 
+            [severity]="getTypeBadge(selectedProduct.product_type)">
+          </p-tag>
+        </div>
+      </div>
+    </div>
+
+    <div class="detail-grid">
+      <div class="detail-item">
+        <label>Category</label>
+        <span>{{ selectedProduct.category_name || 'N/A' }}</span>
+      </div>
+
+      <div class="detail-item">
+        <label>Unit</label>
+        <span>{{ selectedProduct.unit }}</span>
+      </div>
+
+      <div class="detail-item">
+        <label>Base Price</label>
+        <span class="price-highlight">{{ formatCurrency(selectedProduct.base_price) }}</span>
+      </div>
+
+      <div class="detail-item">
+        <label>Tax Percentage</label>
+        <span>{{ selectedProduct.tax_percentage }}%</span>
+      </div>
+
+      <div class="detail-item full-width">
+        <label>Total Price (incl. Tax)</label>
+        <span class="price-highlight total">
+          {{ formatCurrency(calculateTotal(selectedProduct.base_price, selectedProduct.tax_percentage)) }}
+        </span>
+      </div>
+
+      <div class="detail-item full-width" *ngIf="selectedProduct.hsn_sac_code">
+        <label>HSN/SAC Code</label>
+        <span>{{ selectedProduct.hsn_sac_code }}</span>
+      </div>
+    </div>
+  </div>
+
+  <ng-template pTemplate="footer">
+    <p-button 
+      label="Close" 
+      icon="pi pi-times" 
+      (onClick)="hideDetailsDialog()"
+      styleClass="p-button-text">
+    </p-button>
+    <p-button 
+      label="Edit" 
+      icon="pi pi-pencil" 
+      (onClick)="editProduct(selectedProduct!); displayDetailsDialog = false"
+      styleClass="p-button-primary">
+    </p-button>
+  </ng-template>
+</p-dialog>

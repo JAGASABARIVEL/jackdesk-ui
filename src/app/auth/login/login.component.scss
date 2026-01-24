@@ -1,70 +1,10 @@
-.login-container {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    height: 100vh;
-    background-color: #f4f4f4;
-  }
-  
-  .login-card {
-    background: white;
-    padding: 2rem;
-    border-radius: 10px;
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
-    text-align: center;
-    width: 350px;
-  
-    h2 {
-      margin-bottom: 1rem;
-    }
-  
-    form {
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-  
-      label {
-        text-align: left;
-        font-size: 14px;
-        font-weight: bold;
-      }
-  
-      input {
-        padding: 8px;
-        border: 1px solid #ccc;
-        border-radius: 5px;
-      }
-  
-      button {
-        background: #007bff;
-        color: white;
-        border: none;
-        padding: 10px;
-        border-radius: 5px;
-        cursor: pointer;
-  
-        &:hover {
-          background: #0056b3;
-        }
-      }
-    }
-  
-    p {
-      margin: 10px 0;
-    }
-  
-    .signup-text {
-      font-size: 14px;
-      color: #555;
-    }
-  }
-  
+// Add these styles to login.component.scss
 
-  .login-container {
-  display: flex;
-  justify-content: center;
-  align-items: center;
+.login-container {
   min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   padding: 2rem;
   position: relative;
@@ -95,7 +35,7 @@
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
   text-align: center;
   width: 100%;
-  max-width: 420px;
+  max-width: 480px;
   position: relative;
   z-index: 1;
   animation: slideUp 0.5s ease-out;
@@ -123,25 +63,249 @@
     margin-bottom: 2rem;
     font-size: 0.95rem;
   }
+}
 
-  #googleSignInDiv {
-    display: flex;
-    justify-content: center;
-    margin-top: 1rem;
-    
-    > div {
-      border-radius: 12px !important;
-      transition: all 0.3s ease;
-      
-      &:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
-      }
-    }
+// ============================================
+// EMAIL/OTP BUTTON (Full Width)
+// ============================================
+
+.email-otp-button {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+  border: none !important;
+  color: white !important;
+  padding: 0.875rem 1.5rem !important;
+  font-size: 1rem !important;
+  font-weight: 600 !important;
+  transition: all 0.3s ease !important;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px !important;
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3) !important;
+
+  &:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4) !important;
+  }
+
+  i {
+    font-size: 1.1rem;
   }
 }
 
-// Modern Dialog Styles
+// ============================================
+// OAUTH BUTTONS ROW (Google + Zoho)
+// ============================================
+
+.oauth-buttons-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  width: 100%;
+  margin-top: 0;
+}
+
+.oauth-button {
+  background: white !important;
+  border: 2px solid #e2e8f0 !important;
+  color: #2d3748 !important;
+  padding: 0.875rem 1rem !important;
+  font-size: 0.95rem !important;
+  font-weight: 600 !important;
+  transition: all 0.3s ease !important;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border-radius: 12px !important;
+  flex: 1;
+  min-height: 50px;
+
+  .oauth-icon {
+    flex-shrink: 0;
+  }
+
+  .oauth-text {
+    font-weight: 600;
+    white-space: nowrap;
+  }
+
+  &:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1) !important;
+  }
+}
+
+// Google button specific styling
+.google-button {
+  &:hover:not(:disabled) {
+    border-color: #4285F4 !important;
+    box-shadow: 0 4px 12px rgba(66, 133, 244, 0.15) !important;
+  }
+}
+
+// Zoho button specific styling
+.zoho-button {
+  &:hover:not(:disabled) {
+    border-color: #F06400 !important;
+    box-shadow: 0 4px 12px rgba(240, 100, 0, 0.15) !important;
+  }
+}
+
+// ============================================
+// DIVIDER
+// ============================================
+
+.divider {
+  position: relative;
+  text-align: center;
+  margin: 1.5rem 0;
+
+  &::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 50%;
+    width: 100%;
+    height: 1px;
+    background: #e2e8f0;
+  }
+
+  span {
+    position: relative;
+    background: white;
+    padding: 0 1rem;
+    color: #718096;
+    font-size: 0.875rem;
+    font-weight: 500;
+  }
+}
+
+// ============================================
+// OTP FORM STYLES
+// ============================================
+
+.back-button {
+  margin-bottom: 1rem;
+  color: #718096 !important;
+}
+
+.otp-form {
+  animation: slideIn 0.4s ease-out;
+}
+
+.otp-input {
+  font-size: 1.5rem !important;
+  letter-spacing: 0.5rem !important;
+  text-align: center !important;
+  font-weight: 600 !important;
+}
+
+.otp-info {
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.otp-submit-button {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+  border: none !important;
+  color: white !important;
+  font-weight: 600 !important;
+  padding: 0.875rem 1.5rem !important;
+  transition: all 0.3s ease !important;
+  border-radius: 12px !important;
+
+  &:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4) !important;
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+.otp-email-display {
+  text-align: center;
+  padding: 0.75rem;
+  background: #f7fafc;
+  border-radius: 8px;
+}
+
+.form-field {
+  display: flex;
+  flex-direction: column;
+}
+
+.form-label {
+  font-weight: 600;
+  color: #4a5568;
+  margin-bottom: 0.5rem;
+  display: flex;
+  align-items: center;
+  font-size: 0.95rem;
+  text-align: left;
+}
+
+.text-muted {
+  color: #718096;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+// ============================================
+// RESPONSIVE DESIGN
+// ============================================
+
+@media (max-width: 576px) {
+  .login-card {
+    padding: 2rem 1.5rem;
+    max-width: 100%;
+  }
+
+  .oauth-buttons-row {
+    grid-template-columns: 1fr; // Stack vertically on mobile
+    gap: 0.75rem;
+  }
+
+  .oauth-button {
+    .oauth-text {
+      font-size: 0.9rem;
+    }
+  }
+
+  h2 {
+    font-size: 1.5rem !important;
+  }
+
+  .email-otp-button {
+    font-size: 0.9rem !important;
+    padding: 0.75rem 1.25rem !important;
+  }
+}
+
+@media (min-width: 577px) and (max-width: 768px) {
+  .login-card {
+    max-width: 420px;
+  }
+}
+
+// ============================================
+// PRIMENG OVERRIDES
+// ============================================
+
 ::ng-deep {
   .p-dialog {
     border-radius: 20px;
@@ -166,24 +330,6 @@
     }
   }
 
-  // Radio Button Styling
-  .p-radiobutton {
-    .p-radiobutton-box {
-      border: 2px solid #cbd5e0;
-      transition: all 0.3s ease;
-
-      &.p-highlight {
-        background: #667eea;
-        border-color: #667eea;
-      }
-    }
-
-    &:hover .p-radiobutton-box {
-      border-color: #667eea;
-    }
-  }
-
-  // Form Field Styling
   .p-inputtext {
     border: 2px solid #e2e8f0;
     border-radius: 10px;
@@ -201,84 +347,16 @@
     }
   }
 
-  .p-select {
-    border: 2px solid #e2e8f0;
-    border-radius: 10px;
-    transition: all 0.3s ease;
-
-    &:hover {
-      border-color: #cbd5e0;
-    }
-
-    &.p-focus {
-      border-color: #667eea;
-      box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
-    }
-  }
-
-  // Button Styling
   .p-button {
     border-radius: 10px;
-    padding: 0.75rem 1.5rem;
-    font-weight: 600;
     transition: all 0.3s ease;
-    border: none;
-
-    &.p-button-outlined {
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      color: white;
-      border: none;
-
+    
+    &.p-button-text {
+      color: #667eea;
+      
       &:hover:not(:disabled) {
-        transform: translateY(-2px);
-        box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
-      }
-
-      &:disabled {
-        opacity: 0.5;
-        cursor: not-allowed;
+        background: rgba(102, 126, 234, 0.1);
       }
     }
   }
-}
-
-// Step Form Radio Groups
-.flex.items-center {
-  padding: 1rem;
-  border-radius: 12px;
-  transition: all 0.3s ease;
-  cursor: pointer;
-  border: 2px solid transparent;
-
-  &:hover {
-    background: #f7fafc;
-    border-color: #e2e8f0;
-  }
-
-  label {
-    cursor: pointer;
-    font-weight: 500;
-    color: #2d3748;
-  }
-}
-
-// Form Grid Styling
-.p-grid.p-fluid {
-  .p-col-12 {
-    margin-bottom: 1rem;
-
-    label {
-      font-weight: 600;
-      color: #4a5568;
-      margin-bottom: 0.5rem;
-      display: inline-block;
-    }
-  }
-}
-
-// Action Buttons
-.flex.justify-content-between,
-.flex.justify-content-end {
-  margin-top: 2rem;
-  gap: 1rem;
 }

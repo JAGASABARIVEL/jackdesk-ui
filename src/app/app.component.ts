@@ -34,8 +34,8 @@ export class AppComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit(): void {
-    this.initSates() // This would clear the old states
-    localStorage.clear() // This would clear old persistence For example, Handle page reload which would remove the profile and user would be take to login
+    //this.initSates() // This would clear the old states
+    //localStorage.clear() // This would clear old persistence For example, Handle page reload which would remove the profile and user would be take to login
     this.progressSpinnerSubscription = this.loadingService.loading$.pipe(takeUntil(this.destroy$)).subscribe(state => this.loading.set(state));
   }
 

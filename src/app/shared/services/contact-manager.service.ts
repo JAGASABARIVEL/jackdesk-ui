@@ -63,9 +63,15 @@ export class ContactManagerService {
   }
 
 
-  list_contact(): Observable<any> {
+  list_contact(page: number = 1, pageSize: number = 1000, search='', ordering?): Observable<any> {
+    const params: any = {
+    page: page,
+    page_size: pageSize,
+    search: search
+  };
+  if (ordering) params.ordering = ordering;
     const headers = new HttpHeaders().set('Authorization', `Bearer ${this.auth_token}`);
-    return this.http.get(this.contacts_url, { headers });
+    return this.http.get(this.contacts_url, { headers, params });
   }
 
   delete_contact(contactId) {
@@ -95,12 +101,32 @@ export class ContactManagerService {
     return this.http.post(`${this.contacts_url}${this.bulkImportUri}`, payload = payload, { headers });
   }
 
+  // Add to ContactManagerService
+download_contact_template(platformId?: number): Observable<Blob> {
+  const url = platformId 
+    ? `${this.contacts_url}import/template/?platform_id=${platformId}`
+    : `${this.contacts_url}import/template/`;
+  
+  return this.http.get(url, { responseType: 'blob' });
+}
+
+import_contact_with_platform(formData: FormData, platformId: number): Observable<any> {
+  formData.append('platform_id', platformId.toString());
+  return this.http.post(`${this.contacts_url}import`, formData);
+}
+
 
   // +++++++++++++++++ Groups Service +++++++++++++++++++
 
-  list_groups() {
+  list_groups(page: number = 1, pageSize: number = 1000, search='', ordering?): Observable<any> {
+    const params: any = {
+    page: page,
+    page_size: pageSize,
+    search: search
+  };
+  if (ordering) params.ordering = ordering;
     const headers = new HttpHeaders().set('Authorization', `Bearer ${this.auth_token}`);
-    return this.http.get(this.groups_url, { headers });
+    return this.http.get(this.groups_url, { headers, params });
   }
 
   delete_group(groupId) {
@@ -124,4 +150,9 @@ export class ContactManagerService {
     const headers = new HttpHeaders().set('Authorization', `Bearer ${this.auth_token}`);
     return this.http.patch(`${this.groups_url}${groupId}`, payload = payload, { headers })
   }
+
+  update_contact_customer(contactId: number, customerId: number | null): Observable<any> {
+  const payload = { customer_id: customerId };
+  return this.http.patch(`${this.contacts_url}${contactId}/`, payload);
+}
 }

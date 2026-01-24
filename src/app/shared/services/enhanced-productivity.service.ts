@@ -1,13 +1,13 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
-import { HOST } from '../../../environment';
+import { PRODUCTIVITY_HOST } from '../../../environment';
 
 @Injectable({
   providedIn: 'root'
 })
 export class EnhancedProductivityService {
-  private baseUrl = `${HOST}/productivity`;
+  private baseUrl = `${PRODUCTIVITY_HOST}/productivity`;
 
   constructor(private http: HttpClient) {}
 
