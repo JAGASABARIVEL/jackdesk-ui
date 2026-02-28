@@ -1,3 +1,4 @@
+// Web list conversation TS
 import { CommonModule } from '@angular/common';
 import { Component, Input, OnDestroy, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
@@ -57,7 +58,16 @@ export class ListNewConversationsComponent implements OnInit, OnDestroy {
   profile !: any;
 
   @Input() users!: any[];
-  @Input() heading : string = "New";
+  _heading: string;
+  @Input()
+  set heading(value) {
+    this._heading = value;
+    this.loadConversations();
+  }
+
+  get heading() {
+    return this._heading;
+  }
 
   conversation !: ConversationModel;
   conversations!: ConversationModel[];
@@ -93,7 +103,7 @@ export class ListNewConversationsComponent implements OnInit, OnDestroy {
     else{
       console.error("Socket connection not available for new conversations subscription");
       this.layoutService.addNotification(
-          {'severity': 'error', 'app': 'Dashboard', 'text': 'Socket connection not available for new notification'}
+          {id: -1, 'severity': 'error', 'app': 'Dashboard', 'text': 'Socket connection not available for new notification'}
       )
     }    
   }

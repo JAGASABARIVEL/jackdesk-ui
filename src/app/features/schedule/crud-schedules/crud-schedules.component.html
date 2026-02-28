@@ -323,7 +323,8 @@
                     <div class="detail-value">
                         <i class="pi pi-calendar"></i>
                         <div class="stacked-info">
-                            <span class="primary">{{ schedule.scheduled_time | date:'medium' }}</span>
+                            <!-- FIXED: Display in IST timezone explicitly -->
+                            <span class="primary">{{ schedule.scheduled_time | date:'medium':'+0530' }} IST</span>
                             <span class="secondary">{{ getFrequencyByName(schedule.frequency) }}</span>
                         </div>
                     </div>
@@ -334,7 +335,8 @@
                     <div class="detail-value">
                         <i class="pi pi-clock"></i>
                         <div class="stacked-info">
-                            <span class="primary">{{ schedule.created_at | date:'medium' }}</span>
+                            <!-- FIXED: Display in IST timezone explicitly -->
+                            <span class="primary">{{ schedule.created_at | date:'medium':'+0530' }} IST</span>
                             <span class="secondary">by {{ schedule.created_by }}</span>
                         </div>
                     </div>

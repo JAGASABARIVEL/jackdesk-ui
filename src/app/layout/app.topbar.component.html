@@ -14,34 +14,30 @@
         <div class="flex justify-end p-4 gap-4 align-items-center">
             <!-- Productivity Meter -->
             <p-metergroup 
-                [value]="layoutService.totalProductivityTime" 
-                labelPosition="start"
-                *ngIf="layoutService.menuItemsCache().length > 0 && profile?.user?.is_productivity_enable">
-
-                <ng-template #label>
-                    <div class="flex flex-wrap gap-4">
-                        <ng-container *ngFor="let meterItem of layoutService.totalProductivityTime">
-                            <div class="flex-1 border border-surface shadow-none">
-                                <div class="flex justify-between gap-8">
-                                    <div class="flex align-items-center gap-1">
-                                        <span class="text-surface-500 text-sm">{{ meterItem.label }}</span>
-                                        <span class="font-semibold text-md">{{ meterItem.duration }}</span>
-                                    </div>
-                                </div>
-                            </div>
-                        </ng-container>
+    [value]="layoutService.totalProductivityTime" 
+    labelPosition="start"
+    *ngIf="layoutService.menuItemsCache().length > 0 && profile?.user?.is_productivity_enable">
+    <ng-template #label>
+        <div class="flex flex-wrap gap-4">
+            <ng-container *ngFor="let meterItem of layoutService.totalProductivityTime">
+                <div class="flex-1 border border-surface shadow-none">
+                    <div class="flex flex-row align-items-center gap-2">
+                        <span class="text-surface-500 text-sm white-space-nowrap">{{ meterItem.label }}:</span>
+                        <span class="font-semibold text-md white-space-nowrap">{{ meterItem.duration | hoursToTime }}</span>
                     </div>
-                </ng-template>
-
-                <ng-template #meter let-value let-class="class" let-width="size">
-                    <span [class]="class"
-                          [style]="{ 
-                            background: 'linear-gradient(to right, ' + value.color1 + ', ' + value.color2 + ')',
-                            width: width 
-                          }">
-                    </span>
-                </ng-template>
-            </p-metergroup>
+                </div>
+            </ng-container>
+        </div>
+    </ng-template>
+    <ng-template #meter let-value let-class="class" let-width="size">
+        <span [class]="class"
+            [style]="{ 
+                background: 'linear-gradient(to right, ' + value.color1 + ', ' + value.color2 + ')',
+                width: width 
+            }">
+        </span>
+    </ng-template>
+</p-metergroup>
 
             <!-- New Tasks (Unassigned Conversations) Notification -->
             <div class="relative inline-block" *ngIf="layoutService.menuItemsCache().length > 0" #newTasksDropdown>

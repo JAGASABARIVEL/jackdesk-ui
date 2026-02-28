@@ -64,9 +64,10 @@ export class AppInitializationService {
       // Socket failed but token is valid - allow access but notify
       if (err.message?.includes('Socket')) {
         this.layoutService.addNotification({
+          'id': -1,
           severity: 'warn',
           app: 'System',
-          text: 'Real-time features unavailable. Continuing with limited functionality.'
+          text: 'Real-time features(socket) unavailable. Continuing with limited functionality.'
         });
         this.initLayoutMenu(profile);
         this.layoutService.isLoggedIn.set(true);
@@ -138,7 +139,12 @@ export class AppInitializationService {
               { label: 'Salary', icon: 'pi pi-wallet', routerLink: ['/apps/ca-firm/salaries'] },
               { label: 'Products & Services', icon: 'pi pi-box', routerLink: ['/apps/ca-firm/products'] },
               { label: 'Expense', icon: 'pi pi-shopping-cart', routerLink: ['/apps/ca-firm/office-purchases'] },
-              { label: 'Sales', icon: 'pi pi-dollar', routerLink: ['/apps/ca-firm/customer-purchases'] }
+              { label: 'Sales', icon: 'pi pi-dollar', routerLink: ['/apps/ca-firm/customer-purchases'] },
+              //{
+              //  label: 'Template Studio',
+              //  icon: 'pi pi-dollar',
+              //  routerLink: ['/apps/template-manager']
+              //}
             ]
           }
         ]
@@ -149,9 +155,12 @@ export class AppInitializationService {
       icon: 'pi pi-home',
       items: [
         {
-          label: 'Dasboard',
-          icon: 'pi pi-briefcase',
-          items: [{ label: 'Tickets', icon: 'pi pi-comments', routerLink: ['/apps'] }]
+            label: 'Dasboard',
+            icon: 'pi pi-briefcase',
+            items: [
+              { label: 'Tickets', icon: 'pi pi-comments', routerLink: ['/apps'] },
+              { label: 'Productivity', icon: 'pi pi-stopwatch', routerLink: ['/apps/productivity'] }
+            ]
         },
         {
           label: 'Manage',

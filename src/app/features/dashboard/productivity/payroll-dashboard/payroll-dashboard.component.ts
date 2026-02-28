@@ -25,6 +25,7 @@ import { LoginLogoutStatsComponent } from '../login-logout-stats/login-logout-st
 import { IdleTimeAnalysisComponent } from '../idle-time-analysis/idle-time-analysis.component';
 import { RealtimeStatusComponent } from '../realtime-status/realtime-status.component';
 import { AppUsageAnalyticsComponent } from '../app-usage-analytics/app-usage-analytics.component';
+import { HoursToTimePipe } from '../../../../shared/pipes/hourstotime.pipe';
 
 
 @Component({
@@ -47,7 +48,8 @@ import { AppUsageAnalyticsComponent } from '../app-usage-analytics/app-usage-ana
     LoginLogoutStatsComponent,
     IdleTimeAnalysisComponent,
     RealtimeStatusComponent,
-    AppUsageAnalyticsComponent
+    AppUsageAnalyticsComponent,
+    HoursToTimePipe
   ],
   templateUrl: './payroll-dashboard.component.html',
   styleUrls: ['./payroll-dashboard.component.scss']
@@ -221,7 +223,7 @@ export class PayrollDashboardComponent implements OnInit, OnDestroy {
       totalWorkHours: summary.total_work_hours,
       avgWorkHours: summary.avg_work_hours,
       attendanceRate: summary.attendance_rate,
-      overtimeHours: overtimeHours,
+      overtimeHours: summary.total_overtime_hours,
       payrollStatus: summary.payroll_status
     };
   }

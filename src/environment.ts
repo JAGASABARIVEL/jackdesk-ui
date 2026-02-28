@@ -4,10 +4,11 @@ export const WEBSITE_OWNING_ORG = 5;
 /** Service URIs */
 
 export let HOST = 'https://api.jackdesk.com'
-//export let PRODUCTIVITY_HOST = 'https://productivity.jackdesk.com'
+export let PRODUCTIVITY_HOST = 'https://productivity.jackdesk.com'
 export let WEBSOCKET_HOST = 'https://websocket.jackdesk.com'
 //export let HOST = 'http://127.0.0.1:8001'
-export let PRODUCTIVITY_HOST = 'https://api.jackdesk.com'
+//export let PRODUCTIVITY_HOST = 'http://127.0.0.1:8001'
+//export let PRODUCTIVITY_HOST = 'https://api.jackdesk.com'
 //export let WEBSOCKET_HOST = 'http://localhost:5001'
 /** Google client */
 export const environment = {

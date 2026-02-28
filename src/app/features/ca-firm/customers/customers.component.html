@@ -41,6 +41,702 @@
   </ng-template>
 </p-dialog>
 
+<!-- Customer Files Management Dialog -->
+<p-dialog 
+  [(visible)]="displayFilesDialog" 
+  header="Files & Documents"
+  [modal]="true" 
+  [style]="{width: '95vw', height: '90vh'}" 
+  [maximizable]="true"
+  [draggable]="false"
+  [resizable]="false"
+  styleClass="files-dialog">
+  
+  <div *ngIf="selectedCustomer" class="files-container">
+    <!-- Customer Header with Stats -->
+    <div class="files-header">
+      <div class="customer-info">
+        <div class="customer-avatar">
+          <i class="pi pi-building"></i>
+        </div>
+        <div class="customer-details">
+          <h3>{{ selectedCustomer.customer_name }}</h3>
+          <p class="file-no">{{ selectedCustomer.file_no }}</p>
+        </div>
+      </div>
+      
+      <!-- Quick Stats Cards -->
+      <div class="file-stats-grid" *ngIf="fileStats">
+        <div class="stat-mini-card">
+          <i class="pi pi-file"></i>
+          <div>
+            <span class="stat-value">{{ fileStats.total_files }}</span>
+            <span class="stat-label">Total Files</span>
+          </div>
+        </div>
+        <div class="stat-mini-card">
+          <i class="pi pi-database"></i>
+          <div>
+            <span class="stat-value">{{ fileStats.total_size_mb.toFixed(2) }} MB</span>
+            <span class="stat-label">Storage Used</span>
+          </div>
+        </div>
+        <div class="stat-mini-card">
+          <i class="pi pi-send"></i>
+          <div>
+            <span class="stat-value">{{ fileStats.sent_count }}</span>
+            <span class="stat-label">Sent</span>
+          </div>
+        </div>
+        <div class="stat-mini-card">
+          <i class="pi pi-inbox"></i>
+          <div>
+            <span class="stat-value">{{ fileStats.received_count }}</span>
+            <span class="stat-label">Received</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tabs: All Files | By Contact | Upload -->
+    <p-tabView styleClass="files-tabs">
+      
+      <!-- Tab 1: All Files -->
+      <p-tabPanel header="All Files" leftIcon="pi pi-folder">
+        <div class="files-content">
+          
+          <!-- Toolbar with Filters -->
+          <div class="files-toolbar">
+            <div class="toolbar-left">
+              <span class="p-input-icon-left">
+                <i class="pi pi-search"></i>
+                <input 
+                  pInputText 
+                  [(ngModel)]="fileSearchText"
+                  (input)="onFileSearch()"
+                  placeholder="Search files..."
+                  class="search-input" />
+              </span>
+              
+              <p-select
+                [(ngModel)]="selectedFileType"
+                [options]="fileTypeOptions"
+                (onChange)="onFileFilterChange($event)"
+                placeholder="All Types"
+                [showClear]="true"
+                styleClass="filter-select">
+                <ng-template let-option pTemplate="item">
+                  <div class="filter-option">
+                    <i [class]="getFileTypeIcon(option.value)"></i>
+                    <span>{{ option.label }}</span>
+                  </div>
+                </ng-template>
+              </p-select>
+
+              <!-- FY Filter in Toolbar -->
+              <p-select
+                [(ngModel)]="selectedFY"
+                [options]="financialYears"
+                optionLabel="label"
+                optionValue="value"
+                (onChange)="onFileFilterChange($event)"
+                placeholder="All Financial Years"
+                [showClear]="true"
+                styleClass="filter-select">
+              </p-select>
+
+              <p-select
+                [(ngModel)]="selectedDirection"
+                [options]="directionOptions"
+                (onChange)="onFileFilterChange($event)"
+                placeholder="All Directions"
+                [showClear]="true"
+                styleClass="filter-select">
+              </p-select>
+
+              <p-select
+                [(ngModel)]="selectedContactFilter"
+                [options]="contactFilterOptions"
+                (onChange)="onFileFilterChange($event)"
+                placeholder="All Contacts"
+                [showClear]="true"
+                [filter]="true"
+                styleClass="filter-select">
+              </p-select>
+            </div>
+
+            <div class="toolbar-right">
+              <p-button 
+                label="Upload" 
+                icon="pi pi-upload" 
+                (onClick)="openUploadDialog()"
+                styleClass="p-button-primary">
+              </p-button>
+              <p-button 
+                icon="pi pi-refresh" 
+                (onClick)="loadCustomerFiles()"
+                [loading]="loadingFiles"
+                styleClass="p-button-outlined"
+                pTooltip="Refresh">
+              </p-button>
+            </div>
+          </div>
+
+          <!-- Files Grid/List View -->
+          <!-- ✅ FIXED: Files Grid/List View with Pagination -->
+          <div class="files-view" *ngIf="!loadingFiles">
+            <div class="view-toggle">
+              <p-button 
+                icon="pi pi-th-large" 
+                [outlined]="viewMode !== 'grid'"
+                (onClick)="viewMode = 'grid'"
+                size="small"
+                pTooltip="Grid View">
+              </p-button>
+              <p-button 
+                icon="pi pi-list" 
+                [outlined]="viewMode !== 'list'"
+                (onClick)="viewMode = 'list'"
+                size="small"
+                pTooltip="List View">
+              </p-button>
+            </div>
+          
+            <!-- ✅ Grid View with Manual Pagination -->
+            <div *ngIf="viewMode === 'grid'">
+              <div class="files-grid">
+                <div 
+                  *ngFor="let file of customerFiles" 
+                  class="file-card"
+                  (click)="selectFile(file)"
+                  [class.selected]="selectedFile?.id === file.id">
+                  
+                  <div class="file-preview">
+                    <i [class]="getFileIcon(file.file_type)" class="file-icon"></i>
+                    <div class="file-overlay">
+                      <p-button 
+                        icon="pi pi-download" 
+                        (onClick)="downloadFile(file); $event.stopPropagation()"
+                        [text]="true"
+                        severity="primary"
+                        size="large">
+                      </p-button>
+                      <p-button 
+                        icon="pi pi-trash" 
+                        (onClick)="deleteFile(file); $event.stopPropagation()"
+                        [text]="true"
+                        severity="danger"
+                        size="large"
+                        *ngIf="file.can_delete">
+                      </p-button>
+                    </div>
+                  </div>
+          
+                  <div class="file-info">
+                    <div class="file-name" [pTooltip]="file.name">{{ file.name }}</div>
+                    <div class="file-meta">
+                      <span class="file-size">{{ file.size_mb.toFixed(2) }} MB</span>
+                      <span class="file-date">{{ file.created_at | date: 'short' }}</span>
+                    </div>
+                    
+                    <!-- Badges -->
+                    <div class="file-badges">
+                      <p-tag 
+                        *ngIf="file.conversation_details"
+                        [value]="file.conversation_details.direction === 'outgoing' ? 'Sent' : 'Received'"
+                        [severity]="file.conversation_details.direction === 'outgoing' ? 'success' : 'info'"
+                        icon="pi pi-arrow-right"
+                        styleClass="file-badge">
+                      </p-tag>
+                      <p-tag 
+                        *ngIf="file.contact_details"
+                        [value]="file.contact_details.name"
+                        severity="secondary"
+                        icon="pi pi-user"
+                        styleClass="file-badge">
+                      </p-tag>
+                    </div>
+                  </div>
+                </div>
+          
+                <!-- Empty State -->
+                <div *ngIf="customerFiles.length === 0" class="empty-files">
+                  <i class="pi pi-folder-open"></i>
+                  <p>No files found</p>
+                  <p-button 
+                    label="Upload Files" 
+                    icon="pi pi-upload" 
+                    (onClick)="openUploadDialog()"
+                    styleClass="p-button-sm">
+                  </p-button>
+                </div>
+              </div>
+          
+              <!-- ✅ Pagination for Grid View -->
+              <p-paginator
+                *ngIf="totalFiles > 0"
+                [first]="(filesPage - 1) * filesPageSize"
+                [rows]="filesPageSize"
+                [totalRecords]="totalFiles"
+                [rowsPerPageOptions]="filesPageSizeOptions"
+                (onPageChange)="onGridPageChange($event)"
+                [showCurrentPageReport]="true"
+                currentPageReportTemplate="Showing {first} to {last} of {totalRecords} files"
+                styleClass="mt-3">
+              </p-paginator>
+            </div>
+          
+            <!-- ✅ List View with Built-in Pagination -->
+            <p-table 
+              *ngIf="viewMode === 'list'"
+              [value]="customerFiles"
+              [lazy]="true"
+              [paginator]="true"
+              [rows]="filesPageSize"
+              [totalRecords]="totalFiles"
+              [first]="(filesPage - 1) * filesPageSize"
+              [rowsPerPageOptions]="filesPageSizeOptions"
+              (onLazyLoad)="onTableLazyLoad($event)"
+              [loading]="loadingFiles"
+              [showCurrentPageReport]="true"
+              currentPageReportTemplate="Showing {first} to {last} of {totalRecords} files"
+              styleClass="files-table">
+              
+              <ng-template pTemplate="header">
+                <tr>
+                  <th style="width: 40%">File Name</th>
+                  <th>Type</th>
+                  <th>Size</th>
+                  <th>Contact</th>
+                  <th>Direction</th>
+                  <th>Date</th>
+                  <th style="width: 100px">Actions</th>
+                </tr>
+              </ng-template>
+          
+              <ng-template pTemplate="body" let-file>
+                <tr [class.selected-row]="selectedFile?.id === file.id" (click)="selectFile(file)">
+                  <td>
+                    <div class="file-name-cell">
+                      <i [class]="getFileIcon(file.file_type)"></i>
+                      <span>{{ file.name }}</span>
+                    </div>
+                  </td>
+                  <td>
+                    <p-chip [label]="file.file_type" styleClass="type-chip"></p-chip>
+                  </td>
+                  <td>{{ file.size_mb.toFixed(2) }} MB</td>
+                  <td>
+                    <span *ngIf="file.contact_details">
+                      {{ file.contact_details.name }}
+                    </span>
+                    <span *ngIf="!file.contact_details" class="text-muted">-</span>
+                  </td>
+                  <td>
+                    <p-tag 
+                      *ngIf="file.conversation_details"
+                      [value]="file.conversation_details.direction === 'outgoing' ? 'Sent' : 'Received'"
+                      [severity]="file.conversation_details.direction === 'outgoing' ? 'success' : 'info'">
+                    </p-tag>
+                    <p-tag 
+                      *ngIf="!file.conversation_details && !file.is_sent"
+                      value="Internal"
+                      severity="secondary">
+                    </p-tag>
+                  </td>
+                  <td>{{ file.created_at | date: 'short' }}</td>
+                  <td>
+                    <div class="action-buttons">
+                      <p-button 
+                        icon="pi pi-download" 
+                        (onClick)="downloadFile(file); $event.stopPropagation()"
+                        [rounded]="true"
+                        [text]="true"
+                        severity="info"
+                        size="small">
+                      </p-button>
+                      <p-button 
+                        icon="pi pi-trash" 
+                        (onClick)="deleteFile(file); $event.stopPropagation()"
+                        [rounded]="true"
+                        [text]="true"
+                        severity="danger"
+                        size="small"
+                        *ngIf="file.can_delete">
+                      </p-button>
+                    </div>
+                  </td>
+                </tr>
+              </ng-template>
+          
+              <ng-template pTemplate="emptymessage">
+                <tr>
+                  <td colspan="7" class="text-center">
+                    <div class="empty-files">
+                      <i class="pi pi-folder-open"></i>
+                      <p>No files found</p>
+                      <p-button 
+                        label="Upload Files" 
+                        icon="pi pi-upload" 
+                        (onClick)="openUploadDialog()"
+                        styleClass="p-button-sm">
+                      </p-button>
+                    </div>
+                  </td>
+                </tr>
+              </ng-template>
+            </p-table>
+          </div>
+          
+          <!-- Loading State -->
+          <div *ngIf="loadingFiles" class="loading-files">
+            <i class="pi pi-spin pi-spinner"></i>
+            <p>Loading files...</p>
+          </div>
+        </div>
+      </p-tabPanel>
+
+      <!-- Tab 2: By Contact -->
+      <p-tabPanel header="By Contact" leftIcon="pi pi-users">
+        <div class="contacts-files-view">
+          <p-accordion [multiple]="true" *ngIf="fileStats?.by_contact?.length > 0">
+            <p-accordionTab 
+              *ngFor="let contactGroup of fileStats.by_contact"
+              [header]="getContactHeader(contactGroup)">
+              
+              <ng-template pTemplate="header">
+                <div class="contact-accordion-header">
+                  <div class="contact-info-header">
+                    <i class="pi pi-user"></i>
+                    <div>
+                      <strong>{{ contactGroup.contact_name }}</strong>
+                      <span class="contact-phone">{{ contactGroup.contact_phone }}</span>
+                    </div>
+                  </div>
+                  <div class="contact-stats-header">
+                    <p-chip [label]="contactGroup.file_count + ' files'" styleClass="count-chip"></p-chip>
+                    <p-chip [label]="contactGroup.total_size_mb.toFixed(2) + ' MB'" styleClass="size-chip"></p-chip>
+                    <p-chip [label]="contactGroup.sent_count + ' sent'" severity="success" styleClass="sent-chip"></p-chip>
+                    <p-chip [label]="contactGroup.received_count + ' received'" severity="info" styleClass="received-chip"></p-chip>
+                  </div>
+                </div>
+              </ng-template>
+
+              <!-- Contact's Files -->
+              <div class="contact-files-list">
+                <p-button 
+                  label="View Files" 
+                  icon="pi pi-folder" 
+                  (onClick)="filterByContact(contactGroup.contact_id)"
+                  styleClass="p-button-outlined p-button-sm">
+                </p-button>
+                <p-button 
+                  label="Upload for Contact" 
+                  icon="pi pi-upload" 
+                  (onClick)="openUploadDialogForContact(contactGroup.contact_id)"
+                  styleClass="p-button-sm">
+                </p-button>
+              </div>
+            </p-accordionTab>
+          </p-accordion>
+
+          <div *ngIf="!fileStats?.by_contact || fileStats.by_contact.length === 0" class="empty-contacts">
+            <i class="pi pi-users"></i>
+            <p>No files organized by contact yet</p>
+          </div>
+        </div>
+      </p-tabPanel>
+
+      <!-- Tab 3: Upload - FIXED with proper validation -->
+      <p-tabPanel header="Upload Files" leftIcon="pi pi-upload">
+        <div class="upload-section">
+          <p-card styleClass="upload-card">
+            <h3>Upload Internal Files for {{ selectedCustomer.customer_name }}</h3>
+            
+            <div class="upload-form">
+              <!-- ✅ Financial Year Selection - REQUIRED -->
+              <div class="form-field">
+                <label class="required">Financial Year *</label>
+                <p-select
+                  [(ngModel)]="uploadFY"
+                  [options]="financialYears"
+                  optionLabel="label"
+                  optionValue="value"
+                  placeholder="Select Financial Year"
+                  [showClear]="false"
+                  styleClass="w-full">
+                  <ng-template let-fy pTemplate="selectedItem">
+                    <div class="fy-selected" *ngIf="fy">
+                      <i class="pi pi-calendar"></i>
+                      <span>{{ fy.label }}</span>
+                      <small>({{ fy.start_date | date: 'MMM d, yyyy' }} - {{ fy.end_date | date: 'MMM d, yyyy' }})</small>
+                    </div>
+                  </ng-template>
+                  <ng-template let-fy pTemplate="item">
+                    <div class="fy-option">
+                      <strong>{{ fy.label }}</strong>
+                      <small>{{ fy.start_date | date: 'MMM d, yyyy' }} - {{ fy.end_date | date: 'MMM d, yyyy' }}</small>
+                    </div>
+                  </ng-template>
+                </p-select>
+                <small class="help-text">
+                  <i class="pi pi-info-circle"></i>
+                  Files will be organized by Financial Year for easy access
+                </small>
+              </div>
+      
+              <!-- ✅ Upload Date Selection - REQUIRED -->
+              <div class="form-field" *ngIf="uploadFY">
+                <label class="required">Upload Date (within FY) *</label>
+                <p-calendar
+                  [(ngModel)]="uploadDate"
+                  [minDate]="getFYDateRange(uploadFY)?.start"
+                  [maxDate]="getFYDateRange(uploadFY)?.end"
+                  dateFormat="yy-mm-dd"
+                  [showIcon]="true"
+                  [showButtonBar]="true"
+                  placeholder="Select date within FY"
+                  styleClass="w-full">
+                </p-calendar>
+                <small class="help-text" *ngIf="uploadDate">
+                  <i class="pi pi-check-circle"></i>
+                  Selected: {{ uploadDate | date: 'fullDate' }}
+                </small>
+                <small class="help-text text-muted" *ngIf="!uploadDate">
+                  <i class="pi pi-exclamation-triangle"></i>
+                  Date must be between {{ getFYDateRange(uploadFY)?.start | date: 'MMM d, yyyy' }} and {{ getFYDateRange(uploadFY)?.end | date: 'MMM d, yyyy' }}
+                </small>
+              </div>
+      
+              <!-- ✅ Contact Selection - REQUIRED -->
+              <div class="form-field">
+                <label class="required">Associate with Contact *</label>
+                <p-select
+                  [(ngModel)]="uploadContactId"
+                  [options]="customerContacts"
+                  optionLabel="name"
+                  optionValue="id"
+                  placeholder="Select contact"
+                  [showClear]="false"
+                  [filter]="true"
+                  filterBy="name,phone"
+                  styleClass="w-full">
+                  <ng-template let-contact pTemplate="item">
+                    <div class="contact-option">
+                      <i class="pi pi-user"></i>
+                      <div>
+                        <div class="contact-name">{{ contact.name }}</div>
+                        <small class="contact-phone">{{ contact.phone }}</small>
+                      </div>
+                    </div>
+                  </ng-template>
+                  <ng-template let-contact pTemplate="selectedItem">
+                    <div class="contact-selected" *ngIf="contact">
+                      <i class="pi pi-user"></i>
+                      <span>{{ contact.name }} ({{ contact.phone }})</span>
+                    </div>
+                  </ng-template>
+                </p-select>
+                <small class="help-text">
+                  <i class="pi pi-info-circle"></i>
+                  Files will be stored in this contact's internal folder
+                </small>
+              </div>
+      
+              <!-- ✅ File Upload Section -->
+              <div class="form-field">
+                <label class="required">Select File *</label>
+                <p-fileUpload
+                  #fileUploader
+                  name="file"
+                  [customUpload]="true"
+                  (uploadHandler)="onFileUpload($event)"
+                  [multiple]="false"
+                  [showUploadButton]="true"
+                  [showCancelButton]="true"
+                  [auto]="false"
+                  chooseLabel="Choose File"
+                  uploadLabel="Upload to Internal Storage"
+                  cancelLabel="Clear"
+                  [maxFileSize]="52428800"
+                  [disabled]="!uploadFY || !uploadDate || !uploadContactId"
+                  accept="image/*,video/*,audio/*,.pdf,.doc,.docx,.xls,.xlsx,.txt,.csv">
+                  
+                  <ng-template pTemplate="content">
+                    <div class="upload-dropzone" [class.disabled]="!uploadFY || !uploadDate || !uploadContactId">
+                      <i class="pi pi-cloud-upload"></i>
+                      <p *ngIf="uploadFY && uploadDate && uploadContactId">Drag and drop file here or click to browse</p>
+                      <p *ngIf="!uploadFY || !uploadDate || !uploadContactId" class="text-warn">
+                        <i class="pi pi-exclamation-triangle"></i>
+                        Please select FY, Date, and Contact first
+                      </p>
+                      <small>Maximum file size: 50 MB</small>
+                      <small>Supported: Images, Videos, Audio, PDF, Documents, Spreadsheets</small>
+                    </div>
+                  </ng-template>
+                </p-fileUpload>
+              </div>
+      
+              <!-- Description (Optional) -->
+              <div class="form-field">
+                <label>Description (Optional)</label>
+                <textarea 
+                  pInputTextarea 
+                  [(ngModel)]="uploadDescription"
+                  rows="3"
+                  placeholder="Add notes about this file (optional)"
+                  class="w-full">
+                </textarea>
+              </div>
+      
+              <!-- ✅ Upload Summary -->
+              <div class="upload-summary" *ngIf="uploadFY && uploadDate && uploadContactId">
+                <h4>
+                  <i class="pi pi-info-circle"></i>
+                  Upload Summary
+                </h4>
+                <div class="summary-grid">
+                  <div class="summary-item">
+                    <span class="summary-label">Financial Year:</span>
+                    <span class="summary-value">{{ uploadFY }}</span>
+                  </div>
+                  <div class="summary-item">
+                    <span class="summary-label">Upload Date:</span>
+                    <span class="summary-value">{{ uploadDate | date: 'fullDate' }}</span>
+                  </div>
+                  <div class="summary-item">
+                    <span class="summary-label">Contact:</span>
+                    <span class="summary-value">{{ getContactName(uploadContactId) }}</span>
+                  </div>
+                  <div class="summary-item full-width">
+                    <span class="summary-label">Storage Path:</span>
+                    <span class="summary-value path">
+                      .../internal/{{ getContactPhone(uploadContactId) }}/{{ uploadFY }}/[filename]
+                    </span>
+                  </div>
+                </div>
+              </div>
+      
+              <!-- Recent Uploads -->
+              <div class="recent-uploads" *ngIf="fileStats?.recent_uploads?.length > 0">
+                <h4>
+                  <i class="pi pi-history"></i>
+                  Recent Uploads
+                </h4>
+                <div class="recent-files-list">
+                  <div *ngFor="let file of fileStats.recent_uploads.slice(0, 5)" class="recent-file-item">
+                    <i [class]="getFileIcon(file.file_type)"></i>
+                    <div class="recent-file-info">
+                      <strong>{{ file.name }}</strong>
+                      <span>
+                        {{ file.size_mb.toFixed(2) }} MB · 
+                        {{ file.created_at | date: 'short' }}
+                      </span>
+                    </div>
+                    <p-tag 
+                      *ngIf="file.contact_details"
+                      [value]="file.contact_details.name"
+                      severity="secondary"
+                      icon="pi pi-user">
+                    </p-tag>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </p-card>
+        </div>
+      </p-tabPanel>
+
+      <!-- Tab 4: Statistics -->
+      <p-tabPanel header="Statistics" leftIcon="pi pi-chart-bar">
+        <div class="statistics-section" *ngIf="fileStats">
+          <div class="stats-grid">
+            <!-- File Type Distribution -->
+            <p-card styleClass="stat-card">
+              <h4>File Types Distribution</h4>
+              <div class="type-distribution">
+                <div *ngFor="let type of getFileTypesArray()" class="type-row">
+                  <div class="type-info">
+                    <i [class]="getFileTypeIcon(type.name)"></i>
+                    <span>{{ type.name }}</span>
+                  </div>
+                  <div class="type-stats">
+                    <p-progressBar 
+                      [value]="(type.count / fileStats.total_files) * 100"
+                      [showValue]="false">
+                    </p-progressBar>
+                    <span class="count">{{ type.count }}</span>
+                  </div>
+                </div>
+              </div>
+            </p-card>
+
+            <!-- Direction Summary -->
+            <p-card styleClass="stat-card">
+              <h4>Files by Direction</h4>
+              <div class="direction-stats">
+                <div class="direction-item">
+                  <div class="direction-icon sent">
+                    <i class="pi pi-send"></i>
+                  </div>
+                  <div class="direction-info">
+                    <span class="direction-label">Sent to Customer</span>
+                    <span class="direction-count">{{ fileStats.sent_count }}</span>
+                  </div>
+                </div>
+                <div class="direction-item">
+                  <div class="direction-icon received">
+                    <i class="pi pi-inbox"></i>
+                  </div>
+                  <div class="direction-info">
+                    <span class="direction-label">Received from Customer</span>
+                    <span class="direction-count">{{ fileStats.received_count }}</span>
+                  </div>
+                </div>
+                <div class="direction-item">
+                  <div class="direction-icon draft">
+                    <i class="pi pi-file"></i>
+                  </div>
+                  <div class="direction-info">
+                    <span class="direction-label">Draft (Not Sent)</span>
+                    <span class="direction-count">{{ fileStats.draft_count }}</span>
+                  </div>
+                </div>
+              </div>
+            </p-card>
+
+            <!-- Contact Distribution -->
+            <p-card styleClass="stat-card full-width">
+              <h4>Files per Contact</h4>
+              <div class="contact-distribution">
+                <div *ngFor="let contact of fileStats.by_contact" class="contact-bar">
+                  <div class="contact-bar-label">
+                    <span>{{ contact.contact_name }}</span>
+                    <span>{{ contact.file_count }} files</span>
+                  </div>
+                  <p-progressBar 
+                    [value]="(contact.file_count / fileStats.total_files) * 100"
+                    [showValue]="false">
+                  </p-progressBar>
+                </div>
+              </div>
+            </p-card>
+          </div>
+        </div>
+      </p-tabPanel>
+    </p-tabView>
+  </div>
+
+  <ng-template pTemplate="footer">
+    <p-button 
+      label="Close" 
+      icon="pi pi-times" 
+      (onClick)="displayFilesDialog = false"
+      styleClass="p-button-text">
+    </p-button>
+  </ng-template>
+</p-dialog>
+
 <!-- Add Existing Contacts -->
 <p-dialog [(visible)]="displayAddContactsDialog" header="Add Existing Contacts" [modal]="true" [style]="{width:'600px'}">
   <span class="p-input-icon-left w-full mb-3">
@@ -865,6 +1561,17 @@
                 severity="danger"
                 pTooltip="Delete"
                 tooltipPosition="top">
+              </p-button>
+              <p-button 
+                icon="pi pi-folder" 
+                (onClick)="manageFiles(customer)"
+                [rounded]="true"
+                [text]="true"
+                severity="secondary"
+                pTooltip="Manage Files"
+                tooltipPosition="top"
+                [badge]="customer.file_count?.toString()"
+                [badgeClass]="customer.file_count > 0 ? 'success' : 'secondary'">
               </p-button>
             </div>
           </td>

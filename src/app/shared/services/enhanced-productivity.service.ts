@@ -7,7 +7,8 @@ import { PRODUCTIVITY_HOST } from '../../../environment';
   providedIn: 'root'
 })
 export class EnhancedProductivityService {
-  private baseUrl = `${PRODUCTIVITY_HOST}/productivity`;
+  //private baseUrl = `${PRODUCTIVITY_HOST}/productivity`;
+  private baseUrl = `${PRODUCTIVITY_HOST}/productivity/v2`;
 
   constructor(private http: HttpClient) {}
 

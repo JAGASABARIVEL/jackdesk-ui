@@ -1,3 +1,7 @@
+<!-- ============================================================================
+     WEB details page UI
+     ============================================================================ -->
+
 <!-- Outer Container: full height column layout -->
 <div class="chat-detail-container flex flex-column" style="height: 80vh;" *ngIf="selectedConversation; else noConversation">
   
@@ -334,7 +338,8 @@
           </div>
           
           <!-- Text Content -->
-          <div *ngIf="message.message_type === 'text' && message.message_body" class="message-text">
+          <!--div *ngIf="message.message_type === 'text' && message.message_body" class="message-text"-->
+          <div *ngIf="message.message_body" class="message-text">
             <span style="white-space: pre-wrap;">{{ message.message_body }}</span>
           </div>
           
@@ -487,8 +492,9 @@
   <div *ngIf="conversationStatus.isZombie" class="zombie-input-warning mb-2">
     <div class="flex align-items-center gap-2 px-3 py-2">
       <i class="pi pi-exclamation-triangle"></i>
-      <span class="text-sm flex-1">Re-engagement required. Use template button to continue.</span>
-      <button pButton 
+      <span *ngIf="selectedConversation.contact.platform_name === 'whatsapp'" class="text-sm flex-1">Re-engagement required. Use template button to continue.</span>
+      <span *ngIf="selectedConversation.contact.platform_name === 'gmail'" class="text-sm flex-1">Gmail account needs activation. Please ask your organization admin to activate.</span>
+      <button *ngIf="selectedConversation.contact.platform_name === 'whatsapp'" pButton 
               icon="pi pi-file" 
               label="Template"
               class="p-button-sm p-button-warning p-button-outlined"

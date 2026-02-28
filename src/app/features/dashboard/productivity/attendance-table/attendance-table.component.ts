@@ -2,11 +2,12 @@ import { Component, Input, OnChanges } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { TableModule } from 'primeng/table';
 import { TagModule } from 'primeng/tag';
+import { HoursToTimePipe } from '../../../../shared/pipes/hourstotime.pipe';
 
 @Component({
   selector: 'app-attendance-table',
   standalone: true,
-  imports: [CommonModule, TableModule, TagModule],
+  imports: [CommonModule, TableModule, TagModule, HoursToTimePipe],
   template: `
     <div class="attendance-table">
       <div class="section-header">
@@ -66,12 +67,12 @@ import { TagModule } from 'primeng/tag';
             </td>
             <td>
               <span class="work-hours-badge" [class.low-hours]="record.work_hours < 7">
-                {{ record.work_hours }}h
+                {{ record.work_hours | hoursToTime }}
               </span>
             </td>
             <td>
               <span class="idle-hours" [class.high-idle]="record.idle_hours > 2">
-                {{ record.idle_hours }}h
+                {{ record.idle_hours | hoursToTime}}
               </span>
             </td>
             <td class="text-center">

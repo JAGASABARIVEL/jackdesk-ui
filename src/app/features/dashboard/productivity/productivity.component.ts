@@ -44,14 +44,14 @@ import { LayoutService } from '../../../layout/service/app.layout.service';
         <div class="filter-grid">
           
           <!-- Employee Selection -->
-          <div class="filter-item" *ngIf="profile?.user?.role !== 'individual' && profile?.user?.role !== 'employee'">
+          <div class="filter-item">
             <label class="filter-label">Employee</label>
             <p-select
               [(ngModel)]="selected_user"
               [options]="registeredUsers"
               optionLabel="details.email"
               optionValue="details.id"
-              placeholder="All Employees (Team View)"
+              placeholder="Select Employee"
               [filter]="true"
               [showClear]="true"
               appendTo="body"
@@ -405,7 +405,13 @@ export class ProductivityComponent implements OnInit, OnDestroy {
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: (data) => {
-          this.registeredUsers = data;
+          if (this.profile?.user?.role !== 'individual' && this.profile?.user?.role !== 'employee') {
+            this.registeredUsers = data;
+          }
+          else {
+            this.registeredUsers = data.filter((user_record)=>user_record?.details?.id === this.profile?.user?.id)
+            this.selected_user = this.registeredUsers ? this.registeredUsers[0].details.id : null;
+          }
         },
         error: (err) => console.error('Failed to load employees', err)
       });

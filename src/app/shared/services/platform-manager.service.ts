@@ -1,7 +1,34 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
-import { Observable } from 'rxjs';
+import { catchError, Observable, throwError } from 'rxjs';
 import { HOST } from '../../../environment'
+
+
+
+export interface TemplateComponent {
+  type: 'HEADER' | 'BODY' | 'FOOTER' | 'BUTTONS';
+  format?: 'TEXT' | 'IMAGE' | 'VIDEO' | 'DOCUMENT';
+  text?: string;
+  buttons?: TemplateButton[];
+  example?: any;
+}
+
+export interface TemplateButton {
+  type: 'QUICK_REPLY' | 'PHONE_NUMBER' | 'URL';
+  text: string;
+  phone_number?: string;
+  url?: string;
+}
+
+export interface WhatsAppTemplate {
+  id?: string;
+  name: string;
+  language: string;
+  category: string;
+  status?: string;
+  components: TemplateComponent[];
+  rejected_reason?: string;
+}
 
 @Injectable({
   providedIn: 'root',
@@ -91,6 +118,86 @@ syncGMessage(platformId: number) {
 disconnectGMessage(platformId: number) {
   return this.http.post(`${this.list_platforms_url}${platformId}/gmessages/disconnect/`, {});
 }
+  
+  /**
+   * Create a new template
+   */
+  createTemplate(platformId: number, templateData: WhatsAppTemplate): Observable<any> {
+    const headers = new HttpHeaders().set('Authorization', `Bearer ${this.auth_token}`);
+    return this.http.post(
+      `${this.list_platforms_url}${platformId}/templates`,
+      templateData,
+      {headers}
+    ).pipe(
+      catchError(this.handleError)
+    );
+  }
+  
+  /**
+   * Update an existing template
+   * Note: WhatsApp API doesn't support direct updates
+   */
+  updateTemplate(platformId: number, templateData: WhatsAppTemplate): Observable<any> {
+    const headers = new HttpHeaders().set('Authorization', `Bearer ${this.auth_token}`);
+    return this.http.put(
+      `${this.list_platforms_url}${platformId}/templates`,
+      templateData,
+      {headers}
+    ).pipe(
+      catchError(this.handleError)
+    );
+  }
+  
+  /**
+   * Delete a template
+   */
+  deleteTemplate(platformId: number, templateName: string): Observable<any> {
+    const headers = new HttpHeaders().set('Authorization', `Bearer ${this.auth_token}`);
+    const options = {
+      headers: new HttpHeaders({
+        'Content-Type': 'application/json',
+      }),
+      body: { name: templateName }
+    };
+    
+    return this.http.delete(
+      `${this.list_platforms_url}${platformId}/templates`,
+      options,
+    ).pipe(
+      catchError(this.handleError)
+    );
+  }
+  
+  /**
+   * Get a specific template by name
+   */
+  getTemplateByName(platformId: number, templateName: string): Observable<any> {
+    return this.get_templates(platformId).pipe(
+      catchError(this.handleError)
+    );
+  }
+  
+  /**
+   * Handle HTTP errors
+   */
+  private handleError(error: any): Observable<never> {
+    let errorMessage = 'An error occurred';
+    
+    if (error.error instanceof ErrorEvent) {
+      // Client-side error
+      errorMessage = `Error: ${error.error.message}`;
+    } else {
+      // Server-side error
+      errorMessage = `Error Code: ${error.status}\nMessage: ${error.message}`;
+      
+      if (error.error && error.error.error) {
+        errorMessage = error.error.error;
+      }
+    }
+    
+    console.error('Service Error:', errorMessage);
+    return throwError(() => new Error(errorMessage));
+  }
 
 
 }

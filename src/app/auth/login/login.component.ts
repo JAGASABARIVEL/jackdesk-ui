@@ -194,6 +194,7 @@ export class LoginComponent implements OnInit, OnDestroy {
         }).catch((err) => {
           console.error("Socket connection failed", err);
           this.layoutService.addNotification({
+            'id': -1,
             'severity': 'error',
             'app': 'Login',
             'text': 'Socket connection failed. Please engage Engineering.'
@@ -356,6 +357,11 @@ export class LoginComponent implements OnInit, OnDestroy {
                 icon: 'pi pi-dollar',
                 routerLink: ['/apps/ca-firm/customer-purchases']
               },
+              //{
+              //  label: 'Template Studio',
+              //  icon: 'pi pi-dollar',
+              //  routerLink: ['/apps/template-manager']
+              //}
             ]
           }
         ]
@@ -585,7 +591,7 @@ export class LoginComponent implements OnInit, OnDestroy {
           .catch((err) => {
             console.error("Socket connection failed", err);
             this.layoutService.addNotification(
-                {'severity': 'error', 'app': 'Login', 'text': 'Socket connection failed. Please engage Engineering.'}
+                {'id': -1, 'severity': 'error', 'app': 'Login', 'text': 'Socket connection failed. Please engage Engineering.'}
             )
             //this.setupLoginOrRegistrationProcess(profile);
             this.router.navigate(['/apps/login'])
@@ -755,7 +761,7 @@ sendZohoCodeToBackend(code: string): void {
         }).catch((err) => {
           console.error("Socket connection failed", err);
           this.layoutService.addNotification(
-            { 'severity': 'error', 'app': 'Login', 'text': 'Socket connection failed. Please engage Engineering.' }
+            { 'id': -1, 'severity': 'error', 'app': 'Login', 'text': 'Socket connection failed. Please engage Engineering.' }
           );
           this.router.navigate(['/apps/login']);
         });

@@ -8,9 +8,13 @@ import { PRODUCTIVITY_HOST } from '../../../environment'
 })
 export class ProductivityService {
 
-    employee_productivity_url = `${PRODUCTIVITY_HOST}/productivity/employee`;
-    leaderboard_productivity_url = `${PRODUCTIVITY_HOST}/productivity/summary`;
-    my_summary_url = `${PRODUCTIVITY_HOST}/productivity/my_summary`;
+    //employee_productivity_url = `${PRODUCTIVITY_HOST}/productivity/employee`;
+    //leaderboard_productivity_url = `${PRODUCTIVITY_HOST}/productivity/summary`;
+    //my_summary_url = `${PRODUCTIVITY_HOST}/productivity/my_summary`;
+
+    employee_productivity_url = `${PRODUCTIVITY_HOST}/productivity/v2/employee`;
+    leaderboard_productivity_url = `${PRODUCTIVITY_HOST}/productivity/v2/summary`;
+    my_summary_url = `${PRODUCTIVITY_HOST}/productivity/v2/my_summary`;
 
   profile;
   auth_token;

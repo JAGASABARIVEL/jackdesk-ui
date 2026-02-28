@@ -1,6 +1,6 @@
+<!-- Web conversation list-->
 <p-toast />
-
-<div class="modern-conversation-wrapper">
+<div *ngIf="totalRecords > 0" class="modern-conversation-wrapper">
     <!-- Header Section -->
     <div class="conversation-header" *ngIf="heading">
         <div class="header-content">

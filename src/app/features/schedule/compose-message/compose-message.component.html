@@ -318,21 +318,21 @@
         <div *ngIf="selected_date_time != undefined" class="form-card animate-in">
             <div class="card-header">
                 <i class="pi pi-send header-icon"></i>
-                <h3>Platform</h3>
+                <h3>Channel</h3>
             </div>
             <p-floatLabel>
                 <p-select
-                    id="platform"
-                    styleClass="modern-select"
+                    id="platform" 
+                    styleClass="modern-select" 
                     [options]="platform" 
-                    [(ngModel)]="selected_platform"
-                    [filter]="true"
-                    filterBy="platform_name"
-                    [showClear]="true"
-                    optionLabel="platform_name" 
+                    optionLabel="user_platform_name" 
+                    [(ngModel)]="selected_platform" 
+                    [filter]="true" 
+                    filterBy="user_platform_name" 
+                    [showClear]="true" 
                     (onChange)="onPlatformSelected()"
                 />
-                <label for="platform">Select messaging platform</label>
+                <label for="platform">Select messaging channel</label>
             </p-floatLabel>
         </div>
 

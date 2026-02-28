@@ -29,6 +29,13 @@ interface NotificationTemplate {
     text: string
 }
 
+export interface Notification {
+  id: string | number;
+  severity: 'error' | 'warn' | 'info' | 'success';
+  app: string;
+  text: string;
+}
+
 
 export interface ConversationNotificationTemplate {
     conversation_count: number,
@@ -110,12 +117,12 @@ totalActiveTime = computed(() => {
   const percent = (this.activehours() / 24) * 100;
   return [
     {
-      label: 'Active',
+      label: 'Work',
       value: Math.round(percent),
       color1: 'var(--p-primary-color)',
       color2: 'var(--p-primary-color)',
       icon: 'pi pi-clock',
-      duration: `${this.activehours()}h`
+      duration: this.activehours()
     }
   ];
 });
@@ -131,7 +138,7 @@ totalIdleTime = computed(() => {
       color1: 'var(--p-primary-color)',
       color2: 'var(--p-primary-color)',
       icon: 'pi pi-clock',
-      duration: `${this.idlehours()}h`
+      duration: this.idlehours()
     }
   ];
 });
@@ -146,9 +153,44 @@ get totalProductivityTime() {
 
     
 
-    addNotification(notification) {
-        this.notifications.update((prev) => [...prev, notification]);
-    }
+    addNotification(notification: Notification) {
+    this.notifications.update((current) => {
+      // Check if notification with same ID already exists
+      const exists = current.some((n:Notification) => n.id === notification.id);
+      if (exists) {
+        // Update existing notification
+        return current.map((n: Notification) => 
+          n.id === notification.id ? notification : n
+        );
+      }
+      // Add new notification
+      return [...current, notification];
+    });
+  }
+
+    // NEW: Clear specific notification by ID
+  clearNotificationById(id: string | number) {
+    this.notifications.update((current) =>
+      current.filter((n: Notification) => n.id !== id)
+    );
+  }
+
+  // NEW: Clear notification by platform_id (more semantic)
+  clearPlatformNotification(platformId: number) {
+    this.clearNotificationById(platformId);
+  }
+
+  // Optional: Clear multiple notifications by IDs
+  clearNotificationsByIds(ids: (string | number)[]) {
+    this.notifications.update((current) =>
+      current.filter((n: Notification) => !ids.includes(n.id))
+    );
+  }
+
+  // Getter for notifications
+  getNotifications() {
+    return this.notifications.asReadonly();
+  }
 
     clearNotification(appName: string) {
   this.notifications.update((current) =>

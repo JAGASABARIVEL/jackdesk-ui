@@ -603,6 +603,7 @@ export class ChatWindowComponent implements OnInit, OnDestroy {
           this.isLoading.set(false);
           
           this.layoutService.addNotification({
+            'id': 0,
             severity: 'success',
             app: 'ChatWindow',
             text: `Started conversation with ${conversation.contact.name || conversation.contact.phone}`
@@ -734,6 +735,7 @@ export class ChatWindowComponent implements OnInit, OnDestroy {
 
   private showError(message: string): void {
     this.layoutService.addNotification({
+      'id': -2,
       severity: 'error',
       app: 'ChatWindow',
       text: message

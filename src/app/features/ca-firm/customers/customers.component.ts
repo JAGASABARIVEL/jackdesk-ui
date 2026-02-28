@@ -2,7 +2,7 @@
 // Enhanced with Server-Side Pagination and Search
 
 import { Component, OnDestroy, OnInit } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { CommonModule, formatDate } from '@angular/common';
 import { FormBuilder, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Subject, takeUntil, forkJoin, of, catchError, debounceTime, distinctUntilChanged } from 'rxjs';
 
@@ -24,6 +24,9 @@ import { RadioButtonModule } from 'primeng/radiobutton';
 import { MultiSelectModule } from 'primeng/multiselect';
 import { TabViewModule } from 'primeng/tabview';
 import { InputSwitchModule } from 'primeng/inputswitch';
+import { FileUploadModule } from 'primeng/fileupload';
+import { AccordionModule } from 'primeng/accordion';
+import { ProgressBarModule } from 'primeng/progressbar';
 
 import { CAFirmService } from '../../../shared/services/ca-firm.service';
 import { ContactManagerService } from '../../../shared/services/contact-manager.service';
@@ -31,6 +34,8 @@ import { PlatformManagerService } from '../../../shared/services/platform-manage
 import { FilterPipe } from '../../../shared/pipes/filter.pipe';
 import { supported_platforms } from '../../../shared/constants';
 import { LayoutService } from '../../../layout/service/app.layout.service';
+import { CalendarModule } from 'primeng/calendar';
+import { PaginatorModule } from 'primeng/paginator';
 
 interface Customer {
   id?: number;
@@ -52,6 +57,13 @@ interface PaginatedResponse<T> {
   next: string | null;
   previous: string | null;
   results: T[];
+}
+
+interface FinancialYear {
+  label: string;
+  value: string;
+  start_date: Date;
+  end_date: Date;
 }
 
 @Component({
@@ -77,7 +89,12 @@ interface PaginatedResponse<T> {
     MultiSelectModule,
     TabViewModule,
     InputSwitchModule,
-    FilterPipe
+    FilterPipe,
+    FileUploadModule,
+    ProgressBarModule,
+    AccordionModule,
+    CalendarModule,
+    PaginatorModule
   ],
   providers: [MessageService, ConfirmationService],
   templateUrl: './customers.component.html',
@@ -87,6 +104,7 @@ export class CustomersComponent implements OnInit, OnDestroy {
   private destroy$ = new Subject<void>();
   private searchSubject$ = new Subject<string>();
   private contactSearchSubject$ = new Subject<string>();
+  private fileSearchSubject$ = new Subject<string>();
   
   // Data
   customers: Customer[] = [];
@@ -110,6 +128,12 @@ export class CustomersComponent implements OnInit, OnDestroy {
   totalContacts = 0;
   contactsPage = 1;
   contactsPageSize = 50;
+  
+  // ✅ NEW - Pagination for Files (Server-Side)
+  totalFiles = 0;
+  filesPage = 1;
+  filesPageSize = 20;
+  filesPageSizeOptions = [10, 20, 50, 100];
   
   // Statistics
   activeCustomersCount = 0;
@@ -146,6 +170,46 @@ export class CustomersComponent implements OnInit, OnDestroy {
   selectedEmployee: number | null = null;
   selectedStatus: string | null = null;
   showUnmappedOnly = false;
+
+  // File Management States
+  displayFilesDialog = false;
+  loadingFiles = false;
+  customerFiles: any[] = [];
+  fileStats: any = null;
+  selectedFile: any = null;
+  viewMode: 'grid' | 'list' = 'grid';
+
+  // ✅ NEW - File Filters with FY Support
+  fileSearchText = '';
+  selectedFileType: string | null = null;
+  selectedDirection: string | null = null;
+  selectedContactFilter: number | null = null;
+  selectedFY: string | null = null; // Financial Year filter
+  financialYears: FinancialYear[] = [];
+
+  // ✅ NEW - Upload States with FY Support
+  uploadContactId: number | null = null;
+  uploadDescription = '';
+  uploadFY: string | null = null; // Selected FY for upload
+  uploadDate: Date | null = null; // Custom date within FY
+  uploadFileType: 'internal' | 'sent' = 'internal'; // Upload type
+
+  // Options
+  fileTypeOptions = [
+    { label: 'Images', value: 'image' },
+    { label: 'Videos', value: 'video' },
+    { label: 'Audio', value: 'audio' },
+    { label: 'PDF', value: 'pdf' },
+    { label: 'Documents', value: 'document' },
+    { label: 'Spreadsheets', value: 'spreadsheet' },
+    { label: 'Other', value: 'other' }
+  ];
+  
+  directionOptions = [
+    { label: 'Sent', value: 'sent' },
+    { label: 'Received', value: 'received' },
+    { label: 'Internal', value: 'internal' } // ✅ Added Internal
+  ];
   
   statusOptions = [
     { label: 'Active', value: 'active' },
@@ -170,6 +234,7 @@ export class CustomersComponent implements OnInit, OnDestroy {
   selectedCountryCode: any = null;
   phoneNumberWithoutCode: string = '';
   isWhatsAppContact: boolean = false;
+  contactFilterOptions: any[] = [];
 
   constructor(
     private fb: FormBuilder,
@@ -181,6 +246,7 @@ export class CustomersComponent implements OnInit, OnDestroy {
     private confirmationService: ConfirmationService
   ) {
     this.initForms();
+    this.generateFinancialYears();
   }
 
   ngOnInit(): void {
@@ -211,11 +277,68 @@ export class CustomersComponent implements OnInit, OnDestroy {
       this.contactsPage = 1;
       this.loadAllContacts();
     });
+
+    // ✅ NEW - Setup search debouncing for files
+    this.fileSearchSubject$.pipe(
+      debounceTime(400),
+      distinctUntilChanged(),
+      takeUntil(this.destroy$)
+    ).subscribe(() => {
+      this.filesPage = 1;
+      this.loadCustomerFiles();
+    });
   }
 
   ngOnDestroy(): void {
     this.destroy$.next();
     this.destroy$.complete();
+  }
+
+  // ✅ NEW - Generate Financial Years (Last 10 years + Current + Next 2 years)
+  generateFinancialYears(): void {
+    const currentDate = new Date();
+    const currentYear = currentDate.getFullYear();
+    const currentMonth = currentDate.getMonth(); // 0-11
+
+    // Indian FY starts April 1st
+    const fyStartMonth = 3; // April (0-indexed)
+
+    // Determine current FY
+    let baseFY = currentMonth >= fyStartMonth ? currentYear : currentYear - 1;
+
+    this.financialYears = [];
+
+    // Generate from 10 years ago to 2 years ahead
+    for (let offset = -10; offset <= 2; offset++) {
+      const fyYear = baseFY + offset;
+      const startDate = new Date(fyYear, fyStartMonth, 1); // April 1
+      const endDate = new Date(fyYear + 1, fyStartMonth, 0); // March 31 next year
+
+      this.financialYears.push({
+        label: `FY ${fyYear}-${(fyYear + 1).toString().slice(2)}`,
+        value: `${fyYear}-${fyYear + 1}`,
+        start_date: startDate,
+        end_date: endDate
+      });
+    }
+
+    // Reverse so most recent is first
+    this.financialYears.reverse();
+
+    // Set current FY as default
+    const currentFY = this.financialYears.find(fy => {
+      return currentDate >= fy.start_date && currentDate <= fy.end_date;
+    });
+
+    if (currentFY) {
+      this.uploadFY = currentFY.value;
+    }
+  }
+
+  // ✅ NEW - Get Date Range for Selected FY
+  getFYDateRange(fyValue: string): { start: Date; end: Date } | null {
+    const fy = this.financialYears.find(f => f.value === fyValue);
+    return fy ? { start: fy.start_date, end: fy.end_date } : null;
   }
 
   initForms(): void {
@@ -1099,5 +1222,461 @@ isContactFormValid(): boolean {
   return basicFormValid && 
          this.selectedCountryCode !== null && 
          this.validatePhoneNumber();
+}
+
+// ========== File Management Methods ==========
+
+/**
+ * Open files dialog for a customer
+ */
+manageFiles(customer: Customer): void {
+  this.selectedCustomer = customer;
+  
+  // ✅ Reset pagination when opening dialog
+  this.filesPage = 1;
+  this.filesPageSize = 20;
+  this.totalFiles = 0;
+  this.lastLoadedPage = 0;
+  this.lastLoadedPageSize = 0;
+  
+  this.loadCustomerContacts(customer.id!);
+  this.loadCustomerFiles();
+  this.loadFileStatistics();
+  this.loadContactFilterOptions();
+  this.displayFilesDialog = true;
+}
+
+/**
+ * ✅ FIXED: Load all files for the selected customer with proper pagination
+ */
+loadCustomerFiles(): void {
+  if (!this.selectedCustomer?.id) return;
+
+  this.loadingFiles = true;
+  
+  const params: any = {
+    page: this.filesPage,
+    page_size: this.filesPageSize
+  };
+
+  // Add FY parameter
+  if (this.selectedFY) {
+    params.fy = this.selectedFY;
+  }
+
+  if (this.fileSearchText) {
+    params.search = this.fileSearchText;
+  }
+
+  if (this.selectedFileType) {
+    params.file_type = this.selectedFileType;
+  }
+
+  if (this.selectedDirection) {
+    params.direction = this.selectedDirection;
+  }
+
+  if (this.selectedContactFilter) {
+    params.contact_id = this.selectedContactFilter;
+  }
+
+  this.caFirmService.listCustomerFiles(this.selectedCustomer.id, params)
+    .pipe(takeUntil(this.destroy$))
+    .subscribe({
+      next: (response) => {
+        // ✅ Handle paginated response properly
+        if (response.results) {
+          this.customerFiles = response.results;
+          this.totalFiles = response.count || 0;
+          this.loadingFiles = false;
+        }
+      },
+      error: (error) => {
+        this.showError('Failed to load files');
+        console.error('Error loading customer files:', error);
+        this.loadingFiles = false;
+        this.customerFiles = [];
+        this.totalFiles = 0;
+      }
+    });
+}
+
+/**
+ * Load file statistics for the customer
+ */
+loadFileStatistics(): void {
+  if (!this.selectedCustomer?.id) return;
+
+  this.caFirmService.getCustomerFileStats(this.selectedCustomer.id)
+    .pipe(takeUntil(this.destroy$))
+    .subscribe({
+      next: (stats) => {
+        this.fileStats = stats;
+      },
+      error: (error) => {
+        console.error('Error loading file statistics:', error);
+      }
+    });
+}
+
+/**
+ * Load contact filter options
+ */
+loadContactFilterOptions(): void {
+  if (!this.selectedCustomer?.id) return;
+
+  this.caFirmService.getCustomerContacts(this.selectedCustomer.id)
+    .pipe(takeUntil(this.destroy$))
+    .subscribe({
+      next: (data) => {
+        const contacts = Array.isArray(data) ? data : (data.contacts || data.results || []);
+        this.contactFilterOptions = contacts.map((c: any) => ({
+          label: `${c.name} (${c.phone})`,
+          value: c.id
+        }));
+      },
+      error: (error) => {
+        console.error('Error loading contact filters:', error);
+      }
+    });
+}
+
+/**
+ * Handle file search
+ */
+onFileSearch(): void {
+  this.filesPage = 1; // Reset to first page when filters change
+  this.loadCustomerFiles();
+}
+
+private searchTimeout: any;
+
+/**
+ * Handle filter changes
+ */
+onFileFilterChange(event: any): void {
+  this.filesPage = 1;
+  this.loadCustomerFiles();
+}
+
+onGridPageChange(event: any): void {
+  this.filesPage = event.page + 1;
+  this.filesPageSize = event.rows;
+  this.loadCustomerFiles();
+}
+
+private lastLoadedPage: number = 0;
+private lastLoadedPageSize: number = 0;
+
+onTableLazyLoad(event: any): void {  
+  if (this.loadingFiles) return;
+  
+  const newPage = event.first / event.rows + 1;
+  const newPageSize = event.rows;
+  
+  // ✅ Only load if pagination actually changed
+  if (newPage === this.lastLoadedPage && newPageSize === this.lastLoadedPageSize) {
+    return;
+  }
+  
+  this.lastLoadedPage = newPage;
+  this.lastLoadedPageSize = newPageSize;
+  this.filesPage = newPage;
+  this.filesPageSize = newPageSize;
+  
+  this.loadCustomerFiles();
+}
+
+
+/**
+ * Filter files by contact
+ */
+filterByContact(contactId: number): void {
+  this.selectedContactFilter = contactId;
+  this.filesPage = 1; // Reset to first page
+  this.loadCustomerFiles();
+}
+
+/**
+ * Select a file
+ */
+selectFile(file: any): void {
+  this.selectedFile = file;
+}
+
+/**
+ * Download a file
+ */
+downloadFile(file: any): void {
+  if (file.signed_url) {
+    window.open(file.signed_url, '_blank');
+  } else {
+    this.showError('File URL not available');
+  }
+}
+
+/**
+ * Delete a file
+ */
+deleteFile(file: any): void {
+  if (!file.can_delete) {
+    this.showError('You do not have permission to delete this file');
+    return;
+  }
+
+  this.confirmationService.confirm({
+    message: `Are you sure you want to delete "${file.name}"?`,
+    header: 'Confirm Delete',
+    icon: 'pi pi-exclamation-triangle',
+    accept: () => {
+      this.caFirmService.deleteCustomerFile(this.selectedCustomer!.id!, file.id)
+        .pipe(takeUntil(this.destroy$))
+        .subscribe({
+          next: () => {
+            this.showSuccess('File deleted successfully');
+            this.loadCustomerFiles();
+            this.loadFileStatistics();
+          },
+          error: (error) => {
+            this.showError('Failed to delete file');
+            console.error('Error deleting file:', error);
+          }
+        });
+    }
+  });
+}
+
+/**
+ * Open upload dialog
+ */
+openUploadDialog(): void {
+  this.uploadContactId = null;
+  this.uploadDescription = '';
+  this.uploadDate = null;
+  
+  // Set default FY to current FY if available
+  const currentFY = this.financialYears.find(fy => {
+    const now = new Date();
+    return now >= fy.start_date && now <= fy.end_date;
+  });
+  
+  if (currentFY) {
+    this.uploadFY = currentFY.value;
+    this.uploadDate = new Date(); // Set to today
+  }
+}
+
+/**
+ * Open upload dialog for specific contact
+ */
+openUploadDialogForContact(contactId: number): void {
+  this.uploadContactId = contactId;
+  this.uploadDescription = '';
+  this.uploadDate = null;
+  
+  // Set default FY
+  const currentFY = this.financialYears.find(fy => {
+    const now = new Date();
+    return now >= fy.start_date && now <= fy.end_date;
+  });
+  
+  if (currentFY) {
+    this.uploadFY = currentFY.value;
+    this.uploadDate = new Date();
+  }
+}
+
+/**
+ * ✅ FIXED: Handle file upload with proper date formatting
+ */
+onFileUpload(event: any): void {
+  if (!this.selectedCustomer?.id) return;
+
+  const file = event.files[0];
+  if (!file) return;
+
+  // ✅ Validate required fields
+  if (!this.uploadFY) {
+    this.showError('Please select a Financial Year');
+    return;
+  }
+
+  if (!this.uploadContactId) {
+    this.showError('Please select a contact');
+    return;
+  }
+
+  const formData = new FormData();
+  formData.append('file', file);
+  formData.append('fy', this.uploadFY);
+  formData.append('contact_id', this.uploadContactId.toString());
+
+  // ✅ FIXED: Format date properly for backend
+  if (this.uploadDate) {
+    const year = this.uploadDate.getFullYear();
+    const month = String(this.uploadDate.getMonth() + 1).padStart(2, '0');
+    const day = String(this.uploadDate.getDate()).padStart(2, '0');
+    const formattedDate = `${year}-${month}-${day}`;
+    
+    formData.append('upload_date', formattedDate);
+  }
+
+  if (this.uploadDescription) {
+    formData.append('description', this.uploadDescription);
+  }
+
+  this.caFirmService.uploadCustomerFile(this.selectedCustomer.id, formData)
+    .pipe(takeUntil(this.destroy$))
+    .subscribe({
+      next: (response) => {
+        this.showSuccess('File uploaded successfully to internal storage');
+        
+        // Reload files and stats
+        this.loadCustomerFiles();
+        this.loadFileStatistics();
+        
+        // Reset upload form
+        this.uploadContactId = null;
+        this.uploadDescription = '';
+        this.uploadDate = null;
+        
+        // Reset FY to current
+        const currentFY = this.financialYears.find(fy => {
+          const now = new Date();
+          return now >= fy.start_date && now <= fy.end_date;
+        });
+        if (currentFY) {
+          this.uploadFY = currentFY.value;
+        }
+        
+        // Clear the file uploader
+        if (event.files) {
+          event.files = [];
+        }
+      },
+      error: (error) => {
+        this.showError('Failed to upload file');
+        console.error('Error uploading file:', error);
+        
+        // Show detailed error if available
+        if (error.error?.error) {
+          this.showError(error.error.error);
+        }
+      }
+    });
+}
+
+/**
+ * Get file icon based on type
+ */
+getFileIcon(fileType: string): string {
+  const iconMap: { [key: string]: string } = {
+    'pdf': 'pi pi-file-pdf',
+    'image': 'pi pi-image',
+    'video': 'pi pi-video',
+    'audio': 'pi pi-volume-up',
+    'document': 'pi pi-file-word',
+    'spreadsheet': 'pi pi-file-excel',
+    'other': 'pi pi-file'
+  };
+
+  return iconMap[fileType] || 'pi pi-file';
+}
+
+/**
+ * Get file type icon for filters
+ */
+getFileTypeIcon(fileType: string): string {
+  return this.getFileIcon(fileType);
+}
+
+/**
+ * Get contact header for accordion
+ */
+getContactHeader(contactGroup: any): string {
+  return `${contactGroup.contact_name} - ${contactGroup.file_count} files`;
+}
+
+/**
+ * Get file types as array for statistics
+ */
+getFileTypesArray(): any[] {
+  if (!this.fileStats?.file_types) return [];
+
+  return Object.entries(this.fileStats.file_types).map(([name, count]) => ({
+    name,
+    count
+  }));
+}
+
+/**
+ * Reset file filters
+ */
+resetFileFilters(): void {
+  this.fileSearchText = '';
+  this.selectedFileType = null;
+  this.selectedDirection = null;
+  this.selectedContactFilter = null;
+  this.selectedFY = null;
+  this.filesPage = 1;
+  this.loadCustomerFiles();
+}
+
+/**
+ * Close files dialog
+ */
+closeFilesDialog(): void {
+  this.displayFilesDialog = false;
+  this.selectedCustomer = null;
+  this.customerFiles = [];
+  this.fileStats = null;
+  this.selectedFile = null;
+  this.totalFiles = 0;
+  this.filesPage = 1;
+  this.filesPageSize = 20;
+  this.resetFileFilters();
+}
+
+/**
+ * Get contact name by ID
+ */
+getContactName(contactId: number): string {
+  const contact = this.customerContacts.find(c => c.id === contactId);
+  return contact ? contact.name : 'Unknown';
+}
+
+/**
+ * Get contact phone by ID (formatted for path)
+ */
+getContactPhone(contactId: number): string {
+  const contact = this.customerContacts.find(c => c.id === contactId);
+  return contact ? contact.phone.replace(' ', '_') : '';
+}
+
+/**
+ * Get FY label by value
+ */
+getFYLabel(fyValue: string): string {
+  const fy = this.financialYears.find(f => f.value === fyValue);
+  return fy ? fy.label : fyValue;
+}
+
+/**
+ * Validate upload form before allowing file selection
+ */
+canUploadFile(): boolean {
+  return !!(this.uploadFY && this.uploadDate && this.uploadContactId);
+}
+
+/**
+ * Get upload path preview
+ */
+getUploadPathPreview(): string {
+  if (!this.selectedCustomer || !this.uploadContactId || !this.uploadFY) {
+    return '';
+  }
+  
+  const contactPhone = this.getContactPhone(this.uploadContactId);
+  return `.../internal/${contactPhone}/${this.uploadFY}/[filename]`;
 }
 }

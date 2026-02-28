@@ -5,7 +5,7 @@ import { IconFieldModule } from 'primeng/iconfield';
 import { InputIconModule } from 'primeng/inputicon';
 import { InputTextModule } from 'primeng/inputtext';
 import { MultiSelectModule } from 'primeng/multiselect';
-import { CommonModule } from '@angular/common';
+import { CommonModule, formatDate } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { Subject, takeUntil } from 'rxjs';
@@ -92,33 +92,87 @@ export class CrudSchedulesComponent implements OnInit, OnDestroy {
     private scheduleService: CampaignManagerService,
     private scheduleEventService: CUstomEventService
     ) { }
+  
   ngOnDestroy(): void {
-  this.destroy$.next();
-  this.destroy$.complete();
-
+    this.destroy$.next();
+    this.destroy$.complete();
   }
+  
   ngOnInit() {
+    this.profile = JSON.parse(localStorage.getItem('profile'));
+    if (!this.profile) {
+      this.router.navigate(['/apps/login']);
+      return;
+    }
+    else {
+      this.layoutService.state.staticMenuDesktopInactive = true;
+      this.loadSchedules();
+      this.scheduleEventService.event$.pipe(takeUntil(this.destroy$)).subscribe((msg) => {
+        this.loadSchedules();
+      });
+    }
+  }
 
-        this.profile = JSON.parse(localStorage.getItem('profile'));
-        if (!this.profile) {
-          this.router.navigate(['/apps/login']);
-          return;
-        }
-        else {
-          this.layoutService.state.staticMenuDesktopInactive = true;
-          this.loadSchedules();
-        this.scheduleEventService.event$.pipe(takeUntil(this.destroy$)).subscribe((msg) => {
-          this.loadSchedules();
-        });
-        }
- }
+  /**
+   * Parse datetime string to proper Date object
+   * Backend sends ISO 8601 strings with IST timezone (+05:30)
+   * Example: "2026-01-30T14:30:00+05:30"
+   */
+  private parseDateTime(dateValue: any): Date | null {
+    if (!dateValue) return null;
+    
+    // If it's already a Date object, return it
+    if (dateValue instanceof Date) {
+      return dateValue;
+    }
+    
+    // If it's a string (ISO 8601 format with timezone), parse it
+    if (typeof dateValue === 'string') {
+      // JavaScript Date constructor automatically handles ISO 8601 strings with timezone
+      // The timezone offset (+05:30) is respected during parsing
+      const date = new Date(dateValue);
+      
+      // Validate the date
+      if (isNaN(date.getTime())) {
+        console.warn('Invalid date string:', dateValue);
+        return null;
+      }
+      
+      return date;
+    }
+    
+    // If it's a timestamp (number)
+    if (typeof dateValue === 'number') {
+      return new Date(dateValue);
+    }
+    
+    console.warn('Unknown date format:', dateValue);
+    return null;
+  }
+
+  /**
+   * Format date in IST regardless of browser timezone
+   * This ensures consistent IST display across all users
+   */
+  formatDateIST(date: Date | null, format: string = 'medium'): string {
+    if (!date) return 'N/A';
+    
+    try {
+      // Force display in IST timezone (+0530)
+      return formatDate(date, format, 'en-IN', '+0530');
+    } catch (error) {
+      console.error('Error formatting date:', error);
+      return date.toString();
+    }
+  }
 
   loadSchedules() {
     this.loading = true;
     this.totalSchedulesCount = 0;
     this.scheduleService.list_campaign().pipe(takeUntil(this.destroy$)).subscribe(
       (data) => {
-        this.schedules = data        
+        this.schedules = data;
+        
         for (let schedule of this.schedules) {
           this.totalSchedulesCount++;
 
@@ -141,19 +195,24 @@ export class CrudSchedulesComponent implements OnInit, OnDestroy {
           if (!this.recipient_names.some(recipient_name => recipient_name.value == schedule.recipient_name)) {
             this.recipient_names.push({value : schedule.recipient_name});
           }
-          schedule.scheduled_time = new Date(<Date>schedule.scheduled_time);
-          schedule.created_at = new Date(<Date>schedule.created_at);
-      }
-      this.totalSchedules.emit(this.totalSchedulesCount);
-      this.loading = false;
-  
+          
+          // FIXED: Properly parse ISO 8601 datetime strings with IST timezone
+          // Backend sends: "2026-01-30T14:30:00+05:30"
+          // This will be correctly interpreted as IST time
+          schedule.scheduled_time = this.parseDateTime(schedule.scheduled_time);
+          schedule.created_at = this.parseDateTime(schedule.created_at);
+        }
+        
+        this.totalSchedules.emit(this.totalSchedulesCount);
+        this.loading = false;
       },
       (error) => {
-        console.error("Error in getting schedule ", error)
+        console.error("Error in getting schedule", error);
         this.loading = false;
       }
     );
   }
+  
   clear(table: Table) {
     table.clear();
   }
@@ -281,46 +340,43 @@ export class CrudSchedulesComponent implements OnInit, OnDestroy {
   saveSchedule() {
     this.submitted = true;
     this.dialogProgress = true;
-
   }
 
-  // Add this method to your CrudSchedulesComponent class
-
-getPlatformIcon(platformName: string): string {
-  const platform = platformName?.toLowerCase();
-  switch (platform) {
-    case 'whatsapp':
-      return 'pi-whatsapp';
-    case 'telegram':
-      return 'pi-telegram';
-    case 'messanger':
-      return 'pi-facebook';
-    case 'insta':
-      return 'pi-instagram';
-    default:
-      return 'pi-send';
+  getPlatformIcon(platformName: string): string {
+    const platform = platformName?.toLowerCase();
+    switch (platform) {
+      case 'whatsapp':
+        return 'pi-whatsapp';
+      case 'telegram':
+        return 'pi-telegram';
+      case 'messanger':
+        return 'pi-facebook';
+      case 'insta':
+        return 'pi-instagram';
+      default:
+        return 'pi-send';
+    }
   }
-}
 
-getFrequencySeverity(frequency: number): any {
-  switch (frequency) {
-    case 0: // Daily
-      return 'danger';
-    case 1: // Weekly
-      return 'success';
-    case 2: // Monthly
-      return 'info';
-    case 3: // Quarterly
-    case 4: // Half Yearly
-      return 'warn';
-    case 5: // Yearly
-      return null;
-    default:
-      return null;
+  getFrequencySeverity(frequency: number): any {
+    switch (frequency) {
+      case 0: // Daily
+        return 'danger';
+      case 1: // Weekly
+        return 'success';
+      case 2: // Monthly
+        return 'info';
+      case 3: // Quarterly
+      case 4: // Half Yearly
+        return 'warn';
+      case 5: // Yearly
+        return null;
+      default:
+        return null;
+    }
   }
-}
 
   deleteProduct(schedule) {
-
+    // Implementation if needed
   }
 }

@@ -20,7 +20,7 @@
           [options]="registeredUsers"
           optionLabel="details.email"
           optionValue="details.id"
-          placeholder="Select Employee (or leave blank for team view)"
+          placeholder="Select Employee"
           [filter]="true"
           [showClear]="true"
           appendTo="body"
@@ -92,9 +92,9 @@
           <i class="pi pi-clock"></i>
         </div>
         <div class="metric-content">
-          <div class="metric-value">{{ payrollSummary?.totalWorkHours || 0 }}h</div>
+          <div class="metric-value">{{ payrollSummary?.totalWorkHours | hoursToTime }}</div>
           <div class="metric-label">Total Work Hours</div>
-          <div class="metric-subtitle">Avg: {{ payrollSummary?.avgWorkHours || 0 }}h/day</div>
+          <div class="metric-subtitle">Avg: {{ payrollSummary?.avgWorkHours | hoursToTime }} / day</div>
         </div>
       </div>
 
@@ -116,7 +116,7 @@
           <i class="pi pi-chart-line"></i>
         </div>
         <div class="metric-content">
-          <div class="metric-value">{{ payrollSummary?.overtimeHours || 0 }}h</div>
+          <div class="metric-value">{{ payrollSummary?.overtimeHours | hoursToTime }}</div>
           <div class="metric-label">Overtime Hours</div>
           <div class="metric-subtitle">Beyond 9h/day standard</div>
         </div>

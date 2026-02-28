@@ -13,6 +13,8 @@ export const routes: Routes = [
   { path: '', loadComponent: () => import('./features/home/home.component').then(m => m.HomeComponent) },
   { path: 'subscribe', loadComponent: () => import('./auth/subscription/subscription.component').then(m => m.SubscriptionAndPaymentComponent) },
   { path: 'unauthorized', loadComponent: () => import('./auth/pages/unautorized/pages.component').then(m => m.ErrorPagesComponent) },
+  { path: 'privacy-policy', loadComponent: () => import('./auth/pages/privacy-policy/privacypolicy.component').then(m => m.PrivacyPolicyComponment) },
+  { path: 'service-terms', loadComponent: () => import('./auth/pages/service-terms-policy/serviceterms.component').then(m => m.ServiceTermsComponment) },
   // Protected routes (WITH authGuard)
   { 
     path: 'apps', 
@@ -48,6 +50,7 @@ export const routes: Routes = [
       { path: 'compose', loadComponent: () => import('./features/schedule/compose-message/compose-message.component').then(m => m.ComposeMessageComponent), canActivate: [authGuard] },
       { path: 'schedules', loadComponent: () => import('./features/schedule/crud-schedules/crud-schedules.component').then(m => m.CrudSchedulesComponent), canActivate: [authGuard] },
       { path: 'history', loadComponent: () => import('./features/schedule/message-history/message-history.component').then(m => m.MessageHistoryComponent), canActivate: [authGuard] },
+      //{ path: 'template-manager',  loadComponent: () => import('./features/campaign/template-manager/template-manager.component').then(m => m.TemplateManagerComponent), canActivate: [authGuard] },
 
       /** Conversation */
       { path: 'chat',  loadComponent: () => import('./features/chat/chat-window/chat-window.component').then(m => m.ChatWindowComponent), canActivate: [authGuard] },

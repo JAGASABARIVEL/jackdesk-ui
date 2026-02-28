@@ -1,3 +1,8 @@
+// ============================================================================
+// WEB details page TS
+// ============================================================================
+
+
 import { CommonModule } from '@angular/common';
 import { 
   AfterViewInit, 
@@ -730,10 +735,18 @@ private convertTableToFormattedText(table: HTMLTableElement): string {
 
   // Show zombie warning banner in template
   getZombieWarningMessage(): string | null {
-    if (this.conversationStatus.isZombie) {
-      return 'This conversation requires re-engagement. Please send a template message to continue.';
+    let warningMessage = "Unknown platform. Please engage engineering";
+    switch(this.selectedConversation.contact.platform_name) {
+      case 'whatsapp':
+        warningMessage = "This conversation requires re-engagement. Please send a template message to continue.";
+        break;
+      case 'gmail':
+        warningMessage = "This conversation needs gmail account to be active. Please ask admin to activate it.";
+        break;
+      default:
+        break;
     }
-    return null;
+    return warningMessage;
   }
 
   isMessageInputDisabled() {
@@ -770,7 +783,7 @@ getConversationStatusBadge(): {
     },
     'zombie': {
       severity: 'warn' as const,
-      label: 'Re-engagement Required',
+      label: this.selectedConversation.contact.platform_name === 'whatsapp'? 'Re-engagement Required':'Channel needs activation',
       icon: 'pi pi-exclamation-triangle',
       tooltip: 'This conversation requires a template message to continue'
     },
@@ -876,7 +889,7 @@ getConversationStatusBadge(): {
       this.messageService.add({
         severity: 'error',
         summary: 'Cannot Send',
-        detail: 'This conversation requires re-engagement. Please send a template message first.',
+        detail: this.selectedConversation.contact.platform_name === 'whatsapp'? 'This conversation requires re-engagement. Please send a template message first.' : 'This conversation needs gmail account to be active. Please ask admin to activate it.',
         life: 5000
       });
     }
@@ -1397,6 +1410,8 @@ getConversationStatusBadge(): {
           this._selectedConversation.id = data.data[0]?.id;
           this._selectedConversation.messages = data.data[0]?.messages;
           this._selectedConversation.contact = data.data[0]?.contact;
+
+          //this.removeTemplateFile();
           
           this.conversationStatus = this.computeConversationStatus(this._selectedConversation);
           this.buildMenuItems();
@@ -2513,13 +2528,16 @@ onInputBlur(): void {
  */
 canSendCurrentMessage(): boolean {
   // Has content (text or file)
-  const hasContent = (this.messageText && this.messageText.trim().length > 0) || this.attachedFile;
+  const hasText = !!this.messageText?.trim();
+  const hasFile = !!this.attachedFile;
+  const attachmentValid = hasFile ? hasText : true;
+  //const hasContent = (this.messageText && this.messageText.trim().length > 0);
   
   // Can send in current conversation state
   const canSend = !this.conversationStatus.isZombie && 
                   this.conversationStatus.canSendMessage;
   
-  return hasContent && canSend;
+  return attachmentValid && hasText && canSend;
 }
 
 /**
@@ -2542,7 +2560,7 @@ getMessageInputPlaceholder(): string {
     return 'Select a conversation';
   }
   
-  if (this._selectedConversation.status === 'zombie') {
+  if (this._selectedConversation.status === 'zombie' && this._selectedConversation.contact.platform_name === 'whatsapp') {
     return 'Re-engagement required - use template button';
   }
   

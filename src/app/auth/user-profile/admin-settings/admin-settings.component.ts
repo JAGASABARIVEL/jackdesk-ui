@@ -29,6 +29,7 @@ import { TabPanel } from 'primeng/tabs';
 import { TabViewModule } from 'primeng/tabview';
 import { AvatarModule } from 'primeng/avatar';
 import { TextareaModule } from 'primeng/textarea';
+import { TemplateManagerComponent } from '../../../features/campaign/template-manager/template-manager.component';
 
 @Component({
   selector: 'app-admin-settings',
@@ -52,7 +53,9 @@ import { TextareaModule } from 'primeng/textarea';
     DialogModule,
     TabViewModule,
     AvatarModule,
-    TextareaModule
+    TextareaModule,
+
+    TemplateManagerComponent
   ],
   providers: [MessageService, ConfirmationService],
   templateUrl: './admin-settings.component.html',
@@ -507,7 +510,8 @@ deleteField(field: any) {
   const messageListener = (event: MessageEvent) => {
     if (event.data?.type === 'gmail-auth-success') {
       window.removeEventListener('message', messageListener);
-      this.layoutService.clearNotification('Platform'); // or any other post-auth logic
+      //this.layoutService.clearNotification('Platform'); // or any other post-auth logic
+      this.layoutService.clearPlatformNotification(platformId);
     }
   };
   window.addEventListener('message', messageListener);

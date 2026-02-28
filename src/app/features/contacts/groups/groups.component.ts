@@ -464,7 +464,7 @@ export class GroupsComponent implements OnInit, OnDestroy {
 
   private loadAllContacts() {
     // Load all contacts by fetching page by page
-    const pageSize = 2;
+    const pageSize = 250;
     let allContacts: any[] = [];
     
     const loadPage = (page: number) => {

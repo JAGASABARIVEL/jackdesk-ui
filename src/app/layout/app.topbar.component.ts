@@ -21,6 +21,7 @@ import { CUstomEventService } from '../shared/services/Events/custom-events.serv
 import { PlatformManagerService } from '../shared/services/platform-manager.service';
 import { UserProfileComponent } from '../auth/user-profile/user-profile.component';
 import { ChatManagerService } from '../shared/services/chat-manager.service';
+import { HoursToTimePipe } from '../shared/pipes/hourstotime.pipe';
 
 
 declare const google: any;
@@ -40,6 +41,7 @@ declare const google: any;
         MeterGroup,
         CardModule,
         UserProfileComponent,
+        HoursToTimePipe
     ]
 })
 export class AppTopBarComponent implements OnInit, OnDestroy, AfterViewInit {
@@ -106,7 +108,7 @@ export class AppTopBarComponent implements OnInit, OnDestroy, AfterViewInit {
         // Initialize socket and background tasks AFTER view is ready
         if (!this.socketService.isSocketConnected) {
             this.layoutService.addNotification(
-                { 'severity': 'error', 'app': 'Socket', 'text': 'Socket connection not available for new notification. Please contact Engineering' }
+                { 'id': -1, 'severity': 'error', 'app': 'Socket', 'text': 'Socket connection not available for new notification. Please contact Engineering' }
             );
         } else {
             this.initDate();
@@ -219,25 +221,28 @@ export class AppTopBarComponent implements OnInit, OnDestroy, AfterViewInit {
                 next: (data: any[]) => {
                     data.forEach((item) => {
                         const platformLabel = item.platform_name || 'Gmail Platform';
-
-                        if (item.active === false) {
+                        if (item.watch_expiry_warning) {
                             this.layoutService.addNotification({
-                                severity: 'error',
+                                id: item.platform_id,
+                                severity: 'warn',
                                 app: 'Platform',
-                                text: `${platformLabel} (${item.email}): Account access has been revoked. Please provide access to sync the Gmail INBOX.`
+                                text: `${platformLabel} (${item.email}): Watcher subscription is about to expire in a day. Please refresh.`
                             });
                         }
                         if (item.watch_expired) {
                             this.layoutService.addNotification({
+                                id: item.platform_id,
                                 severity: 'error',
                                 app: 'Platform',
-                                text: `${platformLabel} (${item.email}): Watcher subscription has expired. Please refresh to sync the Gmail INBOX.`
+                                text: `${platformLabel} (${item.email}): Watcher subscription has expired. Please re-authorize to sync INBOX and send the gmail.`
                             });
-                        } else if (item.watch_expiry_warning) {
+                        }
+                        if (item.active === false) {
                             this.layoutService.addNotification({
-                                severity: 'warn',
+                                id: item.platform_id,
+                                severity: 'error',
                                 app: 'Platform',
-                                text: `${platformLabel} (${item.email}): Watcher subscription is about to expire in a day. Please refresh.`
+                                text: `${platformLabel} (${item.email}): Account access has been revoked. Last message received was failed to sync. Please re-authorize to sync INBOX and send the gmail.`
                             });
                         }
                     });

@@ -5,6 +5,7 @@ import { TableModule } from 'primeng/table';
 import { TagModule } from 'primeng/tag';
 import { CardModule } from 'primeng/card';
 import { TimelineModule } from 'primeng/timeline';
+import { HoursToTimePipe } from '../../../../shared/pipes/hourstotime.pipe';
 
 interface IdlePattern {
   label: string;
@@ -16,7 +17,7 @@ interface IdlePattern {
 @Component({
   selector: 'app-idle-time-analysis',
   standalone: true,
-  imports: [CommonModule, ChartModule, TableModule, TagModule, CardModule, TimelineModule],
+  imports: [CommonModule, ChartModule, TableModule, TagModule, CardModule, TimelineModule, HoursToTimePipe],
   template: `
     <div class="idle-analysis">
       
@@ -27,7 +28,7 @@ interface IdlePattern {
             <i class="pi pi-pause-circle"></i>
             <div class="stat-content">
               <div class="stat-label">Total Idle Time</div>
-              <div class="stat-value">{{ statistics?.total_idle_hours || 0 }} h</div>
+              <div class="stat-value">{{ statistics?.total_idle_hours | hoursToTime }}</div>
               <div class="stat-subtitle">{{ statistics?.idle_percentage || 0 }}% of total time</div>
             </div>
           </div>
@@ -60,7 +61,7 @@ interface IdlePattern {
             <i class="pi pi-bolt"></i>
             <div class="stat-content">
               <div class="stat-label">Active Time</div>
-              <div class="stat-value">{{ statistics?.total_work_hours || 0 }} h</div>
+              <div class="stat-value">{{ statistics?.total_work_hours | hoursToTime }}</div>
               <div class="stat-subtitle">{{ 100 - (statistics?.idle_percentage || 0) }}% productive</div>
             </div>
           </div>
@@ -141,18 +142,16 @@ interface IdlePattern {
         <p-table [value]="longIdlePeriods" [paginator]="true" [rows]="10" styleClass="p-datatable-sm">
           <ng-template pTemplate="header">
             <tr>
-              <th>Date</th>
-              <th>Start Time</th>
-              <th>End Time</th>
+              <th>Start</th>
+              <th>End</th>
               <th>Duration</th>
               <th>Time of Day</th>
             </tr>
           </ng-template>
           <ng-template pTemplate="body" let-period>
             <tr>
-              <td>{{ formatDate(period.start_time) }}</td>
-              <td>{{ formatTime(period.start_time) }}</td>
-              <td>{{ formatTime(period.end_time) }}</td>
+              <td>{{ formatDate(period.start_time) }} - {{ formatTime(period.start_time) }}</td>
+              <td>{{formatDate(period.end_time)}} - {{ formatTime(period.end_time) }}</td>
               <td>
                 <span class="duration-badge" 
                       [class.warning]="period.duration_minutes > 60"

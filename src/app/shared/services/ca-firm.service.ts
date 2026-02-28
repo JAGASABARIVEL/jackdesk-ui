@@ -372,4 +372,105 @@ createCustomerWithContacts(payload: any): Observable<any> {
   getCustomerStatistics(): Observable<any> {
     return this.http.get(`${this.baseUrl}/contacts/customers/statistics/`);
   }
+
+  // Add these methods to ca-firm.service.ts
+
+// ==================== CUSTOMER FILES ====================
+
+/**
+ * List files for a customer with pagination and filtering
+ */
+listCustomerFiles(customerId: number, params?: any): Observable<any> {
+  let httpParams = new HttpParams();
+  
+  if (params) {
+    Object.keys(params).forEach(key => {
+      if (params[key] !== null && params[key] !== undefined) {
+        httpParams = httpParams.set(key, params[key].toString());
+      }
+    });
+  }
+  
+  return this.http.get(`${this.baseUrl}/contacts/customers/${customerId}/files/`, { params: httpParams });
+}
+
+/**
+ * Get file statistics for a customer
+ */
+getCustomerFileStats(customerId: number): Observable<any> {
+  return this.http.get(`${this.baseUrl}/contacts/customers/${customerId}/files/stats/`);
+}
+
+/**
+ * Get a specific file details
+ */
+getCustomerFile(customerId: number, fileId: number): Observable<any> {
+  return this.http.get(`${this.baseUrl}/contacts/customers/${customerId}/files/${fileId}/`);
+}
+
+/**
+ * Upload a file for a customer
+ */
+uploadCustomerFile(customerId: number, formData: FormData): Observable<any> {
+  return this.http.post(`${this.baseUrl}/contacts/customers/${customerId}/files/upload/`, formData);
+}
+
+/**
+ * Delete a customer file
+ */
+deleteCustomerFile(customerId: number, fileId: number): Observable<any> {
+  return this.http.delete(`${this.baseUrl}/contacts/customers/${customerId}/files/${fileId}/`);
+}
+
+/**
+ * Share files with team members
+ */
+shareCustomerFiles(customerId: number, payload: any): Observable<any> {
+  /**
+   * payload: {
+   *   file_ids: [1, 2, 3],
+   *   user_ids: [10, 11],
+   *   can_write: false
+   * }
+   */
+  return this.http.post(`${this.baseUrl}/contacts/customers/${customerId}/files/share/`, payload);
+}
+
+/**
+ * Search files across customer
+ */
+searchCustomerFiles(customerId: number, query: string, params?: any): Observable<any> {
+  let httpParams = new HttpParams().set('q', query);
+  
+  if (params) {
+    Object.keys(params).forEach(key => {
+      if (params[key]) {
+        httpParams = httpParams.set(key, params[key]);
+      }
+    });
+  }
+  
+  return this.http.get(`${this.baseUrl}/contacts/customers/${customerId}/files/search/`, { params: httpParams });
+}
+
+/**
+ * Get all customers files overview
+ */
+getAllCustomersFilesOverview(): Observable<any> {
+  return this.http.get(`${this.baseUrl}/contacts/customers/files/overview/`);
+}
+
+/**
+ * Prepare files for sending to customer
+ * (Actual sending happens through conversation system)
+ */
+prepareFilesForSending(customerId: number, payload: any): Observable<any> {
+  /**
+   * payload: {
+   *   file_ids: [1, 2],
+   *   conversation_id: 456
+   * }
+   */
+  return this.http.post(`${this.baseUrl}/contacts/customers/${customerId}/files/send_to_customer/`, payload);
+}
 }
