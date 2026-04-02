@@ -90,7 +90,7 @@
                           class="action-btn action-btn-edit"
                           [rounded]="true" (click)="editProduct(product)" pTooltip="Edit" tooltipPosition="top">
                       </button>
-                      <button 
+                      <button *ngIf="profile?.user.role === 'owner'" 
                           pButton 
                           icon="pi pi-trash" 
                           class="action-btn close-btn"

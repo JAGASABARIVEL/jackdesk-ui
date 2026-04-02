@@ -269,7 +269,8 @@ export const supported_platforms = [
     {"name": "messenger"},
     {"name": "webchat"},
     {"name": "gmail"},
-    {"name": "gmessages"}
+    {"name": "gmessages"},
+    {"name": "smsrelay"}
 ]
 
 export const supported_contact_types = [

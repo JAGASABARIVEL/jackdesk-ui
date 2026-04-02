@@ -280,3 +280,170 @@
     height: 200px;
   }
 }
+
+/* ── Media Placeholders ─────────────────────────────────────── */
+.media-placeholder {
+  width: 100%;
+  height: 220px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  border-radius: 0;
+
+  &.doc-placeholder {
+    background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+  }
+
+  &.img-placeholder {
+    background: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%);
+  }
+
+  &.vid-placeholder {
+    background: linear-gradient(135deg, #a1c4fd 0%, #c2e9fb 100%);
+  }
+}
+
+.placeholder-icon {
+  font-size: 48px;
+  line-height: 1;
+  filter: drop-shadow(0 2px 6px rgba(0,0,0,0.12));
+}
+
+.placeholder-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #718096;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+
+/* ── Media Previews ─────────────────────────────────────────── */
+.media-preview {
+  width: 100%;
+  display: block;
+  border: none;
+
+  &.img-preview {
+    height: 220px;
+    object-fit: cover;
+  }
+
+  &.vid-preview {
+    height: 220px;
+    background: #000;
+    object-fit: contain;
+  }
+
+  &.iframe-preview {
+    height: 280px;
+  }
+}
+
+/* ── Location Header ────────────────────────────────────────── */
+.location-container {
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.location-map-mock {
+  width: 100%;
+  height: 180px;
+  background:
+    linear-gradient(rgba(102,126,234,0.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(102,126,234,0.06) 1px, transparent 1px),
+    linear-gradient(135deg, #e8ecf8 0%, #dde4f5 100%);
+  background-size: 24px 24px, 24px 24px, 100% 100%;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  /* Faint roads */
+  &::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background:
+      linear-gradient(rgba(255,255,255,0.6) 0px, transparent 0px),
+      linear-gradient(90deg, rgba(255,255,255,0.6) 0px, transparent 0px);
+    background-size: 72px 72px;
+  }
+}
+
+.map-pin-wrapper {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  z-index: 2;
+}
+
+.map-pin {
+  width: 48px;
+  height: 48px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 50% 50% 50% 0;
+  transform: rotate(-45deg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 16px rgba(102,126,234,0.45);
+
+  .pin-icon {
+    transform: rotate(45deg);
+    font-size: 20px;
+    line-height: 1;
+  }
+}
+
+.pin-pulse {
+  width: 48px;
+  height: 16px;
+  background: radial-gradient(ellipse, rgba(102,126,234,0.25) 0%, transparent 70%);
+  margin-top: 4px;
+  border-radius: 50%;
+  animation: pulseShadow 2s ease-in-out infinite;
+}
+
+@keyframes pulseShadow {
+  0%, 100% { transform: scaleX(1); opacity: 0.6; }
+  50%       { transform: scaleX(1.3); opacity: 0.3; }
+}
+
+.location-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 12px 20px 14px;
+  background: white;
+  border-top: 1px solid rgba(102,126,234,0.1);
+}
+
+.location-name {
+  font-size: 14px;
+  font-weight: 700;
+  color: #2d3748;
+}
+
+.location-address {
+  font-size: 12px;
+  color: #718096;
+}
+
+/* ── Button variants ────────────────────────────────────────── */
+.message-button {
+  &.phone-button {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  }
+
+  &.quick-reply-button {
+    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+    box-shadow: 0 4px 12px rgba(245, 87, 108, 0.25);
+
+    &:hover {
+      box-shadow: 0 6px 20px rgba(245, 87, 108, 0.35);
+    }
+  }
+}

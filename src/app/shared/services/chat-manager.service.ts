@@ -28,7 +28,7 @@ export class ChatManagerService {
 
   assign_conversation_uri = "/assign_conversation/"
   close_conversation_uri = "/close_conversation/"
-  respond_to_message_uri = "/respond_to_message/"
+  respond_to_message_uri = "/respond_to_message_v2/"
   start_new_conversation_uri = "new_conversation/"
   notification_uri = "notification"
 
@@ -45,10 +45,15 @@ export class ChatManagerService {
     }
   }
 
-  list_notification(base_url_type='chat') {
+  //list_notification(base_url_type='chat') {
+  //  const headers = new HttpHeaders().set('Authorization', `Bearer ${this.auth_token}`);
+  //  return this.http.get(`${this.conversations_url}${this.notification_uri}`, { headers });
+  //}
+  list_notification(base_url_type = 'chat', page: number = 1, pageSize: number = 20): Observable<any> {
     const headers = new HttpHeaders().set('Authorization', `Bearer ${this.auth_token}`);
-    return this.http.get(`${this.conversations_url}${this.notification_uri}`, { headers });
-  }
+    const params = { page: page.toString(), page_size: pageSize.toString() };
+    return this.http.get(`${this.conversations_url}${this.notification_uri}`, { headers, params });
+}
 
   // ✅ NEW: Update agent's CC recipients for a conversation
     updateConversationCC(payload: UpdateConversationCCPayload): Observable<any> {
@@ -208,24 +213,48 @@ export class ChatManagerService {
     return this.http.post(`${this.conversations_url}${this.chat_uri}${conversationId}${this.close_conversation_uri}`, payload=payload, { headers });
   }
 
+  //respond_to_message(base_url_type="chat", conversationId: number, payload: any): Observable<any> {
+  //  const url = `${this.conversations_url}${this.chat_uri}${conversationId}${this.respond_to_message_uri}`;
+  //  const headers = new HttpHeaders().set('Authorization', `Bearer ${this.auth_token}`);
+  //
+  //  if (payload.message_type === 'media') {
+  //    const formData = new FormData();
+  //    formData.append('message_body', payload.message_body);
+  //    formData.append('message_type', payload.message_type);
+  //    formData.append('file', payload.file);
+  //
+  //    // Don't manually set Content-Type for FormData; let the browser handle it
+  //    return this.http.post(url, formData, { headers });
+  //  } else {
+  //    // For JSON requests, add appropriate content type
+  //    const jsonHeaders = headers.set('Content-Type', 'application/json');
+  //    return this.http.post(url, payload=payload, { headers: jsonHeaders });
+  //  }
+  //}
+
   respond_to_message(base_url_type="chat", conversationId: number, payload: any): Observable<any> {
-    const url = `${this.conversations_url}${this.chat_uri}${conversationId}${this.respond_to_message_uri}`;
-    const headers = new HttpHeaders().set('Authorization', `Bearer ${this.auth_token}`);
-  
-    if (payload.message_type === 'media') {
-      const formData = new FormData();
-      formData.append('message_body', payload.message_body);
-      formData.append('message_type', payload.message_type);
-      formData.append('file', payload.file);
-  
-      // Don't manually set Content-Type for FormData; let the browser handle it
-      return this.http.post(url, formData, { headers });
-    } else {
-      // For JSON requests, add appropriate content type
-      const jsonHeaders = headers.set('Content-Type', 'application/json');
-      return this.http.post(url, payload=payload, { headers: jsonHeaders });
-    }
+  const url = `${this.conversations_url}${this.chat_uri}${conversationId}${this.respond_to_message_uri}`;
+  const headers = new HttpHeaders().set('Authorization', `Bearer ${this.auth_token}`);
+
+  if (payload.message_type === 'media') {
+    const formData = new FormData();
+    formData.append('message_body', payload.message_body);
+    formData.append('message_type', payload.message_type);
+    formData.append('file', payload.file);
+    return this.http.post(url, formData, { headers });
   }
+
+  // ✅ Detect FormData properly
+  else if (payload.message_type !== 'media' && payload instanceof FormData) {
+    return this.http.post(url, payload, { headers });
+  }
+
+  else {
+    // JSON fallback
+    const jsonHeaders = headers.set('Content-Type', 'application/json');
+    return this.http.post(url, payload, { headers: jsonHeaders });
+  }
+}
 
   start_new_conversation(base_url_type="chat", payload): Observable<any> {
     const headers = new HttpHeaders().set('Authorization', `Bearer ${this.auth_token}`);

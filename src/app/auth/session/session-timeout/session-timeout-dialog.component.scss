@@ -1,0 +1,175 @@
+// Matches your app's gradient theme: linear-gradient(135deg, #667eea 0%, #764ba2 100%)
+
+:host ::ng-deep {
+  .session-timeout-dialog {
+    .p-dialog {
+      border-radius: 16px;
+      overflow: hidden;
+      border: none;
+      box-shadow: 0 24px 64px rgba(102, 126, 234, 0.3);
+    }
+
+    .p-dialog-header {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      padding: 1.25rem 1.5rem;
+      border-bottom: none;
+
+      .p-dialog-title { display: none; } // we use custom header
+    }
+
+    .p-dialog-content {
+      padding: 1.75rem 2rem 1rem;
+      background: #ffffff;
+    }
+
+    .p-dialog-footer {
+      background: #ffffff;
+      padding: 1rem 2rem 1.5rem;
+      border-top: none;
+    }
+  }
+
+  .session-progress {
+    .p-progressbar {
+      height: 6px;
+      border-radius: 4px;
+      background: #e9ecef;
+    }
+    .p-progressbar-value {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      border-radius: 4px;
+      transition: width 1s linear, background 0.5s ease;
+    }
+
+    &.urgent .p-progressbar-value {
+      background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+    }
+  }
+}
+
+.dialog-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  color: #ffffff;
+  font-size: 1.1rem;
+  font-weight: 600;
+
+  .header-icon {
+    font-size: 1.4rem;
+    animation: pulse 2s infinite;
+
+    &.urgent {
+      animation: pulse-fast 0.6s infinite;
+    }
+  }
+}
+
+.dialog-body {
+  text-align: center;
+
+  .message {
+    color: #6c757d;
+    font-size: 0.95rem;
+    margin-bottom: 0.5rem;
+  }
+
+  .countdown {
+    font-size: 3.5rem;
+    font-weight: 700;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    line-height: 1;
+    margin-bottom: 0.25rem;
+    transition: color 0.3s;
+
+    &.urgent {
+      background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+      -webkit-background-clip: text;
+      background-clip: text;
+      animation: shake 0.4s infinite;
+    }
+
+    .unit {
+      font-size: 1rem;
+      font-weight: 400;
+      display: block;
+      margin-top: 0.1rem;
+      -webkit-text-fill-color: #adb5bd;
+    }
+  }
+
+  .session-progress {
+    margin: 1rem 0;
+  }
+
+  .sub-message {
+    color: #6c757d;
+    font-size: 0.85rem;
+    margin-top: 1rem;
+  }
+}
+
+.dialog-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+
+  .logout-btn {
+    border-color: #dee2e6;
+    color: #6c757d;
+
+    &:hover {
+      border-color: #764ba2;
+      color: #764ba2;
+      background: transparent;
+    }
+  }
+
+  .extend-btn {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border: none;
+    padding: 0.6rem 1.5rem;
+    font-weight: 600;
+
+    &:hover {
+      background: linear-gradient(135deg, #5a6fd6 0%, #6a4190 100%);
+      transform: translateY(-1px);
+      box-shadow: 0 4px 16px rgba(102, 126, 234, 0.4);
+    }
+
+    &:active { transform: translateY(0); }
+  }
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
+}
+
+@keyframes pulse-fast {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.7; transform: scale(1.15); }
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-2px); }
+  75% { transform: translateX(2px); }
+}
+
+.expired-icon {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 1rem;
+
+  .pi-lock {
+    font-size: 3rem;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+}

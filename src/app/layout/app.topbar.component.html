@@ -106,7 +106,7 @@
                     <i class="pi pi-comment text-2xl"></i>
                     <span class="notification-badge" 
                         *ngIf="layoutService.unrespondedConversationNotification().conversation_count > 0">
-                        {{ layoutService.unrespondedConversationNotification().conversation_count > 99 ? '99+' : layoutService.unrespondedConversationNotification().conversation_count }}
+                        {{ layoutService.unrespondedConversationNotification().conversation_count > 10 ? '10+' : layoutService.unrespondedConversationNotification().conversation_count }}
                     </span>
                 </button>
 

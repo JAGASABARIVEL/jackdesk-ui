@@ -7,6 +7,7 @@ import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { ProgressBarModule } from 'primeng/progressbar';
 import { Subject, takeUntil } from 'rxjs';
+import { SessionTimeoutService } from '../../shared/services/session-timeout.service';
 
 @Component({
   selector: 'app-subscription-payment',
@@ -32,7 +33,8 @@ export class SubscriptionAndPaymentComponent implements OnInit, OnDestroy {
     constructor(
         private router: Router,
         private messageService: MessageService,
-        private appSubscriptionService: SubscriptionPaymentManagerService
+        private appSubscriptionService: SubscriptionPaymentManagerService,
+        private sessionService: SessionTimeoutService,
     ) { }
     
     ngOnDestroy(): void {
@@ -60,6 +62,7 @@ export class SubscriptionAndPaymentComponent implements OnInit, OnDestroy {
                             next: () => {
                                 this.logoutProgress = true;
                                 setTimeout(() => {
+                                    this.sessionService.stopWatching()
                                     localStorage.clear();
                                     this.logoutProgress = false;
                                     this.router.navigate([""]);

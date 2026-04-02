@@ -141,7 +141,7 @@ export class ContactComponent implements OnInit, OnDestroy {
           // Add image type like in your existing code
           if (platform.platform_name === 'whatsapp') {
             platform.image_type = 'svg';
-          } else if (['webchat', 'messenger', 'gmail', 'gmessages'].includes(platform.platform_name)) {
+          } else if (['webchat', 'messenger', 'gmail', 'gmessages', 'smsrelay'].includes(platform.platform_name)) {
             platform.image_type = 'png';
           }
           return platform;
@@ -627,7 +627,7 @@ isFormValid(): boolean {
   }
 
   loadAllPlatformsForImport() {
-    const platformTypes = ['whatsapp', 'messenger', 'telegram', 'gmail', 'webchat', 'gmessages'];
+    const platformTypes = ['whatsapp', 'messenger', 'telegram', 'gmail', 'webchat', 'gmessages', 'smsrelay'];
     const requests = platformTypes.map(type => 
       this.platformService.list_platforms_by_type(type).pipe(
         catchError(() => of([]))
@@ -639,7 +639,7 @@ isFormValid(): boolean {
         this.platforms = results.flat().map(platform => {
           if (platform.platform_name === 'whatsapp') {
             platform.image_type = 'svg';
-          } else if (['webchat', 'messenger', 'gmail', 'gmessages'].includes(platform.platform_name)) {
+          } else if (['webchat', 'messenger', 'gmail', 'gmessages', 'smsrelay'].includes(platform.platform_name)) {
             platform.image_type = 'png';
           }
           return platform;

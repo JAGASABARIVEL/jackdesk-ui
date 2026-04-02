@@ -1,0 +1,77 @@
+<p-dialog
+  [(visible)]="visible"
+  [modal]="true"
+  [closable]="false"
+  [draggable]="false"
+  [resizable]="false"
+  styleClass="session-timeout-dialog"
+  [style]="{ width: '420px' }"
+>
+  <ng-template pTemplate="header">
+    <div class="dialog-header">
+      <i class="pi pi-clock header-icon" [class.urgent]="isUrgent || isExpired"></i>
+      <span>{{ isExpired ? 'Session Expired' : 'Session Expiring Soon' }}</span>
+    </div>
+  </ng-template>
+
+  <div class="dialog-body">
+    <!-- Warning mode -->
+    <ng-container *ngIf="!isExpired">
+      <p class="message">Your session has been idle and will expire in</p>
+      <div class="countdown" [class.urgent]="isUrgent">
+        {{ remainingSeconds }}
+        <span class="unit">seconds</span>
+      </div>
+      <p-progressBar
+        [value]="progressValue"
+        [showValue]="false"
+        styleClass="session-progress"
+        [class.urgent]="isUrgent"
+      ></p-progressBar>
+      <p class="sub-message">
+        Click <strong>Extend Session</strong> to stay logged in, or
+        <strong>Logout</strong> to end your session now.
+      </p>
+    </ng-container>
+
+    <!-- Expired mode -->
+    <ng-container *ngIf="isExpired">
+      <div class="expired-icon">
+        <i class="pi pi-lock"></i>
+      </div>
+      <p class="message">Your session has expired due to being inactive for last 15 mins.</p>
+      <p class="sub-message">Please log in again to continue.</p>
+    </ng-container>
+  </div>
+
+  <ng-template pTemplate="footer">
+    <!-- Warning footer -->
+    <div class="dialog-footer" *ngIf="!isExpired">
+      <button
+        pButton
+        label="Logout"
+        icon="pi pi-sign-out"
+        class="p-button-outlined p-button-secondary logout-btn"
+        (click)="logout()"
+      ></button>
+      <button
+        pButton
+        label="Extend Session"
+        icon="pi pi-refresh"
+        class="p-button extend-btn"
+        (click)="extend()"
+      ></button>
+    </div>
+
+    <!-- Expired footer -->
+    <div class="dialog-footer" *ngIf="isExpired">
+      <button
+        pButton
+        label="OK"
+        icon="pi pi-check"
+        class="p-button extend-btn"
+        (click)="acknowledgeExpiry()"
+      ></button>
+    </div>
+  </ng-template>
+</p-dialog>

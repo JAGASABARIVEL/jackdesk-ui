@@ -459,6 +459,7 @@ export class ChatWindowComponent implements OnInit, OnDestroy {
   }
 
   private handleWebSocketMessage(message: any): void {
+    //console.log("message ", message);
     const convId = message.conversation_id;
     
     // Check if conversation is in current list
@@ -479,7 +480,7 @@ export class ChatWindowComponent implements OnInit, OnDestroy {
       }
     }
 
-    this.invalidateCacheAndRefreshNotifications();
+    //this.invalidateCacheAndRefreshNotifications();
   }
 
   private updateConversationWithMessage(index: number, message: any): void {
@@ -645,7 +646,7 @@ export class ChatWindowComponent implements OnInit, OnDestroy {
     this.conversations.update(convs => [conversation, ...convs]);
     this.selectedConversation.set(conversation);
     this.cachedDataService.invalidateConversations(this.PLATFORM, 'ownership_changed');
-    this.invalidateCacheAndRefreshNotifications();
+    //this.invalidateCacheAndRefreshNotifications();
   }
 
   onReassignThisConversation(): void {
@@ -711,17 +712,67 @@ export class ChatWindowComponent implements OnInit, OnDestroy {
     return conversation.id;
   }
 
-  private invalidateCacheAndRefreshNotifications(): void {
-    // Refresh notification counts
-    this.conversationService.list_notification(this.PLATFORM)
-      .pipe(takeUntil(this.destroy$))
-      .subscribe({
-        next: (data: any) => {
-          this.layoutService.unrespondedConversationNotification.update(() => data);
-        },
-        error: (err) => console.error('Failed to refresh notifications:', err)
-      });
-  }
+  //private invalidateCacheAndRefreshNotifications(): void {
+  //  // Refresh notification counts
+  //  this.conversationService.list_notification(this.PLATFORM)
+  //    .pipe(takeUntil(this.destroy$))
+  //    .subscribe({
+  //      next: (data: any) => {
+  //        this.layoutService.unrespondedConversationNotification.update(() => data);
+  //      },
+  //      error: (err) => console.error('Failed to refresh notifications:', err)
+  //    });
+  //}
+  // Notification pagination state
+notificationPage = signal<number>(1);
+notificationHasMore = signal<boolean>(true);
+notificationLoading = signal<boolean>(false);
+
+private invalidateCacheAndRefreshNotifications(reset = true): void {
+    if (reset) {
+        this.notificationPage.set(1);
+    }
+
+    this.conversationService
+        .list_notification(this.PLATFORM, this.notificationPage(), 20)
+        .pipe(takeUntil(this.destroy$))
+        .subscribe({
+            next: (response: any) => {
+                const data = response.results ?? response;
+                const notifications = data.notifications ?? data;
+                const totalCount = response.count ?? notifications.length;
+
+                if (reset) {
+                    // Replace on first load / refresh
+                    this.layoutService.unrespondedConversationNotification.set({
+                        conversation_count: totalCount,
+                        notifications: notifications
+                    });
+                } else {
+                    // Append on load more
+                    this.layoutService.unrespondedConversationNotification.update(existing => ({
+                        ...existing,
+                        notifications: [...existing.notifications, ...notifications]
+                    }));
+                }
+
+                this.notificationHasMore.set(
+                    this.layoutService.unrespondedConversationNotification().notifications.length < totalCount
+                );
+            },
+            error: (err) => console.error('Failed to refresh notifications:', err)
+        });
+}
+
+// Call this when user scrolls to bottom of notification panel
+loadMoreNotifications(): void {
+    if (!this.notificationHasMore() || this.notificationLoading()) return;
+
+    this.notificationLoading.set(true);
+    this.notificationPage.update(p => p + 1);
+    this.invalidateCacheAndRefreshNotifications(false);
+    this.notificationLoading.set(false);
+}
 
   private playMessageSound(): void {
     const audio = new Audio('../../../../assets/media/new_message.mp3');

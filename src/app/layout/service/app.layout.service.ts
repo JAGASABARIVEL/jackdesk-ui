@@ -23,6 +23,24 @@ interface LayoutState {
     menuHoverActive: boolean;
 }
 
+interface LastMessage {
+    message_body: string | undefined;
+    received_time: string | undefined;
+    status: string | undefined;
+}
+
+interface ConversationNotification {
+    conversation_id: number;
+    contact_id: number;
+    contact_name: string | undefined;
+    last_message: LastMessage;
+}
+
+export interface ConversationNotificationTemplate {
+    conversation_count: number;
+    notifications: ConversationNotification[];
+}
+
 interface NotificationTemplate {
     severity: string,
     app: string,
@@ -37,21 +55,21 @@ export interface Notification {
 }
 
 
-export interface ConversationNotificationTemplate {
-    conversation_count: number,
-    notifications: [
-        {
-            conversation_id: number,
-            contact_id: number,
-            contact_name: string,
-            last_message: {
-                message_body: string,
-                received_time: string,
-                status: string
-            }
-        }
-    ]
-}
+//export interface ConversationNotificationTemplate {
+//    conversation_count: number,
+//    notifications: [
+//        {
+//            conversation_id: number,
+//            contact_id: number,
+//            contact_name: string,
+//            last_message: {
+//                message_body: string,
+//                received_time: string,
+//                status: string
+//            }
+//        }
+//    ]
+//}
 
 @Injectable({
     providedIn: 'root',
@@ -105,6 +123,18 @@ export class LayoutService {
     });
     newTaskmessages = signal<any[]>([]);
     notifications = signal<NotificationTemplate[]>([]);
+
+    // layout.service.ts — add this helper
+setNotifications(response: any): void {
+    const data = response.results ?? response;
+    const notifications: ConversationNotification[] = data.notifications ?? data;
+    const totalCount: number = data.conversation_count ?? response.count ?? notifications.length;
+
+    this.unrespondedConversationNotification.set({
+        conversation_count: totalCount,
+        notifications: notifications
+    });
+}
 
 
     

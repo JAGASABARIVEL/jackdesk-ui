@@ -249,7 +249,9 @@ export class CustomersComponent implements OnInit, OnDestroy {
     this.generateFinancialYears();
   }
 
+  profile !: any;
   ngOnInit(): void {
+    this.profile = JSON.parse(localStorage.getItem('profile'));
     this.layoutService.state.staticMenuDesktopInactive = true;
     this.loadCustomers();
     this.loadEmployees();
@@ -500,7 +502,7 @@ export class CustomersComponent implements OnInit, OnDestroy {
   }
 
   loadAllPlatforms(): void {
-    const platformTypes = ['whatsapp', 'messenger', 'telegram', 'gmail', 'webchat', 'gmessages'];
+    const platformTypes = ['whatsapp', 'messenger', 'telegram', 'gmail', 'webchat', 'gmessages', 'smsrelay'];
     const requests = platformTypes.map(type => 
       this.platformService.list_platforms_by_type(type).pipe(
         catchError(() => of([]))

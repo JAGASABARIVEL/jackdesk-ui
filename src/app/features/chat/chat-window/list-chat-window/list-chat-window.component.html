@@ -13,6 +13,9 @@
                     src="../../../../../assets/Icons/Schedule/gmail.png" alt="" style="width: 22px;">
                 <img *ngIf="conversation.contact?.platform_name === 'gmessages'" class="whatsapp-platform-icon"
                     src="../../../../../assets/Icons/Schedule/gmessages.png" alt="" style="width: 22px;">
+                <img *ngIf="conversation.contact?.platform_name === 'smsrelay'" class="whatsapp-platform-icon"
+                    src="../../../../../assets/Icons/Schedule/smsrelay.png" alt="" style="width: 22px;">
+                    
                 
 
                 <!--p-avatar *ngIf="user?.name" label="{{user.name | slice:0:1}}" size="large" size="large"

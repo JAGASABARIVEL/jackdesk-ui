@@ -1,12 +1,26 @@
 
 1. Check certificate expiry
 echo | openssl s_client -servername api.jackdesk.com -connect api.jackdesk.com:443 2>/dev/null | openssl x509 -noout -dates
+echo | openssl s_client -servername webhook.jackdesk.com -connect webhook.jackdesk.com:443 2>/dev/null | openssl x509 -noout -dates
+echo | openssl s_client -servername websocket.jackdesk.com -connect websocket.jackdesk.com:443 2>/dev/null | openssl x509 -noout -dates
+echo | openssl s_client -servername productivity.jackdesk.com -connect productivity.jackdesk.com:443 2>/dev/null | openssl x509 -noout -dates
 
-2. Stop nginx
+2. If "certificate expired" go to IAM console and add a role route53 full access if not already attached to EC2
+
+3. Stop nginx
+sudo systemctl stop nginx
+
+4. Install new certificate for renew
+sudo certbot certonly -d api.jackdesk.com
+sudo certbot certonly -d webhook.jackdesk.com
+sudo certbot certonly -d websocket.jackdesk.com
+sudo certbot certonly -d productivity.jackdesk.com
+
+5. Restart nginx
 sudo systemctl restart nginx
 
-3. Install new certificate for renew
-sudo certbot certonly -d api.jackdesk.com -d webhook.jackdesk.com -d websocket.jackdesk.com
-
-4. Restart nginx
-sudo systemctl restart nginx
+6. Check certificate expiry to ensure validity extended by 3 months
+echo | openssl s_client -servername api.jackdesk.com -connect api.jackdesk.com:443 2>/dev/null | openssl x509 -noout -dates
+echo | openssl s_client -servername webhook.jackdesk.com -connect webhook.jackdesk.com:443 2>/dev/null | openssl x509 -noout -dates
+echo | openssl s_client -servername websocket.jackdesk.com -connect websocket.jackdesk.com:443 2>/dev/null | openssl x509 -noout -dates
+echo | openssl s_client -servername productivity.jackdesk.com -connect productivity.jackdesk.com:443 2>/dev/null | openssl x509 -noout -dates

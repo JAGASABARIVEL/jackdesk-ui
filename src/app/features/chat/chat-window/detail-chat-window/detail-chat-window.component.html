@@ -51,6 +51,11 @@
             <div class="flex align-items-center gap-2" *ngIf="selectedConversation.contact?.platform_name === 'gmessages'">
               <img src="../../../../../assets/Icons/Schedule/gmessages.png">
             </div>
+            <div class="flex align-items-center gap-2" *ngIf="selectedConversation.contact?.platform_name === 'smsrelay'">
+              <img src="../../../../../assets/Icons/Schedule/smsrelay.png">
+            </div>
+
+            
           </div>
           <div class="p-2 flex align-items-center gap-2">
             <p-badge [value]="getConversationStatusBadge().label" [severity]="getConversationStatusBadge().severity"></p-badge>
@@ -265,7 +270,9 @@
                            [selectedTemplateForPreview]="message.template" 
                            [media_url]="message.media_url"
                            (previewReady)="onTemplatePreviewReadyEvent($event)" 
-                           [messageDetails]="message">
+                           [messageDetails]="message"
+                           [location_data]="message?.location_data"
+                           >
       </app-message-preview>
       
       <!-- Non-Template Message -->
@@ -865,23 +872,51 @@
 
 <!-- Close conversation dialog -->
 <p-dialog header="Close Conversation" [modal]="true" [(visible)]="closeConversationVisible" [style]="{ width: '35rem' }">
-        <div class="field grid my-4">
-            <label for="ingredient1" class="ml-2" style="width: 100px;">Closing Reason</label>
-            <div class="col">
-                <input pInputText id="username" class="flex-auto" [(ngModel)]="closedReason" autocomplete="off" />
-            </div>
-        </div>
-        <div class="field grid">
-            <label for="ingredient1" class="ml-2" style="width: 100px;">Block</label>
-            <div class="col">
-                <p-checkbox inputId="ingredient1" name="viewpermission" [(ngModel)]="blockForm.should_block" [binary]="true" />
-            </div>
-        </div>
-        <div class="flex justify-content-between">
-                <button pButton label="Cancel" class="p-button-outlined" severity="secondary" (click)="closedReason = ''; closeConversationVisible = false"></button>
-            <button pButton label="Save" class="p-button-outlined" (click)="onClosedReasonSave()"></button>
-        </div>
-    </p-dialog>
+  <div class="field grid my-4">
+    <label for="closedReason" class="ml-2" style="width: 100px;">
+      Closing Reason
+      <span class="text-red-500 ml-1">*</span>
+    </label>
+    <div class="col">
+      <input
+        pInputText
+        id="closedReason"
+        class="flex-auto"
+        [(ngModel)]="closedReason"
+        autocomplete="off"
+        [ngClass]="{ 'ng-invalid ng-dirty': closeSubmitted && !closedReason?.trim() }"
+        placeholder="Enter closing reason"
+      />
+      <small class="p-error" *ngIf="closeSubmitted && !closedReason?.trim()">
+        Closing reason is required.
+      </small>
+    </div>
+  </div>
+
+  <div class="field grid">
+    <label for="ingredient1" class="ml-2" style="width: 100px;">Block</label>
+    <div class="col">
+      <p-checkbox inputId="ingredient1" name="viewpermission" [(ngModel)]="blockForm.should_block" [binary]="true" />
+    </div>
+  </div>
+
+  <div class="flex justify-content-between">
+    <button
+      pButton
+      label="Cancel"
+      class="p-button-outlined"
+      severity="secondary"
+      (click)="closedReason = ''; closeSubmitted = false; closeConversationVisible = false"
+    ></button>
+    <button
+      pButton
+      label="Save"
+      class="p-button-outlined"
+      (click)="onClosedReasonSave()"
+      [disabled]="!closedReason?.trim()"
+    ></button>
+  </div>
+</p-dialog>
 
 <!-- Open conversation dialog -->
 <p-dialog header="New Message" [modal]="true" [(visible)]="openConversationWhatsappVisible" [style]="{ width: '50rem' }">
@@ -905,52 +940,255 @@
     </ng-template>
   </p-select>
   <div *ngIf="avaliable_templates.length > 0">
-    <p-select id="template_dropdown" [options]="avaliable_templates" optionLabel="name" class="w-full p-1"
-      styleClass="my-4" [filter]="true" filterBy="name" [(ngModel)]="selectedTemplate" [showClear]="true"
-      placeholder="Choose template" optionLabel="name" appendTo="body" (onChange)="onSelectTemplate()" />
-    <div class="flex justify-content-center">
-      <app-message-preview [selectedTemplateForPreview]="selectedTemplate"></app-message-preview>
-    </div>
-    <!-- Attachment Drop Area -->
-    <div *ngIf="isDocumentHeader()" class="attachment-drop-area">
-      <label class="block mb-2 text-sm font-medium text-gray-700">Attach Document</label>
-      <div class="drop-zone" (dragover)="onTemplateDragOver($event)" (drop)="onTemplateDrop($event)">
+  <p-select
+    id="template_dropdown"
+    [options]="avaliable_templates"
+    optionLabel="name"
+    class="w-full p-1"
+    styleClass="my-4"
+    [filter]="true"
+    filterBy="name"
+    [(ngModel)]="selectedTemplate"
+    [showClear]="true"
+    placeholder="Choose template"
+    appendTo="body"
+    (onChange)="onSelectTemplate()" />
+
+  <div class="flex justify-content-center">
+    <app-message-preview
+      [selectedTemplateForPreview]="selectedTemplate"
+      [media_url]="templateMediaPreviewUrl"
+      [location_data]="templateLocationData">
+    </app-message-preview>
+  </div>
+
+  <!-- ── DOCUMENT attachment ────────────────────────────────── -->
+  <ng-container *ngIf="getHeaderMediaType() === 'DOCUMENT'">
+    <div class="attachment-drop-area mt-3">
+      <label class="block mb-2 text-sm font-medium text-gray-700">
+        <i class="pi pi-file-pdf mr-1" style="color:#DC2626"></i> Attach PDF Document
+      </label>
+      <div class="drop-zone"
+           (dragover)="onTemplateDragOver($event)"
+           (drop)="onTemplateDrop($event)">
         <ng-container *ngIf="!templateAttachedFile">
-          <p>Drag & drop PDF file here or click to select</p>
-          <button type="button" pButton label="Select File" (click)="fileInput.click()"
-            class="mt-2 p-button-sm"></button>
+          <i class="pi pi-upload text-3xl text-gray-300 mb-2"></i>
+          <p class="text-gray-500 text-sm">Drag & drop a PDF here or click to select</p>
+          <button type="button" pButton label="Select PDF"
+                  icon="pi pi-file-pdf"
+                  class="mt-2 p-button-sm p-button-outlined"
+                  (click)="docFileInput.click()">
+          </button>
         </ng-container>
         <ng-container *ngIf="templateAttachedFile">
           <div class="preview-container">
-            {{templatePdfPreviewUrl}}
-            <iframe [src]="templatePdfPreviewUrl | safeUrl" width="100%" height="300px"
-                  style="border: none; border-radius: 8px;"></iframe>
-
-            
-            <p class="file-name">{{ templateAttachedFile.name }}</p>
-            <button type="button" pButton icon="pi pi-times" class="p-button-danger p-button-sm"
-              (click)="removeTemplateFile()" label="Remove"></button>
+            <iframe [src]="templateMediaPreviewUrl | safeUrl"
+                    width="100%" height="260px"
+                    style="border:none;border-radius:8px;">
+            </iframe>
+            <div class="flex align-items-center justify-content-between mt-2">
+              <span class="file-name text-sm text-gray-600">
+                <i class="pi pi-file-pdf mr-1" style="color:#DC2626"></i>
+                {{ templateAttachedFile.name }}
+              </span>
+              <button type="button" pButton icon="pi pi-times"
+                      class="p-button-danger p-button-sm p-button-text"
+                      label="Remove"
+                      (click)="removeTemplateFile()">
+              </button>
+            </div>
           </div>
         </ng-container>
-        <input type="file" accept="application/pdf" (change)="onTemplateFileSelected($event)" hidden #fileInput (click)="resetFileInput($event)"/>
+      </div>
+      <input type="file" accept="application/pdf" hidden #docFileInput
+             (change)="onTemplateFileSelected($event)"
+             (click)="resetFileInput($event)" />
+    </div>
+  </ng-container>
+
+  <!-- ── IMAGE attachment ───────────────────────────────────── -->
+  <ng-container *ngIf="getHeaderMediaType() === 'IMAGE'">
+    <div class="attachment-drop-area mt-3">
+      <label class="block mb-2 text-sm font-medium text-gray-700">
+        <i class="pi pi-image mr-1" style="color:#7C3AED"></i> Attach Image
+      </label>
+      <div class="drop-zone"
+           (dragover)="onTemplateDragOver($event)"
+           (drop)="onTemplateDrop($event)">
+        <ng-container *ngIf="!templateAttachedFile">
+          <i class="pi pi-image text-3xl text-gray-300 mb-2"></i>
+          <p class="text-gray-500 text-sm">Drag & drop an image or click to select</p>
+          <p class="text-gray-400 text-xs mt-1">JPG, PNG, WEBP, GIF supported</p>
+          <button type="button" pButton label="Select Image"
+                  icon="pi pi-image"
+                  class="mt-2 p-button-sm p-button-outlined"
+                  (click)="imgFileInput.click()">
+          </button>
+        </ng-container>
+        <ng-container *ngIf="templateAttachedFile">
+          <div class="preview-container">
+            <img [src]="templateMediaPreviewUrl"
+                 [alt]="templateAttachedFile.name"
+                 style="width:100%;max-height:260px;object-fit:cover;border-radius:8px;" />
+            <div class="flex align-items-center justify-content-between mt-2">
+              <span class="file-name text-sm text-gray-600">
+                <i class="pi pi-image mr-1" style="color:#7C3AED"></i>
+                {{ templateAttachedFile.name }}
+              </span>
+              <button type="button" pButton icon="pi pi-times"
+                      class="p-button-danger p-button-sm p-button-text"
+                      label="Remove"
+                      (click)="removeTemplateFile()">
+              </button>
+            </div>
+          </div>
+        </ng-container>
+      </div>
+      <input type="file" accept="image/jpeg,image/png,image/webp,image/gif" hidden #imgFileInput
+             (change)="onTemplateFileSelected($event)"
+             (click)="resetFileInput($event)" />
+    </div>
+  </ng-container>
+
+  <!-- ── VIDEO attachment ───────────────────────────────────── -->
+  <ng-container *ngIf="getHeaderMediaType() === 'VIDEO'">
+    <div class="attachment-drop-area mt-3">
+      <label class="block mb-2 text-sm font-medium text-gray-700">
+        <i class="pi pi-video mr-1" style="color:#EA580C"></i> Attach Video
+      </label>
+      <div class="drop-zone"
+           (dragover)="onTemplateDragOver($event)"
+           (drop)="onTemplateDrop($event)">
+        <ng-container *ngIf="!templateAttachedFile">
+          <i class="pi pi-video text-3xl text-gray-300 mb-2"></i>
+          <p class="text-gray-500 text-sm">Drag & drop a video or click to select</p>
+          <p class="text-gray-400 text-xs mt-1">MP4, WEBM, MOV supported</p>
+          <button type="button" pButton label="Select Video"
+                  icon="pi pi-video"
+                  class="mt-2 p-button-sm p-button-outlined"
+                  (click)="vidFileInput.click()">
+          </button>
+        </ng-container>
+        <ng-container *ngIf="templateAttachedFile">
+          <div class="preview-container">
+            <video [src]="templateMediaPreviewUrl"
+                   controls preload="metadata" playsinline
+                   style="width:100%;max-height:260px;border-radius:8px;background:#000;">
+            </video>
+            <div class="flex align-items-center justify-content-between mt-2">
+              <span class="file-name text-sm text-gray-600">
+                <i class="pi pi-video mr-1" style="color:#EA580C"></i>
+                {{ templateAttachedFile.name }}
+              </span>
+              <button type="button" pButton icon="pi pi-times"
+                      class="p-button-danger p-button-sm p-button-text"
+                      label="Remove"
+                      (click)="removeTemplateFile()">
+              </button>
+            </div>
+          </div>
+        </ng-container>
+      </div>
+      <input type="file" accept="video/mp4,video/webm,video/quicktime" hidden #vidFileInput
+             (change)="onTemplateFileSelected($event)"
+             (click)="resetFileInput($event)" />
+    </div>
+  </ng-container>
+
+  <!-- ── LOCATION picker ────────────────────────────────────── -->
+  <ng-container *ngIf="getHeaderMediaType() === 'LOCATION'">
+    <div class="attachment-drop-area mt-3">
+      <label class="block mb-2 text-sm font-medium text-gray-700">
+        <i class="pi pi-map-marker mr-1" style="color:#667eea"></i> Set Location
+      </label>
+      <div class="location-picker-grid">
+
+        <!-- Name (required) -->
+        <div class="col-span-2">
+          <p-floatlabel>
+            <input pInputText id="loc-name"
+                   [(ngModel)]="templateLocationData.name"
+                   class="w-full"
+                   [ngClass]="{'ng-invalid ng-dirty': !templateLocationData.name.trim()}" />
+            <label for="loc-name">Location Name <span class="text-red-400">*</span></label>
+          </p-floatlabel>
+        </div>
+
+        <!-- Address (optional) -->
+        <div class="col-span-2">
+          <p-floatlabel>
+            <input pInputText id="loc-address"
+                   [(ngModel)]="templateLocationData.address"
+                   class="w-full" />
+            <label for="loc-address">Address (optional)</label>
+          </p-floatlabel>
+        </div>
+
+        <!-- Latitude -->
+        <div>
+          <p-floatlabel>
+            <input pInputText id="loc-lat" type="number"
+                   [(ngModel)]="templateLocationData.latitude"
+                   min="-90" max="90" step="0.000001"
+                   class="w-full"
+                   [ngClass]="{'ng-invalid ng-dirty': templateLocationData.latitude && (
+                     +templateLocationData.latitude < -90 || +templateLocationData.latitude > 90
+                   )}" />
+            <label for="loc-lat">Latitude <span class="text-red-400">*</span></label>
+          </p-floatlabel>
+          <small class="text-gray-400 text-xs">–90 to 90</small>
+        </div>
+
+        <!-- Longitude -->
+        <div>
+          <p-floatlabel>
+            <input pInputText id="loc-lng" type="number"
+                   [(ngModel)]="templateLocationData.longitude"
+                   min="-180" max="180" step="0.000001"
+                   class="w-full"
+                   [ngClass]="{'ng-invalid ng-dirty': templateLocationData.longitude && (
+                     +templateLocationData.longitude < -180 || +templateLocationData.longitude > 180
+                   )}" />
+            <label for="loc-lng">Longitude <span class="text-red-400">*</span></label>
+          </p-floatlabel>
+          <small class="text-gray-400 text-xs">–180 to 180</small>
+        </div>
+
+        <!-- Quick-fill hint -->
+        <div class="col-span-2 location-hint">
+          <i class="pi pi-info-circle mr-1"></i>
+          Paste a Google Maps link or enter coordinates manually.
+          <span class="text-blue-500 cursor-pointer ml-1"
+                (click)="tryParseGoogleMapsUrl()">
+            Parse from URL
+          </span>
+        </div>
+
       </div>
     </div>
-    <!-- Dynamic Form Fields -->
-    <div class="grid mt-4">
-      <div class="col-4" *ngFor="let field of dynamicFields; let i = index">
-        <p-floatlabel>
-          <input pInputText [(ngModel)]="fieldValues[field]" [id]="'field-' + i" />
-          <label [for]="'field-' + i">{{ field }}</label>
-        </p-floatlabel>
-      </div>
-    </div>
-    <div class="flex justify-end gap-2">
-      <button pButton class="p-button-outlined" label="Cancel" severity="secondary"
-        (click)="openConversationWhatsappVisible = false"> </button>
-      <button pButton class="p-button-outlined" *ngIf="this.selectedTemplate && isFieldValuesValid" label="Send"
-        (click)="startNewConversationOnWhatsapp()"> </button>
+  </ng-container>
+
+  <!-- ── Dynamic fields ─────────────────────────────────────── -->
+  <div class="grid mt-4">
+    <div class="col-4" *ngFor="let field of dynamicFields; let i = index">
+      <p-floatlabel>
+        <input pInputText [(ngModel)]="fieldValues[field]" [id]="'field-' + i" />
+        <label [for]="'field-' + i">{{ field }}</label>
+      </p-floatlabel>
     </div>
   </div>
+
+  <div class="flex justify-end gap-2">
+    <button pButton class="p-button-outlined" label="Cancel" severity="secondary"
+            (click)="openConversationWhatsappVisible = false">
+    </button>
+    <button pButton class="p-button-outlined"
+            *ngIf="selectedTemplate && isFieldValuesValid"
+            label="Send"
+            (click)="startNewConversationOnWhatsapp()">
+    </button>
+  </div>
+</div>
 </p-dialog>
 
 <!-- New Gmail Compose Dialog with CC Support -->
@@ -1175,83 +1413,118 @@
         <i class="pi pi-eye" style="color: #128C7E;"></i>
         <strong class="text-lg">Preview</strong>
       </div>
-      <app-message-preview 
-        [selectedTemplateForPreview]="activeConvSelectedTemplate"
-        [media_url]="activeConvPdfPreviewUrl">
-      </app-message-preview>
+      <app-message-preview
+    [selectedTemplateForPreview]="activeConvSelectedTemplate"
+    [media_url]="activeConvMediaPreviewUrl"
+    [location_data]="activeConvLocationData">
+  </app-message-preview>
     </div>
   </div>
 
-  <!-- Document Upload Section (if template has document header) -->
-  <div *ngIf="isActiveConvDocumentHeader()" class="mb-4">
-    <div class="surface-card border-round p-3" style="border: 2px solid #DBEAFE;">
-      <label class="block mb-2 font-semibold">
-        <i class="pi pi-paperclip mr-2"></i>Attach Document (PDF Required)
-      </label>
-      
-      <div 
-        class="drop-zone border-2 border-dashed border-round p-4 text-center cursor-pointer"
-        style="border-color: #128C7E; background-color: #F0FDF4;"
-        (dragover)="onActiveConvDragOver($event)" 
-        (drop)="onActiveConvDrop($event)">
-        
-        <ng-container *ngIf="!activeConvAttachedFile">
-          <i class="pi pi-cloud-upload text-5xl mb-3" style="color: #128C7E;"></i>
-          <p class="mb-2">Drag & drop PDF file here or click to select</p>
-          <button 
-            type="button" 
-            pButton 
-            label="Select PDF File" 
-            icon="pi pi-file"
-            (click)="activeConvFileInput.click()"
-            class="p-button-outlined mt-2">
-          </button>
-        </ng-container>
-        
-        <ng-container *ngIf="activeConvAttachedFile">
-          <div class="preview-container">
-            <iframe 
-              *ngIf="activeConvPdfPreviewUrl"
-              [src]="activeConvPdfPreviewUrl | safeUrl" 
-              width="100%" 
-              height="300px"
-              style="border: none; border-radius: 8px; margin-bottom: 1rem;">
-            </iframe>
-            
-            <div class="flex align-items-center justify-content-center gap-3">
-              <i class="pi pi-file-pdf text-3xl" style="color: #DC2626;"></i>
-              <div class="flex flex-column">
-                <span class="font-semibold">{{ activeConvAttachedFile.name }}</span>
-                <span class="text-sm text-color-secondary">{{ formatBytes(activeConvAttachedFile.size) }}</span>
-              </div>
-            </div>
-            
-            <button 
-              type="button" 
-              pButton 
-              icon="pi pi-times" 
-              label="Remove File"
-              class="p-button-danger p-button-outlined mt-3"
-              (click)="removeActiveConvFile()">
-            </button>
-          </div>
-        </ng-container>
-        
-        <input 
-          type="file" 
-          accept="application/pdf" 
-          (change)="onActiveConvFileSelected($event)" 
-          hidden 
-          #activeConvFileInput 
-          (click)="resetFileInput($event)"/>
+  <!-- Template Preview -->
+<div *ngIf="activeConvSelectedTemplate" class="mb-4">
+  <app-message-preview
+    [selectedTemplateForPreview]="activeConvSelectedTemplate"
+    [media_url]="activeConvMediaPreviewUrl"
+    [location_data]="activeConvLocationData">
+  </app-message-preview>
+</div>
+
+<!-- DOCUMENT -->
+<ng-container *ngIf="getActiveConvHeaderMediaType() === 'DOCUMENT'">
+  <div class="drop-zone mb-4" (dragover)="onActiveConvDragOver($event)" (drop)="onActiveConvDrop($event)">
+    <ng-container *ngIf="!activeConvAttachedFile">
+      <i class="pi pi-file-pdf text-3xl mb-2" style="color:#DC2626"></i>
+      <p class="text-sm text-gray-500">Drag & drop a PDF or click to select</p>
+      <button pButton label="Select PDF" icon="pi pi-file-pdf" class="p-button-sm p-button-outlined mt-2"
+              (click)="activeDocInput.click()"></button>
+    </ng-container>
+    <ng-container *ngIf="activeConvAttachedFile">
+      <iframe [src]="activeConvMediaPreviewUrl | safeUrl" width="100%" height="280px" style="border:none;border-radius:8px"></iframe>
+      <div class="flex align-items-center justify-content-between mt-2">
+        <span class="text-sm">{{ activeConvAttachedFile.name }}</span>
+        <button pButton icon="pi pi-times" class="p-button-danger p-button-text p-button-sm" (click)="removeActiveConvFile()"></button>
       </div>
-      
-      <small class="text-color-secondary mt-2 block">
-        <i class="pi pi-info-circle"></i>
-        Only PDF files are accepted for document templates
-      </small>
+    </ng-container>
+    <input type="file" accept="application/pdf" hidden #activeDocInput
+           (change)="onActiveConvFileSelected($event)" (click)="resetFileInput($event)" />
+  </div>
+</ng-container>
+
+<!-- IMAGE -->
+<ng-container *ngIf="getActiveConvHeaderMediaType() === 'IMAGE'">
+  <div class="drop-zone mb-4" (dragover)="onActiveConvDragOver($event)" (drop)="onActiveConvDrop($event)">
+    <ng-container *ngIf="!activeConvAttachedFile">
+      <i class="pi pi-image text-3xl mb-2" style="color:#7C3AED"></i>
+      <p class="text-sm text-gray-500">Drag & drop an image or click to select</p>
+      <button pButton label="Select Image" icon="pi pi-image" class="p-button-sm p-button-outlined mt-2"
+              (click)="activeImgInput.click()"></button>
+    </ng-container>
+    <ng-container *ngIf="activeConvAttachedFile">
+      <img [src]="activeConvMediaPreviewUrl" style="width:100%;max-height:260px;object-fit:cover;border-radius:8px" />
+      <div class="flex align-items-center justify-content-between mt-2">
+        <span class="text-sm">{{ activeConvAttachedFile.name }}</span>
+        <button pButton icon="pi pi-times" class="p-button-danger p-button-text p-button-sm" (click)="removeActiveConvFile()"></button>
+      </div>
+    </ng-container>
+    <input type="file" accept="image/jpeg,image/png,image/webp,image/gif" hidden #activeImgInput
+           (change)="onActiveConvFileSelected($event)" (click)="resetFileInput($event)" />
+  </div>
+</ng-container>
+
+<!-- VIDEO -->
+<ng-container *ngIf="getActiveConvHeaderMediaType() === 'VIDEO'">
+  <div class="drop-zone mb-4" (dragover)="onActiveConvDragOver($event)" (drop)="onActiveConvDrop($event)">
+    <ng-container *ngIf="!activeConvAttachedFile">
+      <i class="pi pi-video text-3xl mb-2" style="color:#EA580C"></i>
+      <p class="text-sm text-gray-500">Drag & drop a video or click to select</p>
+      <button pButton label="Select Video" icon="pi pi-video" class="p-button-sm p-button-outlined mt-2"
+              (click)="activeVidInput.click()"></button>
+    </ng-container>
+    <ng-container *ngIf="activeConvAttachedFile">
+      <video [src]="activeConvMediaPreviewUrl" controls preload="metadata"
+             style="width:100%;max-height:260px;border-radius:8px;background:#000"></video>
+      <div class="flex align-items-center justify-content-between mt-2">
+        <span class="text-sm">{{ activeConvAttachedFile.name }}</span>
+        <button pButton icon="pi pi-times" class="p-button-danger p-button-text p-button-sm" (click)="removeActiveConvFile()"></button>
+      </div>
+    </ng-container>
+    <input type="file" accept="video/mp4,video/webm,video/quicktime" hidden #activeVidInput
+           (change)="onActiveConvFileSelected($event)" (click)="resetFileInput($event)" />
+  </div>
+</ng-container>
+
+<!-- LOCATION -->
+<ng-container *ngIf="getActiveConvHeaderMediaType() === 'LOCATION'">
+  <div class="location-picker-grid mb-4">
+    <div class="col-span-2">
+      <p-floatlabel>
+        <input pInputText id="aloc-name" [(ngModel)]="activeConvLocationData.name" class="w-full" />
+        <label for="aloc-name">Location Name <span class="text-red-400">*</span></label>
+      </p-floatlabel>
+    </div>
+    <div class="col-span-2">
+      <p-floatlabel>
+        <input pInputText id="aloc-addr" [(ngModel)]="activeConvLocationData.address" class="w-full" />
+        <label for="aloc-addr">Address (optional)</label>
+      </p-floatlabel>
+    </div>
+    <div>
+      <p-floatlabel>
+        <input pInputText id="aloc-lat" type="number" [(ngModel)]="activeConvLocationData.latitude"
+               min="-90" max="90" step="0.000001" class="w-full" />
+        <label for="aloc-lat">Latitude <span class="text-red-400">*</span></label>
+      </p-floatlabel>
+    </div>
+    <div>
+      <p-floatlabel>
+        <input pInputText id="aloc-lng" type="number" [(ngModel)]="activeConvLocationData.longitude"
+               min="-180" max="180" step="0.000001" class="w-full" />
+        <label for="aloc-lng">Longitude <span class="text-red-400">*</span></label>
+      </p-floatlabel>
     </div>
   </div>
+</ng-container>
 
   <!-- Dynamic Template Parameters -->
   <div *ngIf="activeConvDynamicFields.length > 0" class="mb-4">

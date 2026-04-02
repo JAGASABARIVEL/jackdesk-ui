@@ -104,7 +104,7 @@ export class AppInitializationService {
             routerLink: ['/apps/chat-active'],
           },
           {
-            label: 'Reports (WIP)',
+            label: 'Journal',
             icon: 'pi pi-ticket',
             routerLink: ['/apps/ticketing'],
           }
@@ -176,7 +176,7 @@ export class AppInitializationService {
 
   private getCampaignLinkItems(profile: any) {
     const items = [
-      { label: 'Reports', icon: 'pi pi-history', routerLink: ['/apps/history'] },
+      { label: 'Journal', icon: 'pi pi-history', routerLink: ['/apps/history'] },
       { label: 'Jobs', icon: 'pi pi-calendar-clock', routerLink: ['/apps/schedules'] }
     ];
 

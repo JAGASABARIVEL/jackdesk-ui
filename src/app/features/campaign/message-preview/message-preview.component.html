@@ -1,63 +1,126 @@
 <p-card class="preview-card">
   <ng-template pTemplate="content">
     <div class="preview-container">
-      <div *ngIf="selectedTemplateForPreview && selectedTemplateForPreview.name !== 'None'" 
-           class="whatsapp-preview" 
-           [ngClass]="{'whatsapp-preview-message': messageDetails !== null}">
-        
-        <!-- Message content -->
+      <div *ngIf="selectedTemplateForPreview && selectedTemplateForPreview.name !== 'None'"
+        class="whatsapp-preview"
+        [ngClass]="{'whatsapp-preview-message': messageDetails !== null}">
+
         <div class="whatsapp-message">
           <ng-container *ngFor="let component of selectedTemplateForPreview.components">
             <ng-container [ngSwitch]="component.type">
-              
-              <!-- Header -->
+
+              <!-- HEADER -->
               <div *ngSwitchCase="'HEADER'" class="message-header">
-                <ng-container *ngIf="component.format === 'DOCUMENT'; else textHeader">
+
+                <!-- DOCUMENT -->
+                <ng-container *ngIf="component.format === 'DOCUMENT'">
                   <div class="media-container">
-                    <img *ngIf="!mediaPreviewUrl" 
-                         src="../../../../../assets/Icons/Schedule/pdf.avif" 
-                         alt="Document"
-                         class="document-preview">
-                    <iframe *ngIf="mediaPreviewUrl" 
-                            [src]="mediaPreviewUrl | safeUrl" 
-                            class="media-preview"></iframe>
+                    <div *ngIf="!mediaPreviewUrl" class="media-placeholder doc-placeholder">
+                      <div class="placeholder-icon">📄</div>
+                      <span class="placeholder-label">Document</span>
+                    </div>
+                    <iframe *ngIf="mediaPreviewUrl"
+                      [src]="mediaPreviewUrl | safeUrl"
+                      class="media-preview iframe-preview"></iframe>
                   </div>
                 </ng-container>
-                <ng-template #textHeader>
+
+                <!-- IMAGE -->
+                <ng-container *ngIf="component.format === 'IMAGE'">
+                  <div class="media-container">
+                    <div *ngIf="!mediaPreviewUrl" class="media-placeholder img-placeholder">
+                      <div class="placeholder-icon">🖼️</div>
+                      <span class="placeholder-label">Image</span>
+                    </div>
+                    <img *ngIf="mediaPreviewUrl"
+                      [src]="mediaPreviewUrl"
+                      alt="Image preview"
+                      class="media-preview img-preview" />
+                  </div>
+                </ng-container>
+
+                <!-- VIDEO -->
+                <ng-container *ngIf="component.format === 'VIDEO'">
+                  <div class="media-container">
+                    <div *ngIf="!mediaPreviewUrl" class="media-placeholder vid-placeholder">
+                      <div class="placeholder-icon">🎬</div>
+                      <span class="placeholder-label">Video</span>
+                    </div>
+                    <video *ngIf="mediaPreviewUrl"
+                      [src]="mediaPreviewUrl"
+                      class="media-preview vid-preview"
+                      controls
+                      preload="metadata"
+                      playsinline>
+                      Your browser does not support the video tag.
+                    </video>
+                  </div>
+                </ng-container>
+
+                <!-- LOCATION -->
+                <ng-container *ngIf="component.format === 'LOCATION'">
+                  <div class="media-container location-container">
+                    <div class="location-map-mock">
+                      <div class="map-grid"></div>
+                      <div class="map-pin-wrapper">
+                        <div class="map-pin">
+                          <span class="pin-icon">📍</span>
+                        </div>
+                        <div class="pin-pulse"></div>
+                      </div>
+                    </div>
+                    <div class="location-info" *ngIf="locationData">
+                      <span class="location-name">{{ locationData.name || 'Location' }}</span>
+                      <span class="location-address" *ngIf="locationData.address">{{ locationData.address }}</span>
+                    </div>
+                    <div class="location-info" *ngIf="!locationData">
+                      <span class="location-name">Location</span>
+                      <span class="location-address">Tap to view on map</span>
+                    </div>
+                  </div>
+                </ng-container>
+
+                <!-- TEXT -->
+                <ng-container *ngIf="component.format === 'TEXT' || (!component.format && component.text)">
                   <div class="text-header">{{ component.text }}</div>
-                </ng-template>
+                </ng-container>
+
               </div>
-              
-              <!-- Body -->
+
+              <!-- BODY -->
               <div *ngSwitchCase="'BODY'" class="message-body">
                 {{ component.text }}
               </div>
-              
-              <!-- Footer -->
+
+              <!-- FOOTER -->
               <div *ngSwitchCase="'FOOTER'" class="message-footer">
                 {{ component.text }}
               </div>
-              
-              <!-- Buttons -->
+
+              <!-- BUTTONS -->
               <div *ngSwitchCase="'BUTTONS'" class="message-buttons">
-                <button *ngFor="let button of component.buttons" 
-                        class="message-button"
-                        [ngClass]="{'url-button': button.type === 'URL'}">
+                <button *ngFor="let button of component.buttons"
+                  class="message-button"
+                  [ngClass]="{
+                    'url-button': button.type === 'URL',
+                    'phone-button': button.type === 'PHONE_NUMBER',
+                    'quick-reply-button': button.type === 'QUICK_REPLY'
+                  }">
                   <span class="button-icon" *ngIf="button.type === 'URL'">🔗</span>
-                  <span class="button-icon" *ngIf="button.type !== 'URL'">📞</span>
+                  <span class="button-icon" *ngIf="button.type === 'PHONE_NUMBER'">📞</span>
+                  <span class="button-icon" *ngIf="button.type === 'QUICK_REPLY'">↩️</span>
                   {{ button.text }}
                 </button>
               </div>
-              
+
             </ng-container>
           </ng-container>
-          
-          <!-- Message timestamp -->
+
           <div class="message-time">{{ getCurrentTime() }}</div>
         </div>
       </div>
-      
-      <div *ngIf="!selectedTemplateForPreview" class="no-template">
+
+      <div *ngIf="!selectedTemplateForPreview || selectedTemplateForPreview.name === 'None'" class="no-template">
         <div class="empty-state-icon">💬</div>
         <p class="empty-state-text">Select a template to preview</p>
       </div>

@@ -1,0 +1,583 @@
+<div class="template-manager-container">
+  <!-- Toast for notifications -->
+  <p-toast />
+  <p-confirmDialog />
+  
+  <!-- Header Section -->
+  <div class="manager-header">
+    <div class="header-content">
+      <h2 class="title">
+        <i class="pi pi-comments"></i>
+        WhatsApp Templates Manager
+      </h2>
+      <p class="subtitle">Create, manage, and preview your WhatsApp message templates</p>
+    </div>
+    <div class="header-actions">
+        <p-select
+        id="platform" 
+        [options]="registeredPlatforms" 
+        [(ngModel)]="selectedPlatform" 
+        optionLabel="user_platform_name"
+        placeholder="Select Channel" 
+        [appendTo]="'body'"
+        styleClass="w-full"
+        (onChange)="loadTemplatesFromPlatform()"
+      />
+      <button pButton 
+              label="Predefined Templates" 
+              icon="pi pi-star" 
+              class="p-button-outlined p-button-secondary"
+              (click)="openPredefinedDialog()">
+      </button>
+      <button pButton 
+              label="Create Template" 
+              icon="pi pi-plus" 
+              class="p-button-primary"
+              (click)="openCreateDialog()">
+      </button>
+    </div>
+  </div>
+  
+  <!-- Search and Filter Section -->
+  <div class="filter-section">
+    <span class="p-input-icon-left search-wrapper">
+      <i class="pi pi-search"></i>
+      <input type="text" 
+             pInputText 
+             placeholder="Search templates by name, category, or status..."
+             (input)="filterTemplates($event)"
+             class="search-input">
+    </span>
+  </div>
+  
+  <!-- Templates Table -->
+  <div class="table-card">
+    <p-table [value]="filteredTemplates" 
+             [paginator]="true" 
+             [rows]="10"
+             [rowsPerPageOptions]="[10, 25, 50]"
+             [loading]="false"
+             styleClass="p-datatable-gridlines"
+             responsiveLayout="scroll">
+      
+      <ng-template pTemplate="header">
+        <tr>
+          <th>Template Name</th>
+          <th>Language</th>
+          <th>Category</th>
+          <th>Status</th>
+          <th>Components</th>
+          <th class="actions-column">Actions</th>
+        </tr>
+      </ng-template>
+      
+      <ng-template pTemplate="body" let-template>
+        <tr>
+          <td>
+            <div class="template-name">
+              <i class="pi pi-file"></i>
+              <span>{{ template.name }}</span>
+            </div>
+          </td>
+          <td>
+            <span class="language-badge">{{ template.language }}</span>
+          </td>
+          <td>
+            <p-tag [value]="template.category" 
+                   [severity]="template.category === 'MARKETING' ? 'info' : 
+                              template.category === 'UTILITY' ? 'success' : 'warn'">
+            </p-tag>
+          </td>
+          <td>
+            <p-tag [value]="template.status || 'DRAFT'" 
+                   [severity]="getStatusSeverity(template.status || 'DRAFT')">
+            </p-tag>
+            <i *ngIf="template.rejected_reason"
+               class="pi pi-info-circle rejection-info"
+               [pTooltip]="template.rejected_reason"
+               tooltipPosition="top">
+            </i>
+          </td>
+          <td>
+            <div class="components-info">
+              <span *ngFor="let component of template.components" class="component-badge">
+                <i [class]="'pi ' + getComponentIcon(component.type)"></i>
+                {{ component.type }}
+              </span>
+            </div>
+          </td>
+          <td class="actions-column">
+            <div class="action-buttons">
+              <button pButton 
+                      icon="pi pi-eye" 
+                      class="p-button-rounded p-button-text p-button-info"
+                      pTooltip="Preview"
+                      (click)="openQuickPreview(template)">
+              </button>
+              
+              <!-- Excel Download Buttons - Only show if template has parameters -->
+              <ng-container *ngIf="hasParameters(template)">
+                <!--button pButton 
+                        icon="pi pi-file-excel" 
+                        class="p-button-rounded p-button-text p-button-success"
+                        pTooltip="Download Sample Excel"
+                        (click)="downloadSampleExcel(template)">
+                </button-->
+                <button pButton 
+                        icon="pi pi-download" 
+                        class="p-button-rounded p-button-text p-button-help"
+                        pTooltip="Download Empty Excel Template"
+                        (click)="downloadEmptyExcel(template)">
+                </button>
+              </ng-container>
+              
+              <!--button pButton 
+                      icon="pi pi-pencil" 
+                      class="p-button-rounded p-button-text p-button-warning"
+                      pTooltip="Edit"
+                      (click)="openEditDialog(template)">
+              </button-->
+              <!--button pButton 
+                      icon="pi pi-trash" 
+                      class="p-button-rounded p-button-text p-button-danger"
+                      pTooltip="Delete"
+                      (click)="deleteTemplate(template)">
+              </button-->
+            </div>
+          </td>
+        </tr>
+      </ng-template>
+      
+      <ng-template pTemplate="emptymessage">
+        <tr>
+          <td colspan="6" class="empty-message">
+            <div class="empty-state">
+              <i class="pi pi-inbox"></i>
+              <p>No templates found</p>
+              <span>Create your first template to get started</span>
+            </div>
+          </td>
+        </tr>
+      </ng-template>
+    </p-table>
+  </div>
+</div>
+
+<!-- Unified Create/Edit Template Dialog -->
+<p-dialog [(visible)]="showTemplateDialog" 
+          [header]="editMode ? 'Edit Template' : 'Create New Template'"
+          [modal]="true" 
+          [style]="{width: '90vw', maxWidth: '1400px'}"
+          [draggable]="false"
+          [resizable]="false"
+          styleClass="template-dialog">
+  
+  <div class="dialog-content">
+    <!-- Form Section -->
+    <div class="form-section">
+      <form [formGroup]="templateForm">
+        <!-- Custom Tab Navigation -->
+        <div class="custom-tabs">
+          <div class="tab-headers">
+            <button type="button" 
+                    class="tab-header" 
+                    [class.active]="activeTab === 0"
+                    (click)="activeTab = 0">
+              <i class="pi pi-info-circle"></i>
+              Basic Information
+            </button>
+            <button type="button" 
+                    class="tab-header" 
+                    [class.active]="activeTab === 1"
+                    (click)="activeTab = 1">
+              <i class="pi pi-align-justify"></i>
+              Header
+            </button>
+            <button type="button" 
+                    class="tab-header" 
+                    [class.active]="activeTab === 2"
+                    (click)="activeTab = 2">
+              <i class="pi pi-file-edit"></i>
+              Body *
+            </button>
+            <button type="button" 
+                    class="tab-header" 
+                    [class.active]="activeTab === 3"
+                    (click)="activeTab = 3">
+              <i class="pi pi-minus"></i>
+              Footer
+            </button>
+            <button type="button" 
+                    class="tab-header" 
+                    [class.active]="activeTab === 4"
+                    (click)="activeTab = 4">
+              <i class="pi pi-th-large"></i>
+              Buttons
+            </button>
+          </div>
+          
+          <!-- Tab Content -->
+          <div class="tab-content">
+            <!-- Basic Information Tab -->
+            <div class="tab-panel" *ngIf="activeTab === 0">
+              <div class="form-grid">
+                <div class="form-field">
+                  <label for="templateName">Template Name *</label>
+                  <input id="templateName" 
+                         type="text" 
+                         pInputText 
+                         formControlName="name"
+                         placeholder="e.g., order_confirmation"
+                         [class.ng-invalid]="templateForm.get('name')?.invalid && templateForm.get('name')?.touched">
+                  <small class="field-hint">Use lowercase letters, numbers, and underscores only</small>
+                </div>
+                
+                <div class="form-field">
+                  <label for="language">Language *</label>
+                  <p-select id="language" 
+                           formControlName="language"
+                           [options]="languageOptions"
+                           optionLabel="label"
+                           optionValue="value"
+                           placeholder="Select Language"
+                           styleClass="w-full">
+                  </p-select>
+                </div>
+                
+                <div class="form-field">
+                  <label for="category">Category *</label>
+                  <p-select id="category" 
+                           formControlName="category"
+                           [options]="categoryOptions"
+                           optionLabel="label"
+                           optionValue="value"
+                           placeholder="Select Category"
+                           styleClass="w-full">
+                  </p-select>
+                  <small class="field-hint">Marketing templates require opt-in consent</small>
+                </div>
+              </div>
+            </div>
+            
+            <!-- Header Tab -->
+            <div class="tab-panel" *ngIf="activeTab === 1">
+              <div class="form-field">
+                <div class="checkbox-field">
+                  <p-checkbox formControlName="hasHeader" 
+                             [binary]="true" 
+                             inputId="hasHeader">
+                  </p-checkbox>
+                  <label for="hasHeader">Include Header</label>
+                </div>
+              </div>
+              
+              <div *ngIf="templateForm.get('hasHeader')?.value" class="header-config">
+                <div class="form-field">
+                  <label for="headerFormat">Header Format</label>
+                  <p-select id="headerFormat" 
+                           formControlName="headerFormat"
+                           [options]="headerFormatOptions"
+                           optionLabel="label"
+                           optionValue="value"
+                           styleClass="w-full">
+                  </p-select>
+                </div>
+                
+                <div *ngIf="templateForm.get('headerFormat')?.value === 'TEXT'" class="form-field">
+                  <label for="headerText">Header Text</label>
+                  <input id="headerText" 
+                         type="text" 
+                         pInputText 
+                         formControlName="headerText"
+                         placeholder="Enter header text..."
+                         class="w-full">
+                  <small class="field-hint">Maximum 60 characters</small>
+                </div>
+                
+                <div *ngIf="templateForm.get('headerFormat')?.value !== 'TEXT'" class="form-field">
+                  <label>Media Upload</label>
+                  <p-fileUpload mode="basic" 
+                               [auto]="true"
+                               chooseLabel="Upload {{ templateForm.get('headerFormat')?.value }}"
+                               [accept]="getAcceptType(templateForm.get('headerFormat')?.value)">
+                  </p-fileUpload>
+                  <small class="field-hint">Sample media will be used for template approval</small>
+                </div>
+              </div>
+            </div>
+            
+            <!-- Body Tab -->
+            <div class="tab-panel" *ngIf="activeTab === 2">
+              <div class="form-field">
+                <label for="bodyText">Message Body *</label>
+                <textarea id="bodyText" 
+                         pInputTextarea 
+                         formControlName="bodyText"
+                         [rows]="8"
+                         placeholder="Enter your message body...
+                         
+Use named parameters like &#123;&#123;customer_name&#123;&#123;, &#123;&#123;order_id&#123;&#123;, etc.
+Example: Hi &#123;&#123;customer_name&#123;&#123;, your order &#123;&#123;order_id&#123;&#123; is confirmed!"
+                         class="w-full"
+                         [class.ng-invalid]="templateForm.get('bodyText')?.invalid && templateForm.get('bodyText')?.touched">
+                </textarea>
+                <small class="field-hint">
+                  Maximum 1024 characters | 
+                  Variables found: {{ getVariableCount(templateForm.get('bodyText')?.value || '') }}
+                </small>
+              </div>
+              
+              <!-- Named Parameters Section -->
+              <div *ngIf="detectedParameters.length > 0" class="parameters-section">
+                <div class="parameters-header">
+                  <h4>
+                    <i class="pi pi-info-circle"></i>
+                    Parameter Examples (Required for Approval)
+                  </h4>
+                  <p class="helper-text">
+                    WhatsApp requires example values for each parameter to approve your template
+                  </p>
+                </div>
+                
+                <div class="parameters-list">
+                  <div *ngFor="let param of parameterExamples.controls; let i = index" 
+                       class="parameter-item"
+                       [formGroup]="getParameterFormGroup(param)">
+                    <div class="parameter-name">
+                      <i class="pi pi-tag"></i>
+                      <span>{{'{{'}}{{ param.get('param_name')?.value }}{{'}}'}}</span>
+                    </div>
+                    <div class="parameter-example">
+                      <label [for]="'param-example-' + i">Example Value *</label>
+                      <input [id]="'param-example-' + i"
+                             type="text" 
+                             pInputText 
+                             formControlName="example"
+                             placeholder="e.g., John Doe"
+                             class="w-full"
+                             [class.ng-invalid]="param.get('example')?.invalid && param.get('example')?.touched">
+                    </div>
+                  </div>
+                </div>
+                
+                <div class="parameters-info">
+                  <i class="pi pi-lightbulb"></i>
+                  <span>These examples help WhatsApp understand your template structure. They won't be sent to customers.</span>
+                </div>
+              </div>
+            </div>
+            
+            <!-- Footer Tab -->
+            <div class="tab-panel" *ngIf="activeTab === 3">
+              <div class="form-field">
+                <div class="checkbox-field">
+                  <p-checkbox formControlName="hasFooter" 
+                             [binary]="true" 
+                             inputId="hasFooter">
+                  </p-checkbox>
+                  <label for="hasFooter">Include Footer</label>
+                </div>
+              </div>
+              
+              <div *ngIf="templateForm.get('hasFooter')?.value" class="form-field">
+                <label for="footerText">Footer Text</label>
+                <input id="footerText" 
+                       type="text" 
+                       pInputText 
+                       formControlName="footerText"
+                       placeholder="e.g., Powered by YourCompany"
+                       class="w-full">
+                <small class="field-hint">Maximum 60 characters</small>
+              </div>
+            </div>
+            
+            <!-- Buttons Tab -->
+            <div class="tab-panel" *ngIf="activeTab === 4">
+              <div class="form-field">
+                <div class="checkbox-field">
+                  <p-checkbox formControlName="hasButtons" 
+                             [binary]="true" 
+                             inputId="hasButtons">
+                  </p-checkbox>
+                  <label for="hasButtons">Include Buttons</label>
+                </div>
+              </div>
+              
+              <div *ngIf="templateForm.get('hasButtons')?.value" class="buttons-config">
+                <div class="buttons-header">
+                  <h4>Action Buttons</h4>
+                  <button pButton 
+                          label="Add Button" 
+                          icon="pi pi-plus" 
+                          class="p-button-sm p-button-outlined"
+                          type="button"
+                          [disabled]="buttons.length >= 3"
+                          (click)="addButton()">
+                  </button>
+                </div>
+                
+                <div *ngIf="buttons.length === 0" class="no-buttons">
+                  <i class="pi pi-inbox"></i>
+                  <p>No buttons added yet</p>
+                  <span>Click "Add Button" to create action buttons</span>
+                </div>
+                
+                <div *ngFor="let button of buttons.controls; let i = index" 
+                     class="button-item"
+                     [formGroup]="getButtonFormGroup(button)">
+                  <div class="button-header">
+                    <span class="button-number">Button {{ i + 1 }}</span>
+                    <button pButton 
+                            icon="pi pi-trash" 
+                            class="p-button-sm p-button-text p-button-danger"
+                            type="button"
+                            (click)="removeButton(i)">
+                    </button>
+                  </div>
+                  
+                  <div class="button-fields">
+                    <div class="form-field">
+                      <label>Button Type</label>
+                      <p-select formControlName="type"
+                               [options]="buttonTypeOptions"
+                               optionLabel="label"
+                               optionValue="value"
+                               styleClass="w-full">
+                      </p-select>
+                    </div>
+                    
+                    <div class="form-field">
+                      <label>Button Text</label>
+                      <input type="text" 
+                             pInputText 
+                             formControlName="text"
+                             placeholder="e.g., Call Now"
+                             class="w-full">
+                    </div>
+                    
+                    <div *ngIf="button.get('type')?.value === 'PHONE_NUMBER'" class="form-field">
+                      <label>Phone Number</label>
+                      <input type="tel" 
+                             pInputText 
+                             formControlName="phone_number"
+                             placeholder="+1234567890"
+                             class="w-full">
+                    </div>
+                    
+                    <div *ngIf="button.get('type')?.value === 'URL'" class="form-field">
+                      <label>URL</label>
+                      <input type="url" 
+                             pInputText 
+                             formControlName="url"
+                             placeholder="https://example.com"
+                             class="w-full">
+                    </div>
+                  </div>
+                </div>
+                
+                <small class="field-hint">Maximum 3 buttons allowed</small>
+              </div>
+            </div>
+          </div>
+        </div>
+      </form>
+    </div>
+    
+    <!-- Preview Section -->
+    <div class="preview-section">
+      <div class="preview-header">
+        <h3>Live Preview</h3>
+        <p>See how your template will appear</p>
+      </div>
+      <div class="preview-wrapper">
+        <app-message-preview [selectedTemplateForPreview]="previewTemplate">
+        </app-message-preview>
+      </div>
+    </div>
+  </div>
+  
+  <ng-template pTemplate="footer">
+    <div class="dialog-footer">
+      <button pButton 
+              label="Cancel" 
+              icon="pi pi-times" 
+              class="p-button-text"
+              (click)="showTemplateDialog = false">
+      </button>
+      <button pButton 
+              [label]="editMode ? 'Update Template' : 'Create Template'"
+              icon="pi pi-check" 
+              class="p-button-primary"
+              [disabled]="templateForm.invalid"
+              (click)="saveTemplate()">
+      </button>
+    </div>
+  </ng-template>
+</p-dialog>
+
+<!-- Quick Preview Dialog -->
+<p-dialog [(visible)]="showQuickPreview" 
+          header="Template Preview"
+          [modal]="true" 
+          [style]="{width: '600px'}"
+          [draggable]="false"
+          styleClass="preview-only-dialog">
+  
+  <div class="quick-preview-wrapper">
+    <app-message-preview [selectedTemplateForPreview]="quickPreviewTemplate">
+    </app-message-preview>
+  </div>
+  
+  <ng-template pTemplate="footer">
+    <div class="dialog-footer">
+      <!-- Excel download buttons in preview dialog -->
+      <div class="excel-download-group" *ngIf="hasParameters(quickPreviewTemplate)">
+        <button pButton 
+                label="Download Sample Excel" 
+                icon="pi pi-file-excel" 
+                class="p-button-success p-button-sm"
+                (click)="downloadSampleExcel(quickPreviewTemplate)">
+        </button>
+        <button pButton 
+                label="Download Empty Template" 
+                icon="pi pi-download" 
+                class="p-button-help p-button-sm"
+                (click)="downloadEmptyExcel(quickPreviewTemplate)">
+        </button>
+      </div>
+    </div>
+  </ng-template>
+</p-dialog>
+
+<!-- Predefined Templates Dialog -->
+<p-dialog [(visible)]="showPredefineDialog" 
+          header="Choose Predefined Template"
+          [modal]="true" 
+          [style]="{width: '800px'}"
+          [draggable]="false"
+          styleClass="predefined-dialog">
+  
+  <div class="predefined-templates">
+    <p class="dialog-subtitle">Select a ready-made template to customize</p>
+    
+    <div class="predefined-grid">
+      <div *ngFor="let template of predefinedTemplates" 
+           class="predefined-card"
+           (click)="usePredefinedTemplate(template)">
+        <div class="predefined-icon">
+          <i class="pi pi-file"></i>
+        </div>
+        <div class="predefined-content">
+          <h4>{{ template.name | titlecase }}</h4>
+          <p-tag [value]="template.category" severity="info"></p-tag>
+          <p class="predefined-desc">
+            {{ getTemplateBodyText(template) }}
+          </p>
+        </div>
+        <div class="predefined-action">
+          <i class="pi pi-arrow-right"></i>
+        </div>
+      </div>
+    </div>
+  </div>
+</p-dialog>

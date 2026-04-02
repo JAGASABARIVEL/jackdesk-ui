@@ -120,7 +120,7 @@
                             pTooltip="Edit" 
                             tooltipPosition="top">
                         </button>
-                        <button 
+                        <button *ngIf="profile?.user.role === 'owner'" 
                             pButton 
                             icon="pi pi-trash" 
                             class="action-btn close-btn"

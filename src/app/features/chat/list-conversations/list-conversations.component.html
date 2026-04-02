@@ -12,58 +12,64 @@
     </div>
 
     <!-- Close Conversation Dialog -->
-    <p-dialog 
-        header="Close Conversation" 
-        [modal]="true" 
-        [(visible)]="closeConversationVisible" 
-        [style]="{ width: '500px' }"
-        [draggable]="false"
-        styleClass="modern-dialog">
-        <div class="dialog-content">
-            <div class="form-field">
-                <label for="closingReason" class="field-label">
-                    <i class="pi pi-comment mr-2"></i>Closing Reason
-                </label>
-                <input 
-                    pInputText 
-                    id="closingReason" 
-                    [(ngModel)]="closedReason" 
-                    placeholder="Enter reason for closing..."
-                    class="modern-input" 
-                    autocomplete="off" 
-                />
-            </div>
-            
-            <div class="form-field checkbox-field">
-                <p-checkbox 
-                    inputId="blockCheckbox" 
-                    name="blockContact" 
-                    [(ngModel)]="blockForm.should_block" 
-                    [binary]="true" 
-                />
-                <label for="blockCheckbox" class="checkbox-label">
-                    Block this contact
-                </label>
-            </div>
-        </div>
-        
-        <div class="dialog-footer">
-            <button 
-                pButton 
-                label="Cancel" 
-                icon="pi pi-times"
-                class="p-button-text" 
-                (click)="closedReason = ''; closeConversationVisible = false">
-            </button>
-            <button 
-                pButton 
-                label="Close Conversation" 
-                icon="pi pi-check"
-                class="gradient-button" 
-                (click)="closeTask()">
-            </button>
-        </div>
-    </p-dialog>
+    <!-- Close Conversation Dialog -->
+<p-dialog 
+  header="Close Conversation" 
+  [modal]="true" 
+  [(visible)]="closeConversationVisible" 
+  [style]="{ width: '500px' }"
+  [draggable]="false"
+  styleClass="modern-dialog">
+  <div class="dialog-content">
+    <div class="form-field">
+      <label for="closingReason" class="field-label">
+        <i class="pi pi-comment mr-2"></i>Closing Reason
+        <span class="text-red-500 ml-1">*</span>
+      </label>
+      <input 
+        pInputText 
+        id="closingReason" 
+        [(ngModel)]="closedReason" 
+        placeholder="Enter reason for closing..."
+        class="modern-input" 
+        autocomplete="off"
+        [ngClass]="{ 'ng-invalid ng-dirty': closeSubmitted && !closedReason?.trim() }"
+      />
+      <small class="p-error" *ngIf="closeSubmitted && !closedReason?.trim()">
+        Closing reason is required.
+      </small>
+    </div>
+    <div class="form-field checkbox-field">
+      <p-checkbox 
+        inputId="blockCheckbox" 
+        name="blockContact" 
+        [(ngModel)]="blockForm.should_block" 
+        [binary]="true" 
+      />
+      <label for="blockCheckbox" class="checkbox-label">
+        Block this contact
+      </label>
+    </div>
+  </div>
+  <div class="dialog-footer">
+    <button 
+      pButton 
+      label="Cancel" 
+      icon="pi pi-times"
+      class="p-button-text" 
+      (click)="onCloseConversationCancel()">
+    </button>
+    <button 
+      
+      pButton 
+      label="Close Conversation" 
+      icon="pi pi-check"
+      class="gradient-button" 
+      [disabled]="!closedReason?.trim()"
+      (click)="closeTask()">
+    </button>
+  </div>
+</p-dialog>
 
     <!-- Toolbar -->
     <div class="modern-toolbar">
@@ -231,6 +237,7 @@
                                 (click)="toggleDropdown(conversation)">
                             </button>
                             <button 
+                                *ngIf="profile?.user?.organization?.name !== 'M Karuppiah & Co'"
                                 pButton 
                                 icon="pi pi-lock" 
                                 class="action-btn close-btn"

@@ -1,0 +1,7 @@
+1. New topic:
+./kafka-topics.sh --create   --topic whtsapp   --bootstrap-server localhost:9092   --partitions 1   --replication-factor 1
+./kafka-topics.sh --create   --topic zombie_update   --bootstrap-server localhost:9092   --partitions 1   --replication-factor 1
+
+
+2. List topic:
+ec2-user@ip-172-31-33-212:/opt/kafka/bin> ./kafka-topics.sh --list --bootstrap-server localhost:9092

@@ -22,6 +22,7 @@ import { PlatformManagerService } from '../shared/services/platform-manager.serv
 import { UserProfileComponent } from '../auth/user-profile/user-profile.component';
 import { ChatManagerService } from '../shared/services/chat-manager.service';
 import { HoursToTimePipe } from '../shared/pipes/hourstotime.pipe';
+import { SessionTimeoutService } from '../shared/services/session-timeout.service';
 
 
 declare const google: any;
@@ -73,7 +74,7 @@ export class AppTopBarComponent implements OnInit, OnDestroy, AfterViewInit {
 
     constructor(
         private router: Router, 
-        private authService: SocialAuthService, 
+        private sessionService: SessionTimeoutService, 
         public layoutService: LayoutService, 
         private socketService: SocketService, 
         private localEventService: CUstomEventService, 
@@ -200,7 +201,7 @@ export class AppTopBarComponent implements OnInit, OnDestroy, AfterViewInit {
 
     private fetchActiveTimeSubscription: Subscription | undefined;
     fetchActiveTime() {
-        if (this.layoutService.isLoggedIn()) {
+        if (this.layoutService.isLoggedIn() && this.profile?.user?.is_productivity_enable) {
             this.fetchActiveTimeSubscription = this.productivityService.my_summary(this.start, this.end).subscribe(
                 {
                     next: (data: any) => {
@@ -258,21 +259,34 @@ export class AppTopBarComponent implements OnInit, OnDestroy, AfterViewInit {
         audio.play();
     }
 
-    refreshUnrespondedConversationNotifications(): void {
-        if (!this.layoutService.isLoggedIn()) {
-            return
-        }
-    this.conversationService.list_notification('chat')
-      .pipe(takeUntil(this.destroy$))
-      .subscribe({
-        next: (data: any) => {
-          this.layoutService.unrespondedConversationNotification.update(() => data);
-        },
-        error: (err) => {
-          console.error('Failed to refresh notifications:', err);
-        }
-      });
-  }
+    //refreshUnrespondedConversationNotifications(): void {
+    //    if (!this.layoutService.isLoggedIn()) {
+    //        return
+    //    }
+    //this.conversationService.list_notification('chat')
+    //  .pipe(takeUntil(this.destroy$))
+    //  .subscribe({
+    //    next: (data: any) => {
+    //      this.layoutService.unrespondedConversationNotification.update(() => data);
+    //    },
+    //    error: (err) => {
+    //      console.error('Failed to refresh notifications:', err);
+    //    }
+    //  });
+  //}
+
+  refreshUnrespondedConversationNotifications(): void {
+    if (!this.layoutService.isLoggedIn()) {
+        return;
+    }
+
+    this.conversationService.list_notification('chat', 1, 20)
+        .pipe(takeUntil(this.destroy$))
+        .subscribe({
+            next: (response: any) => this.layoutService.setNotifications(response),
+            error: (err) => console.error('Failed to refresh notifications:', err)
+        });
+}
 
     refreshNewConversationNotifications() {
         if (!this.layoutService.isLoggedIn()) {
@@ -455,6 +469,7 @@ export class AppTopBarComponent implements OnInit, OnDestroy, AfterViewInit {
     }
 
     invokelogout() {
+        this.sessionService.stopWatching();
         localStorage.clear();
         this.router.navigate(['/apps/login']);
         this.layoutService.menuItemsCache.update((prev) => []);

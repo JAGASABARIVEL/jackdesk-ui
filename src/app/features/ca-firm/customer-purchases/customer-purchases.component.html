@@ -245,6 +245,7 @@
                 tooltipPosition="top">
               </p-button>
               <p-button 
+                *ngIf="profile?.user.role === 'owner'"
                 icon="pi pi-trash" 
                 (onClick)="deletePurchase(purchase.id!)"
                 [rounded]="true"

@@ -244,40 +244,99 @@ loadConversations(page: number = this.currentPage, pageSize: number = this.pageS
     row.assigned = this.existingAssignee; // Clear selection
   }
 
-  refreshUnrespondedConversationNotifications() {
-        this.conversationService.list_notification("non-chat").pipe(takeUntil(this.destroy$)).subscribe({
-            next: (notificationData: ConversationNotificationTemplate) => {
-                this.layoutService.unrespondedConversationNotification.update((prev) => notificationData)
+  //refreshUnrespondedConversationNotifications() {
+  //      this.conversationService.list_notification("non-chat").pipe(takeUntil(this.destroy$)).subscribe({
+  //          next: (notificationData: ConversationNotificationTemplate) => {
+  //              this.layoutService.unrespondedConversationNotification.update((prev) => notificationData)
+  //          },
+  //          error: (err) => {console.error(`Could not get the conversation notifications ${err}`)}
+  //      });
+  //  }
+  // Component 2 (non-chat)
+refreshUnrespondedConversationNotifications(): void {
+    this.conversationService.list_notification('non-chat', 1, 20)
+        .pipe(takeUntil(this.destroy$))
+        .subscribe({
+            next: (response: any) => {
+                const data = response.results ?? response;
+                const notifications = data.notifications ?? data;
+                const totalCount: number = data.conversation_count ?? response.count ?? notifications.length;
+
+                this.layoutService.unrespondedConversationNotification.set({
+                    conversation_count: totalCount,
+                    notifications: notifications
+                });
             },
-            error: (err) => {console.error(`Could not get the conversation notifications ${err}`)}
+            error: (err) => console.error(`Could not get the conversation notifications: ${err}`)
         });
-    }
+}
+
+  //closeConversationVisible = false;
+  //closedReason;
+  //selectedConversation;
+  //closePreTask(conversation) {
+  //  this.closeConversationVisible = true;
+  //  this.selectedConversation = conversation
+  //}
+  //closeTask() {
+  //  this.conversationService.close_conversation(
+  //    "chat",
+  //    this.selectedConversation.id,
+  //    {
+  //      "closed_reason": this.closedReason
+  //    }
+  //  ).pipe(takeUntil(this.destroy$)).subscribe((data)=>{
+  //    this.refreshUnrespondedConversationNotifications();
+  //    this.closeConversationVisible = false;
+  //    this.messageService.add({ severity: 'success', summary: 'Success', detail: 'Conversation closed successfully' });
+  //    this.loadConversations(this.currentPage, this.pageSize);
+  //    this.assignmentEventService.emitCloseConversation("skip");
+  //  });
+  //  if (this.blockForm.should_block) {
+  //    this.submitBlockContact();
+  //  }
+  //}
 
   closeConversationVisible = false;
-  closedReason;
-  selectedConversation;
-  closePreTask(conversation) {
-    this.closeConversationVisible = true;
-    this.selectedConversation = conversation
+closedReason = '';
+closeSubmitted = false;
+selectedConversation;
+
+onCloseConversationCancel(): void {
+  this.closedReason = '';
+  this.closeSubmitted = false;
+  this.closeConversationVisible = false;
+}
+
+closePreTask(conversation): void {
+  this.closedReason = '';
+  this.closeSubmitted = false;
+  this.selectedConversation = conversation;
+  this.closeConversationVisible = true;
+}
+
+closeTask(): void {
+  this.closeSubmitted = true;
+  if (!this.closedReason?.trim()) return;
+
+  this.conversationService.close_conversation(
+    "chat",
+    this.selectedConversation.id,
+    { "closed_reason": this.closedReason }
+  ).pipe(takeUntil(this.destroy$)).subscribe((data) => {
+    this.closeConversationVisible = false;
+    this.closedReason = '';
+    this.closeSubmitted = false;
+    this.refreshUnrespondedConversationNotifications();
+    this.messageService.add({ severity: 'success', summary: 'Success', detail: 'Conversation closed successfully' });
+    this.loadConversations(this.currentPage, this.pageSize);
+    this.assignmentEventService.emitCloseConversation("skip");
+  });
+
+  if (this.blockForm.should_block) {
+    this.submitBlockContact();
   }
-  closeTask() {
-    this.conversationService.close_conversation(
-      "chat",
-      this.selectedConversation.id,
-      {
-        "reason": this.closedReason
-      }
-    ).pipe(takeUntil(this.destroy$)).subscribe((data)=>{
-      this.refreshUnrespondedConversationNotifications();
-      this.closeConversationVisible = false;
-      this.messageService.add({ severity: 'success', summary: 'Success', detail: 'Conversation closed successfully' });
-      this.loadConversations(this.currentPage, this.pageSize);
-      this.assignmentEventService.emitCloseConversation("skip");
-    });
-    if (this.blockForm.should_block) {
-      this.submitBlockContact();
-    }
-  }
+}
 
    blockForm = {
   platform: null,

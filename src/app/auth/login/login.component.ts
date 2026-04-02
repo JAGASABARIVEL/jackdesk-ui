@@ -21,6 +21,7 @@ import { SocketService } from '../../shared/services/socketio.service';
 import { Subject, takeUntil } from 'rxjs';
 import { CUstomEventService } from '../../shared/services/Events/custom-events.service';
 import { AppInitializationService } from '../../shared/services/init.services';
+import { SessionTimeoutService } from '../../shared/services/session-timeout.service';
 
 
 declare var google: any;  // Add this at the top
@@ -77,7 +78,8 @@ export class LoginComponent implements OnInit, OnDestroy {
     private localEventService: CUstomEventService,
     private userManagerService: UserManagerService,
     private layoutService: LayoutService,
-    private appInitService: AppInitializationService
+    private appInitService: AppInitializationService,
+    private sessionService: SessionTimeoutService
     
   ) {
   }
@@ -410,7 +412,7 @@ export class LoginComponent implements OnInit, OnDestroy {
       icon: 'pi pi-megaphone',
       items: [
         {
-          label: 'Reports',
+          label: 'Journal',
           icon: 'pi pi-history',
           routerLink: ['/apps/history'],
         },
@@ -432,7 +434,7 @@ export class LoginComponent implements OnInit, OnDestroy {
       icon: 'pi pi-megaphone',
       items: [
         {
-          label: 'Reports',
+          label: 'Journal',
           icon: 'pi pi-history',
           routerLink: ['/apps/history'],
         },
@@ -532,7 +534,7 @@ export class LoginComponent implements OnInit, OnDestroy {
                     routerLink: ['/apps/chat-active'],
                   },
                   {
-                    label: 'Reports (WIP)',
+                    label: 'Journal',
                     icon: 'pi pi-ticket',
                     routerLink: ['/apps/ticketing'],
                   },
@@ -569,6 +571,10 @@ export class LoginComponent implements OnInit, OnDestroy {
         );
         if (this.profile["user"]["is_registration_complete"] === true) {
           this.layoutService.isLoggedIn.set(true);
+          //this.sessionService.startWatching({
+          //  idleTimeoutMs: 12 * 60 * 60 * 1000,   // 12 hours
+          //  warningDurationMs: 60 * 1000,     // 60 second warning
+          //});
           this.localEventService.emitLoginSuccessNotification(profile);
           this.routeAppropriate();
         }

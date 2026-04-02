@@ -10,6 +10,7 @@ import { AccordionModule } from 'primeng/accordion';
 import { trigger, transition, style, animate } from '@angular/animations';
 import { LayoutService } from '../../layout/service/app.layout.service';
 import { VERSION, RELEASE_NOTES } from '../../../environment';
+import { SessionTimeoutService } from '../../shared/services/session-timeout.service';
 
 declare const google: any;
 
@@ -63,7 +64,8 @@ export class UserProfileComponent implements OnInit, OnDestroy, AfterViewInit {
 
   constructor(
     private layoutService: LayoutService,
-    private router: Router
+    private router: Router,
+    private sessionService: SessionTimeoutService,
   ) {}
 
   versions: string[] = [];
@@ -135,24 +137,36 @@ ngAfterViewInit() {
   }
 
   invokelogout() {
+    this.sessionService.stopWatching();
     this.logoutEvent.emit();
     localStorage.clear();
-    this.router.navigate(['/apps/login']);
+    this.router.navigate(['']);
     this.layoutService.menuItemsCache.update((prev) => []);
   }
 
   logout() {
     this.showDropdown = false;
     let googleLoginDetails = JSON.parse(localStorage.getItem("googleLoginDetails") || '{}');
-    const user = googleLoginDetails?.user || null;
+    const google_user = googleLoginDetails?.user || null;
     
-    if (!user) {
+    if (!google_user) {
       this.invokelogout();
       return;
     }
     
-    google.accounts.id.revoke(user.email, () => {
+    if (google_user){
       this.invokelogout();
-    });
+      // TODO: If the user is invoked or stale entries it can not be revoked and
+      // the login flow break. Hence for now we are logging out the application
+      // without worrying about google logout.
+      //try {
+      //  google.accounts.id.revoke(google_user.email, () => {
+      //    this.invokelogout();
+      //  });
+      //} catch (e) {
+      //  console.error(e);
+      //  this.invokelogout();
+      //}
+    }
   }
 }

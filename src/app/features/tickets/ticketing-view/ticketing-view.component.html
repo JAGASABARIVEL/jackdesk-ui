@@ -1,26 +1,18 @@
-<!-- ticketing-view.component.html - FIXED VERSION -->
-<div class="px-4 py-5 md:px-6 lg:px-8">
-  
-  <!-- Header with Quick Stats -->
+<!-- ticketing-view.component.html - IMPROVED VERSION -->
+<div class="ticketing-wrapper px-4 py-5 md:px-6 lg:px-8">
+
+  <!-- Header -->
   <div class="flex justify-content-between align-items-center mb-4">
     <div>
       <h2 class="text-3xl font-bold text-900 m-0">Conversation Journal</h2>
-      <p class="text-600 mt-2">Track and view all customer conversations as journal</p>
+      <p class="text-600 mt-1 mb-0">Track and view all customer conversations</p>
     </div>
     <div class="flex gap-2">
-      <p-button 
-        icon="pi pi-refresh" 
-        (onClick)="loadTickets(); loadSummary()" 
-        [outlined]="true"
-        label="Refresh"
-        severity="secondary">
+      <p-button icon="pi pi-refresh" (onClick)="loadTickets(); loadSummary()"
+        [outlined]="true" label="Refresh" severity="secondary">
       </p-button>
-      <p-button 
-        icon="pi pi-download" 
-        (onClick)="exportToCSV()" 
-        [outlined]="true"
-        label="Export"
-        severity="secondary">
+      <p-button icon="pi pi-download" (onClick)="exportToCSV()"
+        [outlined]="true" label="Export" severity="secondary">
       </p-button>
     </div>
   </div>
@@ -34,8 +26,8 @@
             <span class="text-500 font-medium mb-2">Total</span>
             <span class="text-900 font-bold text-4xl">{{ summary.total_tickets }}</span>
           </div>
-          <div class="flex align-items-center justify-content-center bg-blue-100 border-round" 
-               style="width:3.5rem;height:3.5rem">
+          <div class="flex align-items-center justify-content-center bg-blue-100 border-round"
+            style="width:3.5rem;height:3.5rem">
             <i class="pi pi-ticket text-blue-500 text-2xl"></i>
           </div>
         </div>
@@ -48,23 +40,19 @@
 
     <div class="col-12 md:col-6 lg:col-3">
       <div class="surface-card shadow-2 p-4 border-round hover:shadow-4 transition-duration-200 cursor-pointer"
-           (click)="filters.status = 'new'; onFilterChange()">
+        (click)="filters.status = 'new'; onFilterChange()">
         <div class="flex justify-content-between align-items-start mb-3">
           <div class="flex flex-column">
             <span class="text-500 font-medium mb-2">New</span>
             <span class="text-900 font-bold text-4xl">{{ summary.new_tickets }}</span>
           </div>
-          <div class="flex align-items-center justify-content-center bg-red-100 border-round" 
-               style="width:3.5rem;height:3.5rem">
+          <div class="flex align-items-center justify-content-center bg-red-100 border-round"
+            style="width:3.5rem;height:3.5rem">
             <i class="pi pi-circle-fill text-red-500 text-2xl"></i>
           </div>
         </div>
         <div class="flex align-items-center">
-          <p-badge 
-            *ngIf="summary.overdue_tickets > 0"
-            [value]="summary.overdue_tickets" 
-            severity="danger">
-          </p-badge>
+          <p-badge *ngIf="summary.overdue_tickets > 0" [value]="summary.overdue_tickets" severity="danger"></p-badge>
           <span class="text-500 ml-2">{{ summary.overdue_tickets }} overdue</span>
         </div>
       </div>
@@ -72,14 +60,14 @@
 
     <div class="col-12 md:col-6 lg:col-3">
       <div class="surface-card shadow-2 p-4 border-round hover:shadow-4 transition-duration-200 cursor-pointer"
-           (click)="filters.status = 'active'; onFilterChange()">
+        (click)="filters.status = 'active'; onFilterChange()">
         <div class="flex justify-content-between align-items-start mb-3">
           <div class="flex flex-column">
             <span class="text-500 font-medium mb-2">Active</span>
             <span class="text-900 font-bold text-4xl">{{ summary.active_tickets }}</span>
           </div>
-          <div class="flex align-items-center justify-content-center bg-orange-100 border-round" 
-               style="width:3.5rem;height:3.5rem">
+          <div class="flex align-items-center justify-content-center bg-orange-100 border-round"
+            style="width:3.5rem;height:3.5rem">
             <i class="pi pi-clock text-orange-500 text-2xl"></i>
           </div>
         </div>
@@ -94,14 +82,14 @@
 
     <div class="col-12 md:col-6 lg:col-3">
       <div class="surface-card shadow-2 p-4 border-round hover:shadow-4 transition-duration-200 cursor-pointer"
-           (click)="filters.status = 'closed'; onFilterChange()">
+        (click)="filters.status = 'closed'; onFilterChange()">
         <div class="flex justify-content-between align-items-start mb-3">
           <div class="flex flex-column">
             <span class="text-500 font-medium mb-2">Resolved</span>
             <span class="text-900 font-bold text-4xl">{{ summary.closed_tickets }}</span>
           </div>
-          <div class="flex align-items-center justify-content-center bg-green-100 border-round" 
-               style="width:3.5rem;height:3.5rem">
+          <div class="flex align-items-center justify-content-center bg-green-100 border-round"
+            style="width:3.5rem;height:3.5rem">
             <i class="pi pi-check-circle text-green-500 text-2xl"></i>
           </div>
         </div>
@@ -113,33 +101,23 @@
     </div>
   </div>
 
-  <!-- Filters Section (Removed Priority) -->
+  <!-- Filters Section -->
   <div class="surface-card shadow-2 p-4 border-round mb-4">
     <div class="grid align-items-end">
       <div class="col-12 md:col-6 lg:col-3">
         <label class="block text-900 font-medium mb-2">Search</label>
         <span class="p-input-icon-left w-full">
           <i class="pi pi-search"></i>
-          <input 
-            pInputText 
-            type="text" 
-            [(ngModel)]="filters.searchQuery"
-            (keyup.enter)="onFilterChange()"
-            placeholder="Search tickets..."
-            class="w-full" />
+          <input pInputText type="text" [(ngModel)]="filters.searchQuery"
+            (keyup.enter)="onFilterChange()" placeholder="Search tickets..." class="w-full" />
         </span>
       </div>
 
       <div class="col-12 md:col-6 lg:col-3">
         <label class="block text-900 font-medium mb-2">Status</label>
-        <p-select 
-          [options]="statusOptions" 
-          [(ngModel)]="filters.status"
-          (onChange)="onFilterChange()"
-          optionLabel="label"
-          optionValue="value"
-          placeholder="All Statuses"
-          class="w-full">
+        <p-select [options]="statusOptions" [(ngModel)]="filters.status"
+          (onChange)="onFilterChange()" optionLabel="label" optionValue="value"
+          placeholder="All Statuses" class="w-full">
           <ng-template #item let-option>
             <div class="flex align-items-center gap-2">
               <i [class]="'pi ' + option.icon" [style.color]="option.color"></i>
@@ -151,159 +129,173 @@
 
       <div class="col-12 md:col-6 lg:col-2">
         <label class="block text-900 font-medium mb-2">Date Range</label>
-        <p-select 
-          [options]="dateRangeOptions" 
-          [(ngModel)]="filters.dateRange"
-          (onChange)="onFilterChange()"
-          optionLabel="label"
-          optionValue="value"
-          class="w-full">
+        <p-select [options]="dateRangeOptions" [(ngModel)]="filters.dateRange"
+          (onChange)="onFilterChange()" optionLabel="label" optionValue="value" class="w-full">
         </p-select>
       </div>
 
       <div class="col-12 md:col-6 lg:col-2">
         <label class="block text-900 font-medium mb-2">Assignment</label>
         <div class="flex align-items-center h-3rem">
-          <p-checkbox 
-            [(ngModel)]="filters.assignedToMe"
-            (onChange)="onFilterChange()"
-            [binary]="true"
-            inputId="assignedToMe">
+          <p-checkbox [(ngModel)]="filters.assignedToMe" (onChange)="onFilterChange()"
+            [binary]="true" inputId="assignedToMe">
           </p-checkbox>
           <label for="assignedToMe" class="ml-2 cursor-pointer">My Tickets</label>
         </div>
       </div>
 
       <div class="col-12 md:col-6 lg:col-2">
-        <p-button 
-          icon="pi pi-filter-slash" 
-          (onClick)="clearFilters()"
-          [outlined]="true"
-          label="Clear"
-          severity="secondary"
-          class="w-full">
+        <p-button icon="pi pi-filter-slash" (onClick)="clearFilters()"
+          [outlined]="true" label="Clear" severity="secondary" class="w-full">
         </p-button>
       </div>
     </div>
   </div>
 
-  <!-- Tickets Table (Removed Priority Column) -->
+  <!-- Tickets Table -->
   <div class="surface-card shadow-2 border-round">
-    <p-table 
-      [value]="tickets" 
-      [loading]="loading"
-      [lazy]="true"
-      (onLazyLoad)="onPageChange($event)"
-      [paginator]="true" 
-      [rows]="20"
-      [totalRecords]="totalRecords"
-      [showCurrentPageReport]="true"
+
+    <!-- Table Toolbar: column picker -->
+    <div class="flex align-items-center justify-content-between px-3 py-2 border-bottom-1 surface-border">
+      <span class="text-600 text-sm">
+        {{ totalRecords }} ticket{{ totalRecords !== 1 ? 's' : '' }}
+      </span>
+      <div class="flex align-items-center gap-2">
+        <span class="text-600 text-sm">Columns:</span>
+        <p-multiSelect
+          [options]="columnOptions"
+          [(ngModel)]="visibleColumnKeys"
+          optionLabel="label"
+          optionValue="key"
+          placeholder="Choose columns"
+          [showToggleAll]="true"
+          display="chip"
+          styleClass="column-picker"
+          [style]="{'min-width': '220px'}"
+          (onChange)="onColumnToggle()">
+        </p-multiSelect>
+      </div>
+    </div>
+
+    <p-table [value]="tickets" [loading]="loading" [lazy]="true"
+      (onLazyLoad)="onPageChange($event)" [paginator]="true" [rows]="20"
+      [totalRecords]="totalRecords" [showCurrentPageReport]="true"
       currentPageReportTemplate="Showing {first} to {last} of {totalRecords} tickets"
-      [rowsPerPageOptions]="[10, 20, 50, 100]"
-      responsiveLayout="scroll"
-      styleClass="p-datatable-gridlines">
-      
+      [rowsPerPageOptions]="[10, 20, 50, 100]" responsiveLayout="scroll"
+      styleClass="p-datatable-gridlines" [rowTrackBy]="trackByTicketId">
+
       <ng-template #header>
         <tr>
+          <!-- Always visible: ID -->
           <th style="width: 100px">ID</th>
-          <th>Customer</th>
-          <th style="width: 100px">Status</th>
-          <th style="width: 120px">Channel</th>
-          <th style="width: 150px">Assignee</th>
-          <th style="width: 100px">Messages</th>
-          <th style="width: 100px">Age</th>
-          <th style="width: 100px">Actions</th>
+          <!-- Always visible: Customer -->
+          <th style="width: 200px">Customer</th>
+
+          <!-- Toggleable columns -->
+          <th *ngIf="isColumnVisible('status')"       style="width: 100px">Status</th>
+          <th *ngIf="isColumnVisible('channel')"      style="width: 80px">Channel</th>
+          <th *ngIf="isColumnVisible('assignee')"     style="width: 150px">Assignee</th>
+          <th *ngIf="isColumnVisible('messages')"     style="width: 100px">Messages</th>
+          <th *ngIf="isColumnVisible('age')"          style="width: 100px">Age</th>
+          <th *ngIf="isColumnVisible('closed_reason')" style="width: 160px">Closed Reason</th>
+
+          <!-- Always visible: Actions -->
+          <th style="width: 80px">Actions</th>
         </tr>
       </ng-template>
-      
+
       <ng-template #body let-ticket>
         <tr [class.bg-red-50]="ticket.is_overdue">
+
+          <!-- Always: ID -->
           <td>
-            <span class="font-semibold text-900">{{ ticket.ticket_id }}</span>
+            <span class="font-semibold text-primary">{{ ticket.ticket_id }}</span>
           </td>
-          
+
+          <!-- Always: Customer -->
           <td>
             <div class="flex align-items-center gap-2">
-              <p-avatar 
-                [label]="(ticket.contact?.name || ticket.contact?.phone)?.charAt(0).toUpperCase()"
-                shape="circle"
-                [style]="{'background-color': '#6366f1', 'color': '#ffffff'}">
+              <p-avatar [label]="(ticket.contact?.name || ticket.contact?.phone)?.charAt(0).toUpperCase()"
+                shape="circle" [style]="{'background-color': '#6366f1', 'color': '#ffffff'}">
               </p-avatar>
               <div class="flex flex-column">
-                <span class="font-semibold text-900">
-                  {{ ticket.contact?.name || 'Unknown' }}
-                </span>
+                <span class="font-semibold text-900">{{ ticket.contact?.name || 'Unknown' }}</span>
                 <span class="text-600 text-sm">{{ ticket.contact?.phone }}</span>
               </div>
             </div>
           </td>
-          
-          <td>
-            <p-tag 
-              [value]="ticket.status" 
-              [severity]="getStatusSeverity(ticket.status)"
-              [rounded]="true">
-            </p-tag>
+
+          <!-- Toggleable: Status -->
+          <td *ngIf="isColumnVisible('status')">
+            <p-tag [value]="ticket.status" [severity]="getStatusSeverity(ticket.status)" [rounded]="true"></p-tag>
           </td>
-          
-          <td>
-            <div class="flex align-items-center gap-2">
-              <i class="pi pi-whatsapp text-green-500"></i>
-              <span class="text-900">{{ ticket.platform?.platform_name }}</span>
+
+          <!-- Toggleable: Channel -->
+          <td *ngIf="isColumnVisible('channel')">
+            <div class="flex align-items-center justify-content-center">
+              <i *ngIf="ticket.contact?.platform_name === 'whatsapp'"
+                class="pi pi-whatsapp text-green-500 text-xl" pTooltip="WhatsApp"></i>
+              <i *ngIf="ticket.contact?.platform_name === 'gmail'"
+                class="pi pi-envelope text-red-500 text-xl" pTooltip="Gmail"></i>
             </div>
           </td>
-          
-          <td>
-            <div *ngIf="ticket.assigned_user" class="flex align-items-center gap-2">
-              <p-avatar 
-                [label]="ticket.assigned_user.username?.charAt(0).toUpperCase()"
-                size="normal"
-                shape="circle"
+
+          <!-- Toggleable: Assignee -->
+          <td *ngIf="isColumnVisible('assignee')">
+            <div *ngIf="ticket.assigned?.name" class="flex align-items-center gap-2">
+              <p-avatar [label]="ticket.assigned?.name?.charAt(0).toUpperCase()"
+                size="normal" shape="circle"
                 [style]="{'background-color': '#10b981', 'color': '#ffffff'}">
               </p-avatar>
-              <span class="text-900">{{ ticket.assigned_user.username }}</span>
+              <span class="text-900">{{ ticket.assigned?.name }}</span>
             </div>
-            <span *ngIf="!ticket.assigned_user" class="text-500">Unassigned</span>
+            <span *ngIf="!ticket.assigned" class="text-400 text-sm">Unassigned</span>
           </td>
-          
-          <td>
+
+          <!-- Toggleable: Messages -->
+          <td *ngIf="isColumnVisible('messages')">
             <div class="flex align-items-center gap-2">
               <i class="pi pi-comments text-500"></i>
-              <span class="text-900">{{ ticket.message_count }}</span>
+              <span class="text-900 font-semibold">{{ ticket.message_count }}</span>
             </div>
           </td>
-          
-          <td>
+
+          <!-- Toggleable: Age -->
+          <td *ngIf="isColumnVisible('age')">
             <div class="flex flex-column gap-1">
-              <span class="text-900">{{ ticket.age_display }}</span>
-              <p-badge 
-                *ngIf="ticket.is_overdue"
-                value="Overdue" 
-                severity="danger">
-              </p-badge>
+              <span class="text-900 text-sm">{{ ticket.age_display }}</span>
+              <p-badge *ngIf="ticket.is_overdue" value="Overdue" severity="danger"></p-badge>
             </div>
           </td>
-          
+
+          <!-- Toggleable: Closed Reason -->
+          <td *ngIf="isColumnVisible('closed_reason')">
+            <span *ngIf="ticket.status === 'closed' && ticket.closed_reason"
+              class="text-900 text-sm">{{ ticket.closed_reason }}</span>
+            <span *ngIf="ticket.status !== 'closed'" class="text-300 text-sm">—</span>
+            <span *ngIf="ticket.status === 'closed' && !ticket.closed_reason"
+              class="text-400 text-sm font-italic">Not specified</span>
+          </td>
+
+          <!-- Always: Actions -->
           <td>
-            <p-button 
-              icon="pi pi-eye" 
-              (onClick)="viewTicketDetail(ticket)"
-              [outlined]="true"
-              severity="secondary"
-              size="small"
-              pTooltip="View Details">
+            <p-button icon="pi pi-eye" (onClick)="viewTicketDetail(ticket)"
+              [outlined]="true" severity="secondary" size="small" pTooltip="View Conversation">
             </p-button>
           </td>
         </tr>
       </ng-template>
-      
+
       <ng-template #emptymessage>
         <tr>
-          <td colspan="8" class="text-center p-5">
+          <td [attr.colspan]="visibleColumnCount" class="text-center p-6">
             <div class="flex flex-column align-items-center gap-3">
-              <i class="pi pi-inbox text-6xl text-400"></i>
+              <i class="pi pi-inbox text-6xl text-300"></i>
               <span class="text-900 text-xl font-semibold">No tickets found</span>
-              <span class="text-600">Try adjusting your filters</span>
+              <span class="text-500">Try adjusting your filters or date range</span>
+              <p-button label="Clear Filters" icon="pi pi-filter-slash"
+                [outlined]="true" severity="secondary" (onClick)="clearFilters()">
+              </p-button>
             </div>
           </td>
         </tr>
@@ -312,334 +304,266 @@
   </div>
 </div>
 
-<!-- Ticket Detail Dialog with Messages -->
-<p-dialog 
-  [(visible)]="ticketDetailVisible" 
+<!-- ============================================================ -->
+<!-- Ticket Detail Dialog — FIX #1: Proper scroll, FIX #3: Template -->
+<!-- ============================================================ -->
+<p-dialog
+  [(visible)]="ticketDetailVisible"
   [modal]="true"
-  [style]="{width: '90vw', height: '90vh'}"
+  [style]="{width: '92vw', maxWidth: '1200px'}"
   [breakpoints]="{'960px': '95vw'}"
   [draggable]="false"
-  [resizable]="false">
+  [resizable]="false"
+  styleClass="ticket-detail-dialog"
+  (onHide)="onDialogHide()">
+
   <ng-template #header>
-    <div class="flex align-items-center gap-3">
-      <span class="text-2xl font-bold">{{ selectedTicket?.ticket_id }}</span>
-      <p-tag 
-        [value]="selectedTicket?.status" 
+    <div class="flex align-items-center gap-3 w-full">
+      <span class="text-xl font-bold text-900">{{ selectedTicket?.ticket_id }}</span>
+      <p-tag *ngIf="selectedTicket?.status"
+        [value]="selectedTicket?.status"
         [severity]="getStatusSeverity(selectedTicket?.status)">
       </p-tag>
+      <div class="ml-auto flex align-items-center gap-2 mr-2">
+        <!-- Channel badge -->
+        <div *ngIf="selectedTicket?.contact?.platform_name === 'whatsapp'"
+          class="flex align-items-center gap-1 px-2 py-1 border-round bg-green-50">
+          <i class="pi pi-whatsapp text-green-600"></i>
+          <span class="text-green-700 text-sm font-medium">WhatsApp</span>
+        </div>
+        <div *ngIf="selectedTicket?.contact?.platform_name === 'gmail'"
+          class="flex align-items-center gap-1 px-2 py-1 border-round bg-red-50">
+          <i class="pi pi-envelope text-red-600"></i>
+          <span class="text-red-700 text-sm font-medium">Gmail</span>
+        </div>
+      </div>
     </div>
   </ng-template>
-  
-  <div *ngIf="loadingDetail" class="flex justify-content-center align-items-center p-5">
-    <i class="pi pi-spin pi-spinner text-4xl text-primary"></i>
+
+  <!-- Loading State -->
+  <div *ngIf="loadingDetail" class="flex justify-content-center align-items-center" style="height: 400px;">
+    <div class="flex flex-column align-items-center gap-3">
+      <i class="pi pi-spin pi-spinner text-4xl text-primary"></i>
+      <span class="text-500">Loading conversation...</span>
+    </div>
   </div>
-  
-  <div *ngIf="!loadingDetail && selectedTicket" class="grid" style="height: calc(90vh - 150px);">
-    <!-- Left Column - Messages -->
-    <div class="col-12 md:col-8">
-      <div class="surface-card p-4 border-round h-full flex flex-column">
-        <h3 class="mt-0 mb-3">Conversation Messages</h3>
-        
-        <p-scrollPanel [style]="{width: '100%', height: 'calc(100% - 50px)'}">
-          <div class="flex flex-column gap-3">
-            <div 
-              *ngFor="let message of selectedTicket.messages" 
-              class="flex"
-              [class.justify-content-end]="message.sender_type === 'agent'"
-              [class.justify-content-start]="message.sender_type !== 'agent'">
-              
-              <div 
-                class="p-3 border-round max-w-30rem"
-                [class.bg-blue-100]="message.sender_type === 'agent'"
-                [class.bg-gray-100]="message.sender_type !== 'agent'">
-                
-                <!-- Sender Info -->
-                <div class="flex align-items-center gap-2 mb-2">
-                  <p-avatar 
-                    [label]="message.sender_type === 'agent' 
-                      ? (message.sent_by?.username?.charAt(0).toUpperCase() || 'A') 
-                      : (selectedTicket.contact?.name?.charAt(0).toUpperCase() || 'C')"
-                    size="normal"
-                    shape="circle"
-                    [style]="{'background-color': message.sender_type === 'agent' ? '#3B82F6' : '#10B981', 'color': '#ffffff'}">
-                  </p-avatar>
-                  <div class="flex flex-column">
-                    <span class="font-semibold text-sm">
-                      {{ message.sender_type === 'agent' 
-                        ? (message.sent_by?.username || 'Agent') 
+
+  <!-- FIX #1: Dialog body uses fixed height with native overflow scroll (NOT p-scrollPanel inside flex h-full) -->
+  <div *ngIf="!loadingDetail && selectedTicket" class="dialog-body-grid">
+
+    <!-- LEFT: Conversation Messages -->
+    <!-- FIX #1: native overflow-y: auto on a fixed-height container — no scroll conflict -->
+    <div class="conv-messages-col">
+      <div class="conv-header">
+        <i class="pi pi-comments mr-2 text-primary"></i>
+        <span class="font-semibold text-900">Conversation</span>
+        <span class="ml-auto text-500 text-sm">{{ selectedTicket.messages?.length || 0 }} messages</span>
+      </div>
+
+      <!-- FIX #2: trackBy on *ngFor prevents stuck messages; native scroll div -->
+      <div class="conv-scroll-area" #messageScrollContainer>
+        <div class="conv-messages-list">
+
+          <!-- Date separator helper -->
+          <ng-container *ngFor="let message of selectedTicket.messages; trackBy: trackByMessageId; let i = index">
+
+            <!-- Date separator when day changes -->
+            <div *ngIf="shouldShowDateSeparator(message, selectedTicket.messages[i - 1])"
+              class="date-separator">
+              <span>{{ message.created_at | date:'mediumDate' }}</span>
+            </div>
+
+            <!-- Message Bubble -->
+            <div class="message-bubble-wrapper"
+              [class.agent-message]="message.sender_type === 'agent'"
+              [class.customer-message]="message.sender_type !== 'agent'">
+
+              <!-- Avatar -->
+              <p-avatar
+                [label]="message.sender_type === 'agent'
+                  ? (message.sent_by?.username?.charAt(0).toUpperCase() || 'A')
+                  : (selectedTicket.contact?.name?.charAt(0).toUpperCase() || 'C')"
+                size="normal"
+                shape="circle"
+                [style]="{'background-color': message.sender_type === 'agent' ? '#3B82F6' : '#10B981',
+                           'color': '#ffffff', 'flex-shrink': '0'}">
+              </p-avatar>
+
+              <!-- Bubble Content -->
+              <div class="bubble-content">
+                <!-- Sender + Time -->
+                <div class="bubble-meta">
+                  <span class="bubble-sender">
+                    {{ message.sender_type === 'agent'
+                        ? (message.sent_by?.username || 'Agent')
                         : (selectedTicket.contact?.name || 'Customer') }}
-                    </span>
-                    <span class="text-xs text-600">
-                      {{ message.created_at | date:'short' }}
-                    </span>
+                  </span>
+                  <span class="bubble-time">{{ message.created_at | date:'shortTime' }}</span>
+                </div>
+
+                <!-- FIX #3: WhatsApp Template rendering -->
+                <ng-container *ngIf="message.template && selectedTicket.contact?.platform_name === 'whatsapp'">
+                  <app-message-preview
+                    [selectedTemplateForPreview]="message.template"
+                    [media_url]="message.media_url"
+                    (previewReady)="onTemplatePreviewReadyEvent($event)"
+                    [messageDetails]="message"
+                    [location_data]="message?.location_data"
+                    >
+                  </app-message-preview>
+                </ng-container>
+
+                <!-- Non-Template Message -->
+                <ng-container *ngIf="!message.template || selectedTicket.contact?.platform_name !== 'whatsapp'">
+                  <!-- Text Body -->
+                  <div *ngIf="message.message_body" class="bubble-text">
+                    {{ message.message_body }}
                   </div>
+
+                  <!-- Media Content -->
+                  <div *ngIf="isMediaMessage(message)" class="bubble-media">
+
+                    <!-- Single media_url (WhatsApp style) -->
+                    <ng-container *ngIf="!hasMultipleMediaUrls(message)">
+                      <img *ngIf="isImageType(message)"
+                        [src]="message.media_url" alt="Image"
+                        class="media-image"
+                        (click)="viewOrDownloadFile(message.media_url)" />
+
+                      <video *ngIf="isVideoType(message)"
+                        [src]="message.media_url" controls class="media-video">
+                      </video>
+
+                      <audio *ngIf="isAudioType(message)"
+                        [src]="message.media_url" controls class="media-audio w-full">
+                      </audio>
+
+                      <iframe *ngIf="isPdfType(message)"
+                        [src]="message.media_url | safeUrl"
+                        class="media-pdf" style="border:none;">
+                      </iframe>
+
+                      <!-- Document / Spreadsheet / ZIP -->
+                      <div *ngIf="!isImageType(message) && !isVideoType(message) && !isAudioType(message) && !isPdfType(message)"
+                        class="media-doc-chip" (click)="viewOrDownloadFile(message.media_url)">
+                        <img [src]="getDocIcon(message)" style="width:36px;height:36px;" alt="file" />
+                        <div class="flex flex-column">
+                          <span class="font-semibold text-sm">{{ getDocLabel(message) }}</span>
+                          <span class="text-xs text-500">Click to download</span>
+                        </div>
+                        <i class="pi pi-download text-500 ml-auto"></i>
+                      </div>
+                    </ng-container>
+
+                    <!-- Multiple media_urls (Gmail style) -->
+                    <div *ngIf="hasMultipleMediaUrls(message)" class="multi-media-grid">
+                      <div *ngFor="let media of message.media_urls" class="multi-media-item">
+                        <img *ngIf="media.type?.includes('image')"
+                          [src]="media.url" [alt]="media.filename"
+                          class="multi-media-image"
+                          (click)="viewOrDownloadFile(media.url)" />
+
+                        <video *ngIf="media.type?.includes('video')"
+                          [src]="media.url" controls class="multi-media-image">
+                        </video>
+
+                        <audio *ngIf="media.type?.includes('audio')"
+                          [src]="media.url" controls class="w-full p-2">
+                        </audio>
+
+                        <div *ngIf="!media.type?.includes('image') && !media.type?.includes('video') && !media.type?.includes('audio')"
+                          class="multi-media-doc" (click)="viewOrDownloadFile(media.url)">
+                          <i class="pi pi-file text-2xl text-500"></i>
+                          <span class="text-xs text-600 mt-1 text-center" style="word-break:break-all;">
+                            {{ media.filename }}
+                          </span>
+                        </div>
+
+                        <p *ngIf="media.filename && (media.type?.includes('image') || media.type?.includes('video'))"
+                          class="text-xs text-500 mt-1 mb-0 overflow-hidden"
+                          style="white-space:nowrap;text-overflow:ellipsis;max-width:120px;"
+                          [title]="media.filename">
+                          {{ media.filename }}
+                        </p>
+                      </div>
+                    </div>
+
+                  </div>
+                </ng-container>
+
+                <!-- Delivery status tick (agent only) -->
+                <div *ngIf="message.sender_type === 'agent'" class="bubble-status">
+                  <i class="pi pi-check-circle text-xs text-400"></i>
                 </div>
-                
-                <!-- Message Text -->
-                <div *ngIf="message.message_body" class="text-900 mb-2">
-                  {{ message.message_body }}
-                </div>
-                
-                <!-- Media Content -->
-<div *ngIf="isMediaMessage(message)" class="mt-2">
-  
-  <!-- Single Media URL (from media_url) -->
-  <ng-container *ngIf="!hasMultipleMediaUrls(message)">
-    
-    <!-- Image -->
-    <div *ngIf="isImageType(message)">
-      <img 
-        [src]="message.media_url" 
-        alt="Image" 
-        style="max-width: 300px; max-height: 300px; border-radius: 8px; cursor: pointer;"
-        (click)="viewOrDownloadFile(message.media_url)" />
-    </div>
-    
-    <!-- Video -->
-    <div *ngIf="isVideoType(message)">
-      <video 
-        [src]="message.media_url" 
-        controls 
-        style="max-width: 300px; border-radius: 8px;">
-      </video>
-    </div>
-    
-    <!-- Audio -->
-    <div *ngIf="isAudioType(message)">
-      <audio 
-        [src]="message.media_url" 
-        controls
-        class="w-full">
-      </audio>
-    </div>
-    
-    <!-- PDF -->
-    <div *ngIf="isPdfType(message)">
-      <iframe 
-        [src]="message.media_url" 
-        width="100%" 
-        height="300px"
-        style="border: none; border-radius: 8px;">
-      </iframe>
-    </div>
-    
-    <!-- Spreadsheet -->
-    <div *ngIf="isSpreadsheetType(message)">
-      <div class="flex align-items-center gap-2 p-3 surface-100 border-round cursor-pointer"
-           (click)="viewOrDownloadFile(message.media_url)">
-        <img src="assets/Icons/Schedule/ms-excel.svg" 
-             style="width: 48px; height: 48px;" 
-             alt="Excel" />
-        <div class="flex flex-column">
-          <span class="font-semibold">Spreadsheet Document</span>
-          <span class="text-sm text-600">Click to download</span>
-        </div>
-      </div>
-    </div>
-    
-    <!-- ZIP File -->
-    <div *ngIf="isZipType(message)">
-      <div class="flex align-items-center gap-2 p-3 surface-100 border-round cursor-pointer"
-           (click)="viewOrDownloadFile(message.media_url)">
-        <img src="assets/Icons/Schedule/zip-folder.png" 
-             style="width: 48px; height: 48px;" 
-             alt="ZIP" />
-        <div class="flex flex-column">
-          <span class="font-semibold">Compressed Archive</span>
-          <span class="text-sm text-600">Click to download</span>
-        </div>
-      </div>
-    </div>
-    
-    <!-- Other Document Types -->
-    <div *ngIf="!isImageType(message) && !isVideoType(message) && !isAudioType(message) && 
-                !isPdfType(message) && !isSpreadsheetType(message) && !isZipType(message)">
-      <div class="flex align-items-center gap-2 p-3 surface-100 border-round cursor-pointer"
-           (click)="viewOrDownloadFile(message.media_url)">
-        <img src="assets/Icons/Schedule/file.png" 
-             style="width: 48px; height: 48px;" 
-             alt="File" />
-        <div class="flex flex-column">
-          <span class="font-semibold">Document</span>
-          <span class="text-sm text-600">Click to download</span>
-        </div>
-      </div>
-    </div>
-  </ng-container>
-  
-  <!-- Multiple Media URLs (from media_urls array) - for Gmail -->
-  <div *ngIf="hasMultipleMediaUrls(message)" class="grid gap-2 mt-2">
-    <div *ngFor="let media of message.media_urls" 
-         class="col-12 md:col-6 lg:col-4">
-      <div class="surface-100 border-round p-2">
-        
-        <!-- Image -->
-        <img *ngIf="media.type?.includes('image')" 
-             [src]="media.url" 
-             [alt]="media.filename"
-             style="width: 100%; height: 150px; object-fit: cover; border-radius: 4px; cursor: pointer;"
-             (click)="viewOrDownloadFile(media.url)" />
-        
-        <!-- Video -->
-        <video *ngIf="media.type?.includes('video')" 
-               [src]="media.url" 
-               controls 
-               style="width: 100%; height: 150px; border-radius: 4px;">
-        </video>
-        
-        <!-- Audio -->
-        <audio *ngIf="media.type?.includes('audio')" 
-               [src]="media.url" 
-               controls
-               class="w-full">
-        </audio>
-        
-        <!-- PDF -->
-        <iframe *ngIf="media.type?.includes('pdf')" 
-                [src]="media.url" 
-                width="100%" 
-                height="150px"
-                style="border: none; border-radius: 4px;">
-        </iframe>
-        
-        <!-- ZIP -->
-        <div *ngIf="media.type?.includes('zip') || media.type?.includes('application/x-zip-compressed')"
-             class="flex align-items-center justify-content-center cursor-pointer"
-             style="height: 150px;"
-             (click)="viewOrDownloadFile(media.url)">
-          <img src="assets/Icons/Schedule/zip-folder.png" 
-               style="width: 64px; height: 64px;" 
-               alt="ZIP" />
-        </div>
-        
-        <!-- Other Documents -->
-        <div *ngIf="!media.type?.includes('image') && !media.type?.includes('video') && 
-                    !media.type?.includes('audio') && !media.type?.includes('pdf') && 
-                    !media.type?.includes('zip')"
-             class="flex align-items-center justify-content-center cursor-pointer"
-             style="height: 150px;"
-             (click)="viewOrDownloadFile(media.url)">
-          <img src="assets/Icons/Schedule/file.png" 
-               style="width: 64px; height: 64px;" 
-               alt="File" />
-        </div>
-        
-        <!-- Filename -->
-        <p class="text-sm text-600 mt-2 mb-0 truncate" 
-           [title]="media.filename">
-          {{ media.filename }}
-        </p>
-      </div>
-    </div>
-  </div>
-</div>
               </div>
             </div>
+
+          </ng-container>
+
+          <!-- Empty conversation -->
+          <div *ngIf="!selectedTicket.messages?.length" class="no-messages">
+            <i class="pi pi-comments text-4xl text-300 mb-3"></i>
+            <span class="text-500">No messages yet</span>
           </div>
-        </p-scrollPanel>
+
+        </div>
       </div>
     </div>
-    
-    <!-- Right Column - Actions & Info -->
-    <div class="col-12 md:col-4">
-      <div class="surface-card p-4 border-round mb-3">
-        <h3 class="mt-0 mb-3">Summary</h3>
-        <div class="flex flex-column gap-3">
+
+    <!-- RIGHT: Ticket Info -->
+    <div class="ticket-info-col">
+
+      <!-- Contact Card -->
+      <div class="surface-card border-round-lg p-3 mb-3 shadow-1">
+        <div class="flex align-items-center gap-3 mb-3">
+          <p-avatar
+            [label]="(selectedTicket.contact?.name || selectedTicket.contact?.phone)?.charAt(0).toUpperCase()"
+            size="large" shape="circle"
+            [style]="{'background-color': '#6366f1', 'color': '#fff'}">
+          </p-avatar>
           <div>
-            <span class="text-600 text-sm">Customer:</span>
-            <p class="mt-1 mb-0 font-semibold">
-              {{ selectedTicket.contact?.name || selectedTicket.contact?.phone }}
-            </p>
+            <div class="font-bold text-900 text-lg">
+              {{ selectedTicket.contact?.name || 'Unknown' }}
+            </div>
+            <div class="text-500 text-sm">{{ selectedTicket.contact?.phone }}</div>
           </div>
-          <div>
-            <span class="text-600 text-sm">Phone:</span>
-            <p class="mt-1 mb-0 font-semibold">
-              {{ selectedTicket.contact?.phone }}
-            </p>
-          </div>
-          <div>
-            <span class="text-600 text-sm">Channel:</span>
-            <p class="mt-1 mb-0 font-semibold">
-              {{ selectedTicket.platform?.platform_name }}
-            </p>
-          </div>
-          <div>
-            <span class="text-600 text-sm">Assigned To:</span>
-            <p class="mt-1 mb-0 font-semibold">
-              {{ selectedTicket.assigned_user?.username || 'Unassigned' }}
-            </p>
-          </div>
-          <div>
-            <span class="text-600 text-sm">Created:</span>
-            <p class="mt-1 mb-0 font-semibold">
-              {{ selectedTicket.created_at | date:'medium' }}
-            </p>
-          </div>
-          <div>
-            <span class="text-600 text-sm">Last Updated:</span>
-            <p class="mt-1 mb-0 font-semibold">
-              {{ selectedTicket.updated_at | date:'medium' }}
-            </p>
-          </div>
-          <div>
-            <span class="text-600 text-sm">Total Messages:</span>
-            <p class="mt-1 mb-0 font-semibold">
-              {{ selectedTicket.message_count }}
-            </p>
-          </div>
+        </div>
+        <p-divider styleClass="my-2"></p-divider>
+        <div class="info-row"><span class="info-label">Status</span>
+          <p-tag [value]="selectedTicket.status" [severity]="getStatusSeverity(selectedTicket.status)" [rounded]="true"></p-tag>
+        </div>
+        <div *ngIf="selectedTicket.status === 'closed'" class="info-row"><span class="info-label">Closer Reason</span>
+          <span class="text-900 font-bold">{{ selectedTicket.closed_reason }}</span>
+        </div>
+        <div class="info-row"><span class="info-label">Channel</span>
+          <span class="text-900 font-medium">{{ selectedTicket.platform?.platform_name || selectedTicket.contact?.platform_name }}</span>
+        </div>
+        <div class="info-row"><span class="info-label">Assigned</span>
+          <span class="text-900 font-medium">{{ selectedTicket.assigned?.name || 'Unassigned' }}</span>
+        </div>
+        <div class="info-row"><span class="info-label">Total Messages</span>
+          <span class="text-900 font-bold">{{ selectedTicket.message_count || selectedTicket.messages?.length }}</span>
         </div>
       </div>
-      
-      <!--div class="surface-card p-4 border-round">
-        <h3 class="mt-0 mb-3">Quick Actions</h3>
-        <div class="flex flex-column gap-2">
-          <p-button 
-            label="Assign Agent" 
-            icon="pi pi-user"
-            [outlined]="true"
-            severity="info"
-            class="w-full">
-            <p-select 
-              [options]="users" 
-              optionLabel="username"
-              optionValue="id"
-              placeholder="Select Agent"
-              (onChange)="assignAgent($event.value)"
-              class="w-full">
-            </p-select>
-          </p-button>
-          
-          <p-button 
-            *ngIf="selectedTicket.status !== 'active'"
-            label="Mark as Active" 
-            icon="pi pi-clock"
-            (onClick)="updateStatus('active')"
-            [outlined]="true"
-            severity="warn"
-            class="w-full">
-          </p-button>
-          
-          <p-button 
-            *ngIf="selectedTicket.status !== 'closed'"
-            label="Close Ticket" 
-            icon="pi pi-check"
-            (onClick)="updateStatus('closed')"
-            [outlined]="true"
-            severity="success"
-            class="w-full">
-          </p-button>
-          
-          <p-button 
-            *ngIf="selectedTicket.status === 'closed'"
-            label="Reopen Ticket" 
-            icon="pi pi-replay"
-            (onClick)="updateStatus('active')"
-            [outlined]="true"
-            severity="secondary"
-            class="w-full">
-          </p-button>
+
+      <!-- Timeline Card -->
+      <div class="surface-card border-round-lg p-3 shadow-1">
+        <div class="font-semibold text-900 mb-3">
+          <i class="pi pi-clock mr-2 text-primary"></i>Timeline
         </div>
-      </div-->
+        <div class="info-row"><span class="info-label">Created</span>
+          <span class="text-900 text-sm">{{ selectedTicket.created_at | date:'MMM d, y, h:mm a' }}</span>
+        </div>
+        <div class="info-row"><span class="info-label">Updated</span>
+          <span class="text-900 text-sm">{{ selectedTicket.updated_at | date:'MMM d, y, h:mm a' }}</span>
+        </div>
+        <div class="info-row"><span class="info-label">Age</span>
+          <span class="text-900 text-sm font-semibold">{{ selectedTicket.age_display }}</span>
+        </div>
+        <p-badge *ngIf="selectedTicket.is_overdue" value="Overdue" severity="danger" class="mt-2"></p-badge>
+      </div>
+
     </div>
   </div>
+
 </p-dialog>

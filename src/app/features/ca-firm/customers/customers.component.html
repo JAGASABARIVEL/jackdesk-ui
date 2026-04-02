@@ -1544,7 +1544,7 @@
                 pTooltip="Edit"
                 tooltipPosition="top">
               </p-button>
-              <p-button 
+              <p-button *ngIf="profile?.user.role === 'owner'"
                 [icon]="customer.is_active ? 'pi pi-ban' : 'pi pi-check'" 
                 (onClick)="toggleStatus(customer)"
                 [rounded]="true"
@@ -1553,7 +1553,7 @@
                 [pTooltip]="customer.is_active ? 'Deactivate' : 'Activate'"
                 tooltipPosition="top">
               </p-button>
-              <p-button 
+              <p-button *ngIf="profile?.user.role === 'owner'"
                 icon="pi pi-trash" 
                 (onClick)="deleteCustomer(customer)"
                 [rounded]="true"

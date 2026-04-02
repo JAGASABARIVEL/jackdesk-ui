@@ -108,7 +108,9 @@ export class CustomerPurchasesComponent implements OnInit {
     this.generateFinancialYears();
   }
 
+  profile !: any;
   ngOnInit(): void {
+    this.profile = JSON.parse(localStorage.getItem('profile'));
     this.layoutService.state.staticMenuDesktopInactive = true;
     this.loadCustomers();
     this.loadProducts();

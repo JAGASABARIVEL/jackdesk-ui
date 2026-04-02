@@ -230,6 +230,7 @@
                 [disabled]="purchase.payment_status === 'paid'">
               </p-button>
               <p-button 
+                *ngIf="profile?.user.role === 'owner'"
                 icon="pi pi-trash" 
                 (onClick)="deletePurchase(purchase)"
                 [rounded]="true"

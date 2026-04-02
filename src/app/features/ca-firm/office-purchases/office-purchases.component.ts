@@ -171,7 +171,9 @@ export class OfficePurchasesComponent implements OnInit, OnDestroy {
     this.initForms();
   }
 
+  profile !: any;
   ngOnInit(): void {
+    this.profile = JSON.parse(localStorage.getItem('profile'));
     this.layoutService.state.staticMenuDesktopInactive = true;
     this.loadPurchases();
     this.loadVendors();

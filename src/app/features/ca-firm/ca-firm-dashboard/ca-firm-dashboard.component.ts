@@ -153,14 +153,32 @@ export class CAFirmDashboardComponent implements OnInit, OnDestroy {
     this.destroy$.complete();
   }
 
-  refreshUnrespondedConversationNotifications() {
-    this.conversationService.list_notification("non-chat").pipe(takeUntil(this.destroy$)).subscribe({
-        next: (notificationData: any) => {
-            this.layoutService.unrespondedConversationNotification.update((prev) => notificationData)
-        },
-        error: (err) => {console.error(`Could not get the conversation notifications ${err}`)}
-    });
-  }
+  //refreshUnrespondedConversationNotifications() {
+  //  this.conversationService.list_notification("non-chat").pipe(takeUntil(this.destroy$)).subscribe({
+  //      next: (notificationData: any) => {
+  //          this.layoutService.unrespondedConversationNotification.update((prev) => notificationData)
+  //      },
+  //      error: (err) => {console.error(`Could not get the conversation notifications ${err}`)}
+  //  });
+  //}
+
+  refreshUnrespondedConversationNotifications(): void {
+    this.conversationService.list_notification('non-chat', 1, 20)
+        .pipe(takeUntil(this.destroy$))
+        .subscribe({
+            next: (response: any) => {
+                const data = response.results ?? response;
+                const notifications = data.notifications ?? data;
+                const totalCount: number = data.conversation_count ?? response.count ?? notifications.length;
+
+                this.layoutService.unrespondedConversationNotification.set({
+                    conversation_count: totalCount,
+                    notifications: notifications
+                });
+            },
+            error: (err) => console.error(`Could not get the conversation notifications: ${err}`)
+        });
+}
 
     loadConversations() {
   this.conversationService.list_new_conversations("non-chat", 1, 15)

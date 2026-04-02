@@ -1,29 +1,331 @@
 // ticketing-view.component.scss
+// FIX #1: Proper scroll containment — dialog body uses flex layout with overflow-y:auto
+// FIX #4: Improved chat bubble UX with proper WhatsApp-style layout
 
-:host ::ng-deep {
-  .p-datatable {
-    .p-datatable-thead > tr > th {
-      background: #f8fafc;
-      font-weight: 600;
-      border-color: #e2e8f0;
-    }
-    
-    .p-datatable-tbody > tr {
-      transition: all 0.2s;
-      
-      &:hover {
-        background: #f8fafc;
+// ── Dialog Layout ────────────────────────────────────────────────────────────
+
+::ng-deep .ticket-detail-dialog {
+  .p-dialog-content {
+    padding: 0 !important;
+    overflow: hidden !important; // Dialog itself does NOT scroll
+    background: var(--surface-ground);
+  }
+
+  .p-dialog-header {
+    border-bottom: 1px solid var(--surface-border);
+    padding: 1rem 1.5rem;
+  }
+}
+
+// Two-column grid inside the dialog
+.dialog-body-grid {
+  display: grid;
+  grid-template-columns: 1fr 300px;
+  gap: 0;
+  height: calc(85vh - 80px); // Fixed height — key fix for scroll
+  overflow: hidden;
+
+  @media (max-width: 768px) {
+    grid-template-columns: 1fr;
+    grid-template-rows: 1fr auto;
+    height: calc(90vh - 80px);
+  }
+}
+
+// ── Left: Conversation Column ────────────────────────────────────────────────
+
+.conv-messages-col {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border-right: 1px solid var(--surface-border);
+  background: var(--surface-ground);
+}
+
+.conv-header {
+  display: flex;
+  align-items: center;
+  padding: 0.75rem 1.25rem;
+  background: var(--surface-card);
+  border-bottom: 1px solid var(--surface-border);
+  font-size: 0.9rem;
+  flex-shrink: 0; // Never shrink — always visible
+}
+
+// FIX #1: This is the ONLY scrollable element — isolated from page scroll
+.conv-scroll-area {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 1rem 1.25rem;
+  scroll-behavior: smooth;
+
+  // Custom scrollbar
+  &::-webkit-scrollbar {
+    width: 4px;
+  }
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  &::-webkit-scrollbar-thumb {
+    background: var(--surface-border);
+    border-radius: 4px;
+  }
+}
+
+.conv-messages-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  min-height: 100%;
+}
+
+// ── Date Separator ───────────────────────────────────────────────────────────
+
+.date-separator {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin: 0.5rem 0;
+
+  &::before,
+  &::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--surface-border);
+  }
+
+  span {
+    font-size: 0.72rem;
+    color: var(--text-color-secondary);
+    background: var(--surface-ground);
+    padding: 0.2rem 0.6rem;
+    border-radius: 10px;
+    white-space: nowrap;
+    font-weight: 500;
+    border: 1px solid var(--surface-border);
+  }
+}
+
+// ── Message Bubbles ──────────────────────────────────────────────────────────
+
+.message-bubble-wrapper {
+  display: flex;
+  gap: 0.6rem;
+  max-width: 80%;
+
+  &.agent-message {
+    align-self: flex-end;
+    flex-direction: row-reverse; // Avatar on right for agent
+
+    .bubble-content {
+      background: #EFF6FF;
+      border-radius: 1rem 0.25rem 1rem 1rem;
+      border: 1px solid #BFDBFE;
+
+      .bubble-meta {
+        flex-direction: row-reverse;
       }
-      
-      &.bg-red-50 {
-        background: #fef2f2 !important;
+
+      .bubble-sender {
+        color: #1D4ED8;
       }
     }
   }
-  
-  .p-progressbar {
-    .p-progressbar-value {
-      transition: width 0.3s ease-in-out;
+
+  &.customer-message {
+    align-self: flex-start;
+
+    .bubble-content {
+      background: var(--surface-card);
+      border-radius: 0.25rem 1rem 1rem 1rem;
+      border: 1px solid var(--surface-border);
     }
   }
+}
+
+.bubble-content {
+  padding: 0.6rem 0.875rem;
+  min-width: 60px;
+  max-width: 100%;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
+}
+
+.bubble-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.35rem;
+}
+
+.bubble-sender {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-color-secondary);
+}
+
+.bubble-time {
+  font-size: 0.68rem;
+  color: var(--text-color-secondary);
+  opacity: 0.7;
+}
+
+.bubble-text {
+  font-size: 0.875rem;
+  line-height: 1.5;
+  color: var(--text-color);
+  word-break: break-word;
+  white-space: pre-wrap;
+}
+
+.bubble-status {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 0.25rem;
+}
+
+.no-messages {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 200px;
+  color: var(--text-color-secondary);
+}
+
+// ── Media inside bubbles ─────────────────────────────────────────────────────
+
+.bubble-media {
+  margin-top: 0.4rem;
+}
+
+.media-image {
+  max-width: 280px;
+  max-height: 280px;
+  border-radius: 8px;
+  cursor: pointer;
+  display: block;
+  object-fit: cover;
+  transition: opacity 0.2s;
+
+  &:hover {
+    opacity: 0.9;
+  }
+}
+
+.media-video {
+  max-width: 280px;
+  border-radius: 8px;
+  display: block;
+}
+
+.media-audio {
+  max-width: 280px;
+}
+
+.media-pdf {
+  width: 100%;
+  height: 280px;
+  border-radius: 8px;
+  display: block;
+}
+
+.media-doc-chip {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.6rem 0.875rem;
+  background: var(--surface-100);
+  border-radius: 8px;
+  cursor: pointer;
+  min-width: 200px;
+  max-width: 280px;
+  border: 1px solid var(--surface-border);
+  transition: background 0.15s;
+
+  &:hover {
+    background: var(--surface-200);
+  }
+}
+
+// Multi-media grid (Gmail attachments)
+.multi-media-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  max-width: 320px;
+}
+
+.multi-media-item {
+  width: 120px;
+}
+
+.multi-media-image {
+  width: 120px;
+  height: 90px;
+  object-fit: cover;
+  border-radius: 6px;
+  cursor: pointer;
+  display: block;
+}
+
+.multi-media-doc {
+  width: 120px;
+  height: 90px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: var(--surface-100);
+  border-radius: 6px;
+  cursor: pointer;
+  border: 1px solid var(--surface-border);
+  padding: 0.5rem;
+
+  &:hover {
+    background: var(--surface-200);
+  }
+}
+
+// ── Right: Ticket Info Column ────────────────────────────────────────────────
+
+.ticket-info-col {
+  padding: 1rem;
+  overflow-y: auto;
+  background: var(--surface-ground);
+
+  &::-webkit-scrollbar {
+    width: 4px;
+  }
+  &::-webkit-scrollbar-thumb {
+    background: var(--surface-border);
+    border-radius: 4px;
+  }
+}
+
+.info-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.45rem 0;
+  border-bottom: 1px solid var(--surface-border);
+  gap: 0.5rem;
+
+  &:last-child {
+    border-bottom: none;
+  }
+}
+
+.info-label {
+  font-size: 0.78rem;
+  color: var(--text-color-secondary);
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+// ── Main page (keep existing scroll behavior untouched) ──────────────────────
+
+.ticketing-wrapper {
+  // Page itself scrolls normally — dialog is isolated
 }

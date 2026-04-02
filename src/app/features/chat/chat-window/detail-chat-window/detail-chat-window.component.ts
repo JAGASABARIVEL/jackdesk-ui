@@ -193,14 +193,24 @@ export class DetailChatWindowComponent implements AfterViewInit, OnDestroy {
   dynamicFields: string[] = [];
   fieldValues: { [key: string]: string } = {};
   templateAttachedFile: File | null = null;
-  templatePdfPreviewUrl: string | null = null;
+  templateMediaPreviewUrl: string | null = null;
+  // Location data for LOCATION header type
+templateLocationData: {
+  name: string;
+  address: string;
+  latitude: string;
+  longitude: string;
+} = { name: '', address: '', latitude: '', longitude: '' };
   
   sendTemplateDialogVisible = false;
   activeConvSelectedTemplate: any = null;
   activeConvDynamicFields: string[] = [];
   activeConvFieldValues: { [key: string]: string } = {};
   activeConvAttachedFile: File | null = null;
-  activeConvPdfPreviewUrl: string | null = null;
+  activeConvMediaPreviewUrl: string | null = null;   // replaces activeConvPdfPreviewUrl
+  activeConvLocationData: {
+  name: string; address: string; latitude: string; longitude: string;
+} = { name: '', address: '', latitude: '', longitude: '' };
   
   // ============================================================================
   // NEW CONVERSATION STATE (keeping existing code)
@@ -221,7 +231,8 @@ export class DetailChatWindowComponent implements AfterViewInit, OnDestroy {
   isAssignmentDropdownVisible = false;
   selectedUserForAssignment: any = null;
   closeConversationVisible = false;
-  closedReason = 'N/A';
+  closeSubmitted = false;
+  closedReason = '';
   blockForm = {
     platform: null,
     contact_value: '',
@@ -1147,6 +1158,7 @@ getConversationStatusBadge(): {
   }
   
   onClosedReasonSave(): void {
+    this.closeSubmitted = true;
     this.conversationService.close_conversation(
       'chat',
       this._selectedConversation.id,
@@ -1159,6 +1171,7 @@ getConversationStatusBadge(): {
         next: () => {
           this.conversationClosedEvent.emit(this._selectedConversation);
           this.closeConversationVisible = false;
+          this.closeSubmitted = false;
           
           this.messageService.add({
             severity: 'success',
@@ -1291,22 +1304,63 @@ getConversationStatusBadge(): {
     }
   }
   
-  addField(): void {
-    this.dynamicFields = [];
-    this.fieldValues = {};
-    
-    const params: string[] = [];
-    for (const section of this.selectedTemplate.components) {
-      if (section.text) {
-        params.push(...this.extractParameterVariables(section.text));
-      }
-    }
-    
-    params.forEach(param => {
-      this.dynamicFields.push(param);
-      this.fieldValues[param] = '';
+  /**
+ * Attempts to extract lat/lng from a Google Maps URL pasted by the user.
+ * Handles formats like:
+ *   https://maps.google.com/?q=12.9716,77.5946
+ *   https://www.google.com/maps/@12.9716,77.5946,15z
+ *   https://maps.app.goo.gl/... (short URLs — user must expand first)
+ */
+tryParseGoogleMapsUrl(): void {
+  const raw = prompt('Paste a Google Maps URL:');
+  if (!raw) return;
+
+  // ?q=lat,lng
+  let match = raw.match(/[?&]q=([-\d.]+),([-\d.]+)/);
+  if (!match) {
+    // /@lat,lng,zoom
+    match = raw.match('\/@([-\\d.]+),([-\\d.]+)');
+  }
+  if (!match) {
+    // ll=lat,lng
+    match = raw.match(/[?&]ll=([-\d.]+),([-\d.]+)/);
+  }
+
+  if (match) {
+    this.templateLocationData.latitude  = match[1];
+    this.templateLocationData.longitude = match[2];
+    this.messageService.add({
+      severity: 'success',
+      summary: 'Coordinates extracted',
+      detail: `Lat ${match[1]}, Lng ${match[2]}`
+    });
+  } else {
+    this.messageService.add({
+      severity: 'warn',
+      summary: 'Could not parse',
+      detail: 'Try a full Google Maps URL with visible coordinates'
     });
   }
+}
+
+  addField(): void {
+  this.dynamicFields = [];
+  this.fieldValues = {};
+  // Reset media from a prior template selection
+  this.removeTemplateFile();
+  this.resetTemplateLocation();
+
+  const params: string[] = [];
+  for (const section of this.selectedTemplate.components) {
+    if (section.text) {
+      params.push(...this.extractParameterVariables(section.text));
+    }
+  }
+  params.forEach(param => {
+    this.dynamicFields.push(param);
+    this.fieldValues[param] = '';
+  });
+}
   
   extractParameterVariables(text: string): string[] {
     const regex = /{{(.*?)}}/g;
@@ -1318,116 +1372,172 @@ getConversationStatusBadge(): {
     return matches;
   }
   
-  isDocumentHeader(): boolean {
-    return this.selectedTemplate?.components?.some(
-      c => c.type === 'HEADER' && c.format === 'DOCUMENT'
-    );
-  }
+  /**
+ * Returns the HEADER format of the currently selected template,
+ * or null if no media header exists.
+ */
+getHeaderMediaType(): 'DOCUMENT' | 'IMAGE' | 'VIDEO' | 'LOCATION' | null {
+  if (!this.selectedTemplate?.components) return null;
+  const header = this.selectedTemplate.components.find(
+    (c: any) => c.type === 'HEADER'
+  );
+  if (!header) return null;
+  const fmt = header.format?.toUpperCase();
+  if (['DOCUMENT', 'IMAGE', 'VIDEO', 'LOCATION'].includes(fmt)) return fmt;
+  return null;
+}
+
+/** Kept for backward compatibility where called as boolean */
+isDocumentHeader(): boolean {
+  const t = this.getHeaderMediaType();
+  return t === 'DOCUMENT' || t === 'IMAGE' || t === 'VIDEO';
+}
   
-  get isFieldValuesValid(): boolean {
-    return !Object.values(this.fieldValues).some(value => value === '');
-  }
   
-  // Template file handling
+  
   onTemplateFileSelected(event: Event): void {
-    const fileInput = event.target as HTMLInputElement;
-    if (fileInput.files && fileInput.files.length > 0) {
-      const file = fileInput.files[0];
-      if (file.type === 'application/pdf') {
-        this.templateAttachedFile = file;
-        this.templatePdfPreviewUrl = URL.createObjectURL(file);
-      } else {
-        this.messageService.add({
-          severity: 'warn',
-          summary: 'Invalid File',
-          detail: 'Only PDF files allowed'
-        });
-      }
-    }
+  const fileInput = event.target as HTMLInputElement;
+  if (!fileInput.files || fileInput.files.length === 0) return;
+  const file = fileInput.files[0];
+  this.applyTemplateFile(file);
+}
+
+private applyTemplateFile(file: File): void {
+  const mediaType = this.getHeaderMediaType();
+
+  const allowedByType: Record<string, string[]> = {
+    DOCUMENT: ['application/pdf'],
+    IMAGE:    ['image/jpeg', 'image/png', 'image/webp', 'image/gif'],
+    VIDEO:    ['video/mp4', 'video/webm', 'video/quicktime'],
+  };
+
+  const allowed = allowedByType[mediaType ?? ''] ?? [];
+
+  if (allowed.length && !allowed.includes(file.type)) {
+    const labels: Record<string, string> = {
+      DOCUMENT: 'PDF files only',
+      IMAGE: 'JPG, PNG, WEBP or GIF images only',
+      VIDEO: 'MP4, WEBM or MOV videos only',
+    };
+    this.messageService.add({
+      severity: 'warn',
+      summary: 'Invalid File',
+      detail: labels[mediaType ?? ''] ?? 'Unsupported file type'
+    });
+    return;
   }
+
+  this.templateAttachedFile = file;
+  this.templateMediaPreviewUrl = URL.createObjectURL(file);
+}
+
+onTemplateDrop(event: DragEvent): void {
+  event.preventDefault();
+  if (!event.dataTransfer?.files?.length) return;
+  this.applyTemplateFile(event.dataTransfer.files[0]);
+}
   
   onTemplateDragOver(event: DragEvent): void {
     event.preventDefault();
   }
 
   // ============================================================================
-// CONTINUATION OF DetailChatWindowComponent
+// LOCATION HELPERS
 // ============================================================================
 
-  onTemplateDrop(event: DragEvent): void {
-    event.preventDefault();
-    if (event.dataTransfer?.files?.length) {
-      const file = event.dataTransfer.files[0];
-      if (file.type === 'application/pdf') {
-        this.templateAttachedFile = file;
-        this.templatePdfPreviewUrl = URL.createObjectURL(file);
-      } else {
-        this.messageService.add({
-          severity: 'warn',
-          summary: 'Invalid File',
-          detail: 'Only PDF files allowed'
-        });
-      }
-    }
+get isLocationValid(): boolean {
+  const loc = this.templateLocationData;
+  const lat = parseFloat(loc.latitude);
+  const lng = parseFloat(loc.longitude);
+  return (
+    !!loc.name.trim() &&
+    !isNaN(lat) && lat >= -90  && lat <= 90 &&
+    !isNaN(lng) && lng >= -180 && lng <= 180
+  );
+}
+
+resetTemplateLocation(): void {
+  this.templateLocationData = { name: '', address: '', latitude: '', longitude: '' };
+}
+
+// ============================================================================
+// REPLACE isFieldValuesValid getter — also gates on location/media
+// ============================================================================
+
+get isFieldValuesValid(): boolean {
+  const allFilled = !Object.values(this.fieldValues).some(v => v === '');
+  const mediaType = this.getHeaderMediaType();
+
+  if (mediaType === 'LOCATION') {
+    return allFilled && this.isLocationValid;
+  } else if (mediaType) {
+    return allFilled && !!this.templateAttachedFile;
   }
+  return allFilled;
+}
+
+  // ============================================================================
+// CONTINUATION OF DetailChatWindowComponent
+// ============================================================================
   
   removeTemplateFile(): void {
-    this.templateAttachedFile = null;
-    this.templatePdfPreviewUrl = null;
-  }
+  this.templateAttachedFile = null;
+  this.templateMediaPreviewUrl = null;
+}
   
   startNewConversationOnWhatsapp(): void {
-    this.openConversationWhatsappVisible = false;
-    
-    const payload = new FormData();
-    payload.append('organization_id', this._profile.organization);
-    payload.append('platform_id', this.selected_platform.id);
-    payload.append('contact_id', this._selectedConversation.contact.id);
-    payload.append('user_id', this._profile.user.id);
-    payload.append('template', JSON.stringify(this.selectedTemplate));
-    payload.append('template_parameters', JSON.stringify(this.fieldValues));
-    
-    if (this.templateAttachedFile) {
-      payload.append('file', this.templateAttachedFile);
-    }
-    
-    this.conversationService.start_new_conversation('chat', payload)
-      .pipe(takeUntil(this.destroy$))
-      .subscribe({
-        next: (data: any) => {
-          this.messageService.add({
-            severity: 'success',
-            summary: 'Success',
-            detail: 'Conversation started'
-          });
-          
-          // Update conversation
-          this._selectedConversation.assigned = {
-            id: this._profile.user.id,
-            name: this._profile.user.username
-          };
-          this._selectedConversation.status = 'active';
-          this._selectedConversation.id = data.data[0]?.id;
-          this._selectedConversation.messages = data.data[0]?.messages;
-          this._selectedConversation.contact = data.data[0]?.contact;
+  this.openConversationWhatsappVisible = false;
 
-          //this.removeTemplateFile();
-          
-          this.conversationStatus = this.computeConversationStatus(this._selectedConversation);
-          this.buildMenuItems();
-          
-          this.ownThisConversationEvent.emit(this._selectedConversation);
-        },
-        error: (err) => {
-          console.error('Failed to start conversation:', err);
-          this.messageService.add({
-            severity: 'error',
-            summary: 'Failed',
-            detail: 'Could not start conversation'
-          });
-        }
-      });
+  const payload = new FormData();
+  payload.append('organization_id', this._profile.organization);
+  payload.append('platform_id', this.selected_platform.id);
+  payload.append('contact_id', this._selectedConversation.contact.id);
+  payload.append('user_id', this._profile.user.id);
+  payload.append('template', JSON.stringify(this.selectedTemplate));
+  payload.append('template_parameters', JSON.stringify(this.fieldValues));
+
+  const mediaType = this.getHeaderMediaType();
+
+  if (mediaType === 'LOCATION') {
+    payload.append('location_data', JSON.stringify({
+      name:      this.templateLocationData.name.trim(),
+      address:   this.templateLocationData.address.trim(),
+      latitude:  parseFloat(this.templateLocationData.latitude),
+      longitude: parseFloat(this.templateLocationData.longitude),
+    }));
+  } else if (this.templateAttachedFile) {
+    payload.append('file', this.templateAttachedFile);
   }
+
+  this.conversationService.start_new_conversation('chat', payload)
+    .pipe(takeUntil(this.destroy$))
+    .subscribe({
+      next: (data: any) => {
+        this.messageService.add({ severity: 'success', summary: 'Success', detail: 'Conversation started' });
+
+        this._selectedConversation.assigned = {
+          id: this._profile.user.id,
+          name: this._profile.user.username
+        };
+        this._selectedConversation.status   = 'active';
+        this._selectedConversation.id       = data.data[0]?.id;
+        this._selectedConversation.messages = data.data[0]?.messages;
+        this._selectedConversation.contact  = data.data[0]?.contact;
+
+        // Reset media state
+        this.removeTemplateFile();
+        this.resetTemplateLocation();
+
+        this.conversationStatus = this.computeConversationStatus(this._selectedConversation);
+        this.buildMenuItems();
+        this.ownThisConversationEvent.emit(this._selectedConversation);
+      },
+      error: (err) => {
+        console.error('Failed to start conversation:', err);
+        this.messageService.add({ severity: 'error', summary: 'Failed', detail: 'Could not start conversation' });
+      }
+    });
+}
   
   // ============================================================================
   // GMAIL NEW CONVERSATION
@@ -1616,160 +1726,227 @@ getConversationStatusBadge(): {
   }
   
   extractActiveConvTemplateFields(): void {
-    this.activeConvDynamicFields = [];
-    this.activeConvFieldValues = {};
-    
-    const params: string[] = [];
-    for (const section of this.activeConvSelectedTemplate.components) {
-      if (section.text) {
-        params.push(...this.extractParameterVariables(section.text));
-      }
-    }
-    
-    params.forEach(param => {
-      this.activeConvDynamicFields.push(param);
-      this.activeConvFieldValues[param] = '';
-    });
+  this.activeConvDynamicFields = [];
+  this.activeConvFieldValues = {};
+  // Reset media from prior selection
+  this.removeActiveConvFile();
+  this.activeConvLocationData = { name: '', address: '', latitude: '', longitude: '' };
+
+  const params: string[] = [];
+  for (const section of this.activeConvSelectedTemplate.components) {
+    if (section.text) params.push(...this.extractParameterVariables(section.text));
   }
+  params.forEach(param => {
+    this.activeConvDynamicFields.push(param);
+    this.activeConvFieldValues[param] = '';
+  });
+}
+
+onActiveConvDragOver(event: DragEvent): void {
+  event.preventDefault();
+}
   
-  isActiveConvDocumentHeader(): boolean {
-    return this.activeConvSelectedTemplate?.components?.some(
-      c => c.type === 'HEADER' && c.format === 'DOCUMENT'
-    );
-  }
+  getActiveConvHeaderMediaType(): 'DOCUMENT' | 'IMAGE' | 'VIDEO' | 'LOCATION' | null {
+  if (!this.activeConvSelectedTemplate?.components) return null;
+  const header = this.activeConvSelectedTemplate.components.find(
+    (c: any) => c.type === 'HEADER'
+  );
+  if (!header) return null;
+  const fmt = header.format?.toUpperCase();
+  return (['DOCUMENT', 'IMAGE', 'VIDEO', 'LOCATION'].includes(fmt) ? fmt : null) as any;
+}
+
+isActiveConvDocumentHeader(): boolean {
+  const t = this.getActiveConvHeaderMediaType();
+  return t === 'DOCUMENT' || t === 'IMAGE' || t === 'VIDEO';
+}
+
+
   
-  get isActiveConvTemplateValid(): boolean {
-    if (!this.activeConvSelectedTemplate) return false;
-    
-    const allFieldsFilled = !Object.values(this.activeConvFieldValues)
-      .some(value => value === '');
-    
-    if (this.isActiveConvDocumentHeader() && !this.activeConvAttachedFile) {
-      return false;
-    }
-    
-    return allFieldsFilled;
-  }
+  get isActiveConvLocationValid(): boolean {
+  const loc = this.activeConvLocationData;
+  const lat = parseFloat(loc.latitude);
+  const lng = parseFloat(loc.longitude);
+  return !!loc.name.trim() &&
+    !isNaN(lat) && lat >= -90 && lat <= 90 &&
+    !isNaN(lng) && lng >= -180 && lng <= 180;
+}
+
+get isActiveConvTemplateValid(): boolean {
+  if (!this.activeConvSelectedTemplate) return false;
+  const allFilled = !Object.values(this.activeConvFieldValues).some(v => v === '');
+  const mediaType = this.getActiveConvHeaderMediaType();
+  if (mediaType === 'LOCATION') return allFilled && this.isActiveConvLocationValid;
+  if (mediaType)                return allFilled && !!this.activeConvAttachedFile;
+  return allFilled;
+}
   
-  onActiveConvFileSelected(event: Event): void {
-    const input = event.target as HTMLInputElement;
-    if (input.files && input.files.length > 0) {
-      const file = input.files[0];
-      if (file.type === 'application/pdf') {
-        this.activeConvAttachedFile = file;
-        this.activeConvPdfPreviewUrl = URL.createObjectURL(file);
-      } else {
-        this.messageService.add({
-          severity: 'warn',
-          summary: 'Invalid',
-          detail: 'Only PDF allowed'
-        });
-      }
-    }
-  }
+  // Replace onActiveConvFileSelected / onActiveConvDrop with the unified handler:
+onActiveConvFileSelected(event: Event): void {
+  const input = event.target as HTMLInputElement;
+  if (input.files?.length) this.applyActiveConvFile(input.files[0]);
+}
+
+onActiveConvDrop(event: DragEvent): void {
+  event.preventDefault();
+  if (event.dataTransfer?.files?.length) this.applyActiveConvFile(event.dataTransfer.files[0]);
+}
   
-  onActiveConvDragOver(event: DragEvent): void {
-    event.preventDefault();
+  private applyActiveConvFile(file: File): void {
+  const mediaType = this.getActiveConvHeaderMediaType();
+  const allowed: Record<string, string[]> = {
+    DOCUMENT: ['application/pdf'],
+    IMAGE:    ['image/jpeg', 'image/png', 'image/webp', 'image/gif'],
+    VIDEO:    ['video/mp4', 'video/webm', 'video/quicktime'],
+  };
+  if (allowed[mediaType ?? '']?.length && !allowed[mediaType!].includes(file.type)) {
+    this.messageService.add({ severity: 'warn', summary: 'Invalid File',
+      detail: { DOCUMENT: 'PDF only', IMAGE: 'JPG/PNG/WEBP/GIF only', VIDEO: 'MP4/WEBM/MOV only' }[mediaType!] });
+    return;
   }
-  
-  onActiveConvDrop(event: DragEvent): void {
-    event.preventDefault();
-    if (event.dataTransfer?.files?.length) {
-      const file = event.dataTransfer.files[0];
-      if (file.type === 'application/pdf') {
-        this.activeConvAttachedFile = file;
-        this.activeConvPdfPreviewUrl = URL.createObjectURL(file);
-      } else {
-        this.messageService.add({
-          severity: 'warn',
-          summary: 'Invalid',
-          detail: 'Only PDF allowed'
-        });
-      }
-    }
-  }
+  this.activeConvAttachedFile = file;
+  this.activeConvMediaPreviewUrl = URL.createObjectURL(file);
+}
+
   
   removeActiveConvFile(): void {
-    this.activeConvAttachedFile = null;
-    this.activeConvPdfPreviewUrl = null;
-  }
+  this.activeConvAttachedFile = null;
+  this.activeConvMediaPreviewUrl = null;
+}
   
+  //sendTemplateMessageInActiveConversation(): void {
+  //  if (!this.isActiveConvTemplateValid) {
+  //    this.messageService.add({
+  //      severity: 'warn',
+  //      summary: 'Incomplete',
+  //      detail: 'Fill all required fields'
+  //    });
+  //    return;
+  //  }
+  //  
+  //  let payload: any;
+  //  
+  //  if (this.activeConvAttachedFile) {
+  //    payload = new FormData();
+  //    payload.append('conversation_id', this._selectedConversation.id);
+  //    payload.append('user_id', this._profile.user.id);
+  //    payload.append('message_type', 'template');
+  //    payload.append('template', JSON.stringify(this.activeConvSelectedTemplate));
+  //    payload.append('template_parameters', JSON.stringify(this.activeConvFieldValues));
+  //    payload.append('file', this.activeConvAttachedFile);
+  //  } else {
+  //    payload = {
+  //      conversation_id: this._selectedConversation.id,
+  //      user_id: this._profile.user.id,
+  //      message_type: 'template',
+  //      template: JSON.stringify(this.activeConvSelectedTemplate),
+  //      template_parameters: JSON.stringify(this.activeConvFieldValues)
+  //    };
+  //  }
+  //  
+  //  // Optimistic update
+  //  this._selectedConversation.messages.push({
+  //    message_body: '',
+  //    message_type: 'template',
+  //    template: this.activeConvSelectedTemplate,
+  //    media_url: this.activeConvPdfPreviewUrl,
+  //    sender: this._profile.user.id,
+  //    sent_time: new Date(),
+  //    status: 'sending',
+  //    type: 'org'
+  //  });
+  //  
+  //  this.conversationService.respond_to_message(
+  //    'chat',
+  //    this._selectedConversation.id,
+  //    payload
+  //  ).pipe(takeUntil(this.destroy$))
+  //    .subscribe({
+  //      next: () => {
+  //        this.messageService.add({
+  //          severity: 'success',
+  //          summary: 'Success',
+  //          detail: 'Template sent'
+  //        });
+  //        this.closeSendTemplateDialog();
+  //        this.reloadActiveConversation();
+  //      },
+  //      error: (err) => {
+  //        console.error('Template failed:', err);
+  //        this.messageService.add({
+  //          severity: 'error',
+  //          summary: 'Failed',
+  //          detail: 'Could not send template'
+  //        });
+  //        this.reloadActiveConversation();
+  //      }
+  //    });
+  //}
+
   sendTemplateMessageInActiveConversation(): void {
-    if (!this.isActiveConvTemplateValid) {
-      this.messageService.add({
-        severity: 'warn',
-        summary: 'Incomplete',
-        detail: 'Fill all required fields'
-      });
-      return;
-    }
-    
-    let payload: any;
-    
-    if (this.activeConvAttachedFile) {
-      payload = new FormData();
-      payload.append('conversation_id', this._selectedConversation.id);
-      payload.append('user_id', this._profile.user.id);
-      payload.append('message_type', 'template');
-      payload.append('template', JSON.stringify(this.activeConvSelectedTemplate));
-      payload.append('template_parameters', JSON.stringify(this.activeConvFieldValues));
-      payload.append('file', this.activeConvAttachedFile);
-    } else {
-      payload = {
-        conversation_id: this._selectedConversation.id,
-        user_id: this._profile.user.id,
-        message_type: 'template',
-        template: JSON.stringify(this.activeConvSelectedTemplate),
-        template_parameters: JSON.stringify(this.activeConvFieldValues)
-      };
-    }
-    
-    // Optimistic update
-    this._selectedConversation.messages.push({
-      message_body: '',
-      message_type: 'template',
-      template: this.activeConvSelectedTemplate,
-      media_url: this.activeConvPdfPreviewUrl,
-      sender: this._profile.user.id,
-      sent_time: new Date(),
-      status: 'sending',
-      type: 'org'
-    });
-    
-    this.conversationService.respond_to_message(
-      'chat',
-      this._selectedConversation.id,
-      payload
-    ).pipe(takeUntil(this.destroy$))
-      .subscribe({
-        next: () => {
-          this.messageService.add({
-            severity: 'success',
-            summary: 'Success',
-            detail: 'Template sent'
-          });
-          this.closeSendTemplateDialog();
-          this.reloadActiveConversation();
-        },
-        error: (err) => {
-          console.error('Template failed:', err);
-          this.messageService.add({
-            severity: 'error',
-            summary: 'Failed',
-            detail: 'Could not send template'
-          });
-          this.reloadActiveConversation();
-        }
-      });
+  if (!this.isActiveConvTemplateValid) {
+    this.messageService.add({ severity: 'warn', summary: 'Incomplete', detail: 'Fill all required fields' });
+    return;
   }
+
+  // Always use FormData — it works for both JSON-only and file payloads,
+  // and avoids the UTF-8 decode error caused by sending binary inside a JSON body.
+  const payload = new FormData();
+  payload.append('conversation_id', this._selectedConversation.id);
+  payload.append('user_id', this._profile.user.id);
+  payload.append('message_type', 'template');
+  payload.append('template', JSON.stringify(this.activeConvSelectedTemplate));
+  payload.append('template_parameters', JSON.stringify(this.activeConvFieldValues));
+
+  const mediaType = this.getActiveConvHeaderMediaType();
+
+  if (mediaType === 'LOCATION' && this.activeConvLocationData) {
+    payload.append('location_data', JSON.stringify({
+      name:      this.activeConvLocationData.name.trim(),
+      address:   this.activeConvLocationData.address.trim(),
+      latitude:  parseFloat(this.activeConvLocationData.latitude),
+      longitude: parseFloat(this.activeConvLocationData.longitude),
+    }));
+  } else if (this.activeConvAttachedFile) {
+    payload.append('file', this.activeConvAttachedFile);
+  }
+
+  // Optimistic update
+  this._selectedConversation.messages.push({
+    message_body: '',
+    message_type: 'template',
+    template: this.activeConvSelectedTemplate,
+    media_url: this.activeConvMediaPreviewUrl ?? null,
+    sender: this._profile.user.id,
+    sent_time: new Date(),
+    status: 'sending',
+    type: 'org'
+  });
+
+  this.conversationService.respond_to_message('chat', this._selectedConversation.id, payload)
+    .pipe(takeUntil(this.destroy$))
+    .subscribe({
+      next: () => {
+        this.messageService.add({ severity: 'success', summary: 'Success', detail: 'Template sent' });
+        this.closeSendTemplateDialog();
+        this.reloadActiveConversation();
+      },
+      error: (err) => {
+        console.error('Template failed:', err);
+        this.messageService.add({ severity: 'error', summary: 'Failed', detail: 'Could not send template' });
+        this.reloadActiveConversation();
+      }
+    });
+}
   
   clearActiveConvTemplateData(): void {
-    this.activeConvSelectedTemplate = null;
-    this.activeConvDynamicFields = [];
-    this.activeConvFieldValues = {};
-    this.activeConvAttachedFile = null;
-    this.activeConvPdfPreviewUrl = null;
-  }
+  this.activeConvSelectedTemplate = null;
+  this.activeConvDynamicFields = [];
+  this.activeConvFieldValues = {};
+  this.activeConvAttachedFile = null;
+  this.activeConvMediaPreviewUrl = null;
+  this.activeConvLocationData = { name: '', address: '', latitude: '', longitude: '' };
+}
   
   closeSendTemplateDialog(): void {
     this.sendTemplateDialogVisible = false;
@@ -2100,22 +2277,40 @@ getConversationStatusBadge(): {
           console.error('Failed to reload conversation:', err);
         }
       });
-    
-    this.refreshUnrespondedConversationNotifications();
+    //this.refreshUnrespondedConversationNotifications();
   }
   
-  private refreshUnrespondedConversationNotifications(): void {
-    this.conversationService.list_notification('chat')
-      .pipe(takeUntil(this.destroy$))
-      .subscribe({
-        next: (data: any) => {
-          this.layoutService.unrespondedConversationNotification.update(() => data);
-        },
-        error: (err) => {
-          console.error('Failed to refresh notifications:', err);
-        }
-      });
-  }
+  //private refreshUnrespondedConversationNotifications(): void {
+  //  this.conversationService.list_notification('chat')
+  //    .pipe(takeUntil(this.destroy$))
+  //    .subscribe({
+  //      next: (data: any) => {
+  //        this.layoutService.unrespondedConversationNotification.update(() => data);
+  //      },
+  //      error: (err) => {
+  //        console.error('Failed to refresh notifications:', err);
+  //      }
+  //    });
+  //}
+
+  // Component 1 (chat)
+private refreshUnrespondedConversationNotifications(): void {
+    this.conversationService.list_notification('chat', 1, 20)
+        .pipe(takeUntil(this.destroy$))
+        .subscribe({
+            next: (response: any) => {
+                const data = response.results ?? response;
+                const notifications = data.notifications ?? data;
+                const totalCount: number = data.conversation_count ?? response.count ?? notifications.length;
+
+                this.layoutService.unrespondedConversationNotification.set({
+                    conversation_count: totalCount,
+                    notifications: notifications
+                });
+            },
+            error: (err) => console.error('Failed to refresh notifications:', err)
+        });
+}
   
   onRightClick(event: MouseEvent, fileId: any, contextMenu: any, mediaUrl: any): void {
     this.contextMenuItems = [

@@ -1,0 +1,46 @@
+
+Jackdesk Installation
+Prerequisite:
+  1. Create storage account
+  2. Add gmail account to whitelist
+
+Configuration:
+  1. Employee registration
+  2. Create Department and assign users to the department
+  3. Assign triage department
+  4. Enable auto-assignment and assign algorithm after confirmation from owner/admin
+
+Gmail Installation
+  1. Signin with the added channel
+  2. Test both messages to and from.
+
+WhatsApp Business Installation.
+1. Register the customer
+https://business.facebook.com/messaging/whatsapp/onboard/?app_id=1695908774471482&config_id=917209717702172&extras=%7B%22sessionInfoVersion%22%3A%223%22%2C%22version%22%3A%22v3%22%7D
+or
+https://business.facebook.com/messaging/whatsapp/onboard/?app_id=1695908774471482&config_id=917209717702172
+
+2. Register the phone with PIN:
+curl -X POST "https://graph.facebook.com/v21.0/1031067020089200/register" -H "Authorization: Bearer EAAJIZCJb2uNUBO1iu1AXaDyFzEcWyG0lVXRAJ84d83XqbFLcZCa9WIpGF6BZBFT1aOERSXyGZAlN2bNLryZBqOCMgTu0miZBhXN0286UjbT67GP9aeKdZCHWAiLl9jh6EvfcEPR42sgIbb7uKLJQSBqZByQeqlULlNtQpKbM2NNp9vWATrRxTn05vjvKmTQ3hshn9AZDZD" -H "Content-Type: application/json" -d "{\"messaging_product\":\"whatsapp\",\"pin\":\"215488\"}"
+
+3. Add it to the system user
+
+4. Subscribe to messages
+curl -X GET "https://graph.facebook.com/v18.0/1432680051731064/subscribed_apps" -H "Authorization: Bearer EAAYGa4gS5zoBRF5WNi3IC6K0xJZA90Qoo2CMDIHvtiQf1ynxeBpkK5ZBfTV5t1DXX2TWuAZCgzdt9h20OPOIJAxH7U9viC8T1S73mESpdnZC2ihJTqtVe9YnF1KYyKgoi4vuTH2MTh2xaCyx0QO0kTJyiXW7DE1100m7cmhG2MxCnVdEY0u61S2XCT4aah9anwZDZD"
+
+curl -X POST "https://graph.facebook.com/v18.0/1432680051731064/subscribed_apps" -H "Authorization: Bearer EAAYGa4gS5zoBRF5WNi3IC6K0xJZA90Qoo2CMDIHvtiQf1ynxeBpkK5ZBfTV5t1DXX2TWuAZCgzdt9h20OPOIJAxH7U9viC8T1S73mESpdnZC2ihJTqtVe9YnF1KYyKgoi4vuTH2MTh2xaCyx0QO0kTJyiXW7DE1100m7cmhG2MxCnVdEY0u61S2XCT4aah9anwZDZD"
+
+5. Ask customer to add the payment method
+https://business.facebook.com -> Settings -> Whatsapp Account
+
+6. Configure Jackdesk for whatsapp channel
+
+7. Test Messages
+
+8. Create Templates
+
+9. Test Templates
+
+10. Ask customer to verify the business
+https://business.facebook.com -> Settings -> Whatsapp Account -> Business verification
+

@@ -6,6 +6,7 @@ import { UserManagerService } from '../../../shared/services/user-manager.servic
 import { WEBSITE_OWNING_ORG } from '../../../../environment';
 import { AvatarModule } from 'primeng/avatar';
 import { Subject, takeUntil } from 'rxjs';
+import { SessionTimeoutService } from '../../../shared/services/session-timeout.service';
 
 @Component({
     selector: 'app-chat-widget',
@@ -25,14 +26,19 @@ export class ChatWidgetComponent implements OnInit, OnDestroy {
     private destroy$ = new Subject<void>();
 
 
-    constructor(private socketService: SocketService, private userManagerService: UserManagerService) { }
+    constructor(private socketService: SocketService, private userManagerService: UserManagerService, private sessionService: SessionTimeoutService) { }
 
     ngOnDestroy(): void {
   this.destroy$.next();
   this.destroy$.complete();
 }
 
+    profile !: any;
     ngOnInit(): void {
+        this.profile = JSON.parse(localStorage.getItem('profile'));
+        if (this.profile) {
+            this.sessionService.stopWatching();
+        }
         localStorage.clear();
         this.getGuestTokenAndConnectToWebsocket();
     }
