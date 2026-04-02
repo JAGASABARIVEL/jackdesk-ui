@@ -21,7 +21,7 @@ or
 https://business.facebook.com/messaging/whatsapp/onboard/?app_id=1695908774471482&config_id=917209717702172
 
 2. Register the phone with PIN:
-curl -X POST "https://graph.facebook.com/v21.0/1031067020089200/register" -H "Authorization: Bearer EAAJIZCJb2uNUBO1iu1AXaDyFzEcWyG0lVXRAJ84d83XqbFLcZCa9WIpGF6BZBFT1aOERSXyGZAlN2bNLryZBqOCMgTu0miZBhXN0286UjbT67GP9aeKdZCHWAiLl9jh6EvfcEPR42sgIbb7uKLJQSBqZByQeqlULlNtQpKbM2NNp9vWATrRxTn05vjvKmTQ3hshn9AZDZD" -H "Content-Type: application/json" -d "{\"messaging_product\":\"whatsapp\",\"pin\":\"215488\"}"
+curl -X POST "https://graph.facebook.com/v21.0/1031067020089200/register" -H "Authorization: Bearer <SECRET_TOKEN>" -H "Content-Type: application/json" -d "{\"messaging_product\":\"whatsapp\",\"pin\":\"<PIN>\"}"
 
 3. Add it to the system user
 
