@@ -12,6 +12,7 @@ export class SocketService implements OnDestroy {
   public isSocketConnected: boolean = false;
   private messageSubject = new Subject<any>();
   private messageWebsiteSubject = new Subject<any>();
+  private callEventSubject = new Subject<any>();
 
   constructor(private router: Router) { }
 
@@ -76,13 +77,23 @@ export class SocketService implements OnDestroy {
     });
 
     this.socket.on('whatsapp_chat', (data: any) => {
-      this.messageSubject.next(data);
+      if (data?.msg_from_type === 'CALL_EVENT') {
+        // Route call events to the dedicated subject
+        this.callEventSubject.next(data);
+      } else {
+        // All existing chat messages continue as before
+        this.messageSubject.next(data);
+      }
     });
 
     this.socket.on('website_chatwidget_messages_back_to_front', (data: any) => {
       //console.log("received from engineer", data)
       this.messageWebsiteSubject.next(data);
     });
+  }
+
+  getCallEvents() {
+    return this.callEventSubject.asObservable();
   }
 
   sendMessage(message: string) {

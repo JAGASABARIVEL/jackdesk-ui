@@ -75,6 +75,48 @@
                 pTooltip="More options"
                 tooltipPosition="bottom">
         </button>
+        <ng-container *ngIf="selectedConversation?.contact?.platform_name === 'whatsapp'">
+ 
+  <!-- During an active/connecting call: show call duration + end/mute -->
+  <!-- These buttons emit @Outputs which chat-window.component handles  -->
+  <div *ngIf="isCallActive"
+       class="flex align-items-center gap-2 px-3 py-1 border-round"
+       style="background:#dcfce7; border:1px solid #86efac;">
+    <span class="pi pi-phone" style="color:#16a34a; font-size:13px;"></span>
+    <span style="font-size:12px; color:#15803d; font-weight:600;">
+      {{ activeCallStatus === 'active' ? 'On call' : 'Connecting…' }}
+    </span>
+    <!-- End call and mute buttons are on the chat-window sticky bar.  -->
+    <!-- Nothing duplicated here — the sticky bar is always visible.   -->
+  </div>
+ 
+  <!-- No active call: show outbound call controls -->
+  <ng-container *ngIf="!isCallActive">
+ 
+    <!-- Step 1: Request permission (always available for WA conversations) -->
+    <button pButton
+            icon="pi pi-bell"
+            class="p-button-outlined p-button-sm"
+            pTooltip="Request call permission from customer"
+            tooltipPosition="bottom"
+            (click)="requestCallPermission()">
+    </button>
+ 
+    <!-- Step 2: Initiate call (enabled only after customer grants permission) -->
+    <button pButton
+            icon="pi pi-phone"
+            class="p-button-success p-button-sm"
+            [disabled]="!canInitiateCall"
+            [pTooltip]="canInitiateCall
+              ? 'Call ' + selectedConversation?.contact?.phone
+              : 'Ask customer for permission first'"
+            tooltipPosition="bottom"
+            (click)="initiateOutboundCall()">
+    </button>
+ 
+  </ng-container>
+ 
+</ng-container>
         <p-menu #menu [model]="menuItems" [popup]="true" appendTo="body"></p-menu>
       </div>
     </div>
@@ -1182,9 +1224,12 @@
     <button pButton class="p-button-outlined" label="Cancel" severity="secondary"
             (click)="openConversationWhatsappVisible = false">
     </button>
-    <button pButton class="p-button-outlined"
-            *ngIf="selectedTemplate && isFieldValuesValid"
+        <button pButton class="p-button-outlined"
+            *ngIf="selectedTemplate"
             label="Send"
+            [disabled]="!isFieldValuesValid"
+            [pTooltip]="!isFieldValuesValid ? 'Fill all parameters and attach required media' : ''"
+            tooltipPosition="top"
             (click)="startNewConversationOnWhatsapp()">
     </button>
   </div>
@@ -1408,9 +1453,9 @@
 
   <!-- Template Preview -->
   <div *ngIf="activeConvSelectedTemplate" class="mb-4">
-    <div class="surface-card border-round p-3" style="border: 2px solid #E5DDD5;">
+    <div class="surface-card border-round p-3" style="border: 1px solid var(--surface-border);">
       <div class="flex align-items-center gap-2 mb-3">
-        <i class="pi pi-eye" style="color: #128C7E;"></i>
+        <i class="pi pi-eye" style="color: var(--primary-color);"></i>
         <strong class="text-lg">Preview</strong>
       </div>
       <app-message-preview
@@ -1528,9 +1573,9 @@
 
   <!-- Dynamic Template Parameters -->
   <div *ngIf="activeConvDynamicFields.length > 0" class="mb-4">
-    <div class="surface-card border-round p-3" style="border: 2px solid #FEF3C7;">
+    <div class="surface-card border-round p-3" style="border: 1px solid var(--surface-border);">
       <div class="flex align-items-center gap-2 mb-3">
-        <i class="pi pi-pencil" style="color: #F59E0B;"></i>
+        <i class="pi pi-pencil" style="color: var(--warning-color);"></i>
         <strong class="text-lg">Fill Template Parameters</strong>
       </div>
       
@@ -1566,12 +1611,14 @@
       class="p-button-outlined p-button-secondary" 
       (click)="closeSendTemplateDialog()">
     </button>
-    <button 
+        <button 
       pButton 
       label="Send Template" 
       icon="pi pi-send"
       class="p-button-outlined" 
       [disabled]="!isActiveConvTemplateValid"
+      [pTooltip]="!isActiveConvTemplateValid ? 'Please fill all text fields and attach required media before sending' : ''"
+      tooltipPosition="top"
       (click)="sendTemplateMessageInActiveConversation()">
     </button>
   </div>

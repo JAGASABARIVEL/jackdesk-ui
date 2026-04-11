@@ -16,6 +16,7 @@ export class ChatManagerService {
 
 
   conversations_url = `${HOST}/conversations/`;
+  calls_url = `${HOST}/calls/`
   non_chat_conversations_uri = `conversation/`;
   chat_uri = `chat/`;
 
@@ -647,4 +648,65 @@ list_conversations_paginated(
     { headers, params }
   );
 }
+
+
+
+/**
+ * Request calling permission from a WhatsApp user.
+ * Must be called before a business-initiated call.
+ * Step 1 of outbound calling.
+ */
+requestCallPermission(phoneNumberId: string, to: string) {
+  const headers = new HttpHeaders().set('Authorization', `Bearer ${this.auth_token}`);
+  return this.http.post(
+    `${this.calls_url}request-permission/`,
+    { phone_number_id: phoneNumberId, to },
+    { headers }
+  );
+}
+ 
+/**
+ * Initiate a business-to-user call.
+ * Requires prior call permission grant from user.
+ * Step 2 of outbound calling.
+ */
+initiateCall(phoneNumberId: string, to: string) {
+  const headers = new HttpHeaders().set('Authorization', `Bearer ${this.auth_token}`);
+  return this.http.post(
+    `${this.calls_url}initiate/`,
+    { phone_number_id: phoneNumberId, to },
+    { headers }
+  );
+}
+ 
+/**
+ * Send a call control action for an active call.
+ * @param callId         - Meta call_id from the incoming_call event
+ * @param phoneNumberId  - Your WA phone number ID
+ * @param action         - 'pre_accept' | 'accept' | 'reject' | 'terminate'
+ * @param sdp            - SDP answer from WebRTC (only for pre_accept / accept)
+ */
+callAction(callId: string, phoneNumberId: string, action: string, sdp?: string) {
+  const headers = new HttpHeaders().set('Authorization', `Bearer ${this.auth_token}`);
+  const body: any = { phone_number_id: phoneNumberId, action };
+  if (sdp) body.sdp = sdp;
+  return this.http.post(
+    `${this.calls_url}${callId}/action/`,
+    body,
+    { headers }
+  );
+}
+ 
+/**
+ * Fetch call log for a specific conversation.
+ */
+getCallLogs(conversationId: number) {
+  const headers = new HttpHeaders().set('Authorization', `Bearer ${this.auth_token}`);
+  return this.http.get(
+    `${this.calls_url}?conversation_id=${conversationId}`,
+    { headers }
+  );
+}
+
+
 }

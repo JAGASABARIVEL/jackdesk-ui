@@ -33,6 +33,9 @@ import { ChatManagerService } from '../../../shared/services/chat-manager.servic
 // Components
 import { DetailChatWindowComponent } from './detail-chat-window/detail-chat-window.component';
 import { PerformJsonOpPipe } from '../../../shared/pipes/perform-json-op.pipe';
+import { ToastModule } from 'primeng/toast';
+import { MessageService } from 'primeng/api';
+import { Tooltip } from "primeng/tooltip";
 
 // Types
 interface Conversation {
@@ -67,10 +70,13 @@ interface Conversation {
     ProgressSpinnerModule,
     ButtonModule,
     DetailChatWindowComponent,
-    PerformJsonOpPipe
-  ],
+    PerformJsonOpPipe,
+    ToastModule,
+    Tooltip
+],
   templateUrl: './chat-window.component.html',
-  styleUrl: './chat-window.component.scss'
+  styleUrl: './chat-window.component.scss',
+  providers: [MessageService]
 })
 export class ChatWindowComponent implements OnInit, OnDestroy {
   @ViewChild('conversationList') conversationListRef!: ElementRef;
@@ -99,6 +105,28 @@ export class ChatWindowComponent implements OnInit, OnDestroy {
   searchHasMore = signal<boolean>(true);
   private searchSubject$ = new Subject<string>();
 
+  // ── Call state (lives here so it persists across conversation switches) ──
+activeCallId              = signal<string | null>(null);
+activeCallFrom            = signal<string>('');
+activeCallPhoneNumberId   = signal<string>('');
+activeCallStatus          = signal<'ringing' | 'connecting' | 'active' | 'ended' | null>(null);
+activeCallConversationId  = signal<number | null>(null);
+waCallVisible             = signal<boolean>(false);
+callDurationSeconds       = signal<number>(0);
+isMuted                   = signal<boolean>(false);
+
+private pendingMetaSdpOffer: string = '';
+private peerConnection    : RTCPeerConnection | null = null;
+private localStream       : MediaStream | null = null;
+private remoteAudio       : HTMLAudioElement | null = null;
+private callTimer         : any = null;
+private pendingSdpOffer   : string = '';
+ 
+private readonly ICE_SERVERS = [
+  { urls: 'stun:stun.l.google.com:19302' },
+  // Add TURN server for production
+];
+
   // Computed
   displayedConversations = computed(() => {
     return this.sortByLastMessage(this.conversations());
@@ -126,6 +154,7 @@ export class ChatWindowComponent implements OnInit, OnDestroy {
   ngOnDestroy(): void {
     this.destroy$.next();
     this.destroy$.complete();
+    this._cleanupCall();
   }
 
   // ============================================================================
@@ -456,7 +485,46 @@ export class ChatWindowComponent implements OnInit, OnDestroy {
         next: (message: any) => this.handleWebSocketMessage(message),
         error: (err) => console.error('WebSocket error:', err)
       });
+
+    this.socketService.getCallEvents()
+    .pipe(takeUntil(this.destroy$))
+    .subscribe({
+      next : (event: any) => this.handleCallEvent(event),
+      error: (err) => console.error('Call event WebSocket error:', err)
+    });
+
+    // Also listen for Service Worker messages (FCM notification tap while offline)
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.addEventListener('message', (swEvent) => {
+      const msg = swEvent.data;
+      if (msg?.type === 'wa_incoming_call') {
+        this.activeCallId.set(msg.callId);
+        this.activeCallFrom.set(msg.from || '');
+        this.activeCallPhoneNumberId.set(msg.phoneId || '');
+        this.activeCallStatus.set('ringing');
+        this.activeCallConversationId.set(msg.convId ? +msg.convId : null);
+        this.waCallVisible.set(true);
+ 
+        // If agent tapped "Answer" directly on the notification, auto-answer
+        if (msg.action === 'answer') {
+          this.answerCall();
+        }
+        // Auto-navigate to the relevant conversation if not already selected
+        if (msg.convId) {
+          const convId = +msg.convId;
+          const exists = this.conversations().find(c => c.id === convId);
+          if (exists) {
+            this.selectedConversation.set(exists);
+          } else {
+            this.fetchAndAddConversation(convId);
+          }
+        }
+      }
+    });
   }
+  }
+
+  
 
   private handleWebSocketMessage(message: any): void {
     //console.log("message ", message);
@@ -543,6 +611,212 @@ export class ChatWindowComponent implements OnInit, OnDestroy {
       this.selectedConversation.set(conversation);
     }
   }
+
+  private handleCallEvent(event: any): void {
+  switch (event.event_type) {
+ 
+    case 'incoming_call': {
+  this.pendingMetaSdpOffer = event.sdp_offer || '';  // ✅ store Meta's offer
+  this.activeCallId.set(event.call_id);
+  this.activeCallFrom.set(event.caller_name || event.from || '');
+  this.activeCallPhoneNumberId.set(event.phone_number_id || '');
+  this.activeCallStatus.set('ringing');
+  this.activeCallConversationId.set(event.conversation_id ?? null);
+  this.waCallVisible.set(true);
+ 
+  if (event.conversation_id) {
+    const convId  = +event.conversation_id;
+    const convIdx = this.conversations().findIndex(c => c.id === convId);
+    if (convIdx !== -1 && !this.selectedConversation()) {
+      this.selectedConversation.set(this.conversations()[convIdx]);
+    }
+  }
+ 
+  this.playMessageSound();
+  break;
+}
+ 
+    case 'call_ended': {
+      if (event.call_id === this.activeCallId()) {
+        this._cleanupCall();
+        this.waCallVisible.set(false);
+      }
+      break;
+    }
+ 
+    case 'call_status': {
+      if (event.call_id === this.activeCallId()) {
+        this.activeCallStatus.set(event.status);
+        if (event.status === 'active' && !this.callTimer) {
+          this._startCallTimer();
+        }
+      }
+      break;
+    }
+ 
+    case 'permission_reply': {
+      // Forward to detail-chat-window via a signal it reads as @Input
+      // (detail-chat-window handles enabling/disabling the call button)
+      // We emit through an @Output equivalent by updating a signal the child binds to.
+      // See chat-window.component.html binding: [callPermissionGrantedFor]="callPermissionGrantedFor()"
+      if (event.response === 'ACCEPT') {
+        this.callPermissionGrantedFor.set(event.from);
+      }
+      break;
+    }
+ 
+    case 'outbound_call_initiated': {
+      this.activeCallId.set(event.call_id);
+      this.activeCallFrom.set(event.to || '');
+      this.activeCallPhoneNumberId.set(event.phone_number_id || '');
+      this.activeCallStatus.set('ringing');
+      break;
+    }
+  }
+}
+// Signal passed as @Input to detail-chat-window to enable its outbound call button
+callPermissionGrantedFor = signal<string | null>(null);
+ 
+ 
+// ── 7. ADD WebRTC methods (answer / reject / end / mute) ──────────────────────
+ async answerCall(): Promise<void> {
+  if (!this.activeCallId()) return;
+  this.waCallVisible.set(false);
+  this.activeCallStatus.set('connecting');
+
+  // Step 1: Get mic
+  try {
+    this.localStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+  } catch {
+    this.rejectCall();
+    return;
+  }
+
+  // Step 2: Create peer connection
+  this.peerConnection = new RTCPeerConnection({ iceServers: this.ICE_SERVERS });
+  this.localStream.getTracks().forEach(t =>
+    this.peerConnection!.addTrack(t, this.localStream!)
+  );
+
+  this.peerConnection.ontrack = (e) => {
+    if (!this.remoteAudio) {
+      this.remoteAudio = new Audio();
+      this.remoteAudio.autoplay = true;
+    }
+    this.remoteAudio.srcObject = e.streams[0];
+  };
+
+  // Step 3: Set Meta's SDP offer as remoteDescription
+  // Meta is the OFFERER — we are the ANSWERER
+  const metaSdpOffer = this.pendingMetaSdpOffer; // stored when incoming_call event arrived
+  if (!metaSdpOffer) {
+    console.error('No Meta SDP offer available');
+    this._cleanupCall();
+    return;
+  }
+
+  try {
+    await this.peerConnection.setRemoteDescription({
+      type: 'offer',
+      sdp : metaSdpOffer,
+    });
+  } catch (e) {
+    console.error('setRemoteDescription (Meta offer) failed:', e);
+    this._cleanupCall();
+    return;
+  }
+
+  // Step 4: Generate OUR answer in response to Meta's offer
+  const answer = await this.peerConnection.createAnswer();
+  await this.peerConnection.setLocalDescription(answer);
+
+  // Step 5: Send OUR answer to Meta via pre_accept
+  this.conversationService.callAction(
+    this.activeCallId()!,
+    this.activeCallPhoneNumberId(),
+    'pre_accept',
+    answer.sdp   // ← this is an ANSWER, not an offer
+  ).pipe(takeUntil(this.destroy$)).subscribe({
+    next: () => this._sendAccept(answer.sdp),
+    error: err => {
+      console.error('pre_accept failed', err);
+      this._cleanupCall();
+    }
+  });
+}
+
+private _sendAccept(ourSdpAnswer: string): void {
+  if (!this.activeCallId()) return;
+  this.conversationService.callAction(
+    this.activeCallId()!,
+    this.activeCallPhoneNumberId(),
+    'accept',
+    ourSdpAnswer   // same answer SDP
+  ).pipe(takeUntil(this.destroy$)).subscribe({
+    next : () => {
+      this.activeCallStatus.set('active');
+      this._startCallTimer();
+    },
+    error: err => console.error('accept failed', err)
+  });
+}
+ 
+rejectCall(): void {
+  if (!this.activeCallId()) return;
+  this.conversationService.callAction(
+    this.activeCallId()!,
+    this.activeCallPhoneNumberId(),
+    'reject'
+  ).pipe(takeUntil(this.destroy$)).subscribe();
+  this._cleanupCall();
+  this.waCallVisible.set(false);
+}
+ 
+endCall(): void {
+  if (!this.activeCallId()) return;
+  this.conversationService.callAction(
+    this.activeCallId()!,
+    this.activeCallPhoneNumberId(),
+    'terminate'
+  ).pipe(takeUntil(this.destroy$)).subscribe();
+  this._cleanupCall();
+}
+ 
+toggleMute(): void {
+  if (!this.localStream) return;
+  const next = !this.isMuted();
+  this.isMuted.set(next);
+  this.localStream.getAudioTracks().forEach(t => { t.enabled = !next; });
+}
+ 
+get callDurationDisplay(): string {
+  const s   = this.callDurationSeconds();
+  const m   = Math.floor(s / 60).toString().padStart(2, '0');
+  const sec = (s % 60).toString().padStart(2, '0');
+  return `${m}:${sec}`;
+}
+ 
+private _startCallTimer(): void {
+  this.callDurationSeconds.set(0);
+  this.callTimer = setInterval(
+    () => this.callDurationSeconds.update(s => s + 1),
+    1000
+  );
+}
+
+private _cleanupCall(): void {
+  clearInterval(this.callTimer);
+  this.callTimer = null;
+  this.callDurationSeconds.set(0);
+  this.activeCallStatus.set(null);
+  this.activeCallId.set(null);
+  this.activeCallFrom.set('');
+  this.isMuted.set(false);
+  this.pendingSdpOffer = '';
+  if (this.peerConnection) { this.peerConnection.close(); this.peerConnection = null; }
+  if (this.localStream)    { this.localStream.getTracks().forEach(t => t.stop()); this.localStream = null; }
+  if (this.remoteAudio)    { this.remoteAudio.srcObject = null; this.remoteAudio = null; }
+}
 
   // ============================================================================
   // EVENT HANDLERS
@@ -792,4 +1066,41 @@ loadMoreNotifications(): void {
       text: message
     });
   }
+
+  // activeCallFrom now holds caller_name (resolved in consumer from value['contacts'])
+// so this just returns it directly, with conversation name as fallback.
+ 
+getCallerDisplayName(): string {
+  const convId = this.activeCallConversationId();
+  if (convId) {
+    const conv = this.conversations().find(c => c.id === convId);
+    if (conv?.contact?.name) return conv.contact.name;
+  }
+  return this.activeCallFrom() || 'Unknown caller';
+}
+
+onRequestCallPermission(payload: { phoneNumberId: string; to: string }): void {
+  this.conversationService
+    .requestCallPermission(payload.phoneNumberId, payload.to)
+    .pipe(takeUntil(this.destroy$))
+    .subscribe({
+      next: () => { /* toast success optional */ },
+      error: err => console.error('request permission failed', err)
+    });
+}
+
+onInitiateCall(payload: { phoneNumberId: string; to: string }): void {
+  this.conversationService
+    .initiateCall(payload.phoneNumberId, payload.to)
+    .pipe(takeUntil(this.destroy$))
+    .subscribe({
+      next: (res: any) => {
+        this.activeCallId.set(res.call_id);
+        this.activeCallPhoneNumberId.set(payload.phoneNumberId);
+        this.activeCallFrom.set(payload.to);
+        this.activeCallStatus.set('ringing');
+      },
+      error: err => console.error('initiate call failed', err)
+    });
+}
 }

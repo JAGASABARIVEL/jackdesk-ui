@@ -249,6 +249,25 @@ templateLocationData: {
   agentCCRecipients: string[] = [];
   newAgentCCEmail: string = '';
   private originalAgentCC: string[] = [];
+
+  // ================
+  // Calls management
+  // ================
+  /** Passed down from chat-window — reflects the current call state globally */
+  @Input() activeCallStatus: 'ringing' | 'connecting' | 'active' | 'ended' | null = null;
+   
+  /**
+   * The phone number that has granted call permission.
+   * If it matches this conversation's contact phone, enable the call button.
+   * Passed down from chat-window which receives the 'permission_reply' event.
+   */
+  @Input() callPermissionGrantedFor: string | null = null;
+  /** Fires when agent clicks "Request Permission" — chat-window makes the API call */
+  @Output() requestCallPermissionEvent = new EventEmitter<{ phoneNumberId: string; to: string }>();
+   
+  /** Fires when agent clicks "Call" — chat-window makes the API call + owns state */
+  @Output() initiateCallEvent = new EventEmitter<{ phoneNumberId: string; to: string }>();
+ 
   
   // ============================================================================
   // CONSTRUCTOR
@@ -644,6 +663,36 @@ private convertTableToFormattedText(table: HTMLTableElement): string {
       canSendTemplate
     };
   }
+
+  /** True if the currently open conversation has an active/connecting call */
+get isCallActive(): boolean {
+  return this.activeCallStatus === 'active' || this.activeCallStatus === 'connecting';
+}
+ 
+/**
+ * True if the current conversation's contact has granted call permission.
+ * Used to enable/disable the "Call" button.
+ */
+get canInitiateCall(): boolean {
+  const phone = this._selectedConversation?.contact?.phone;
+  return !!phone && this.callPermissionGrantedFor === phone;
+}
+ 
+/** Emit up — chat-window handles the API call */
+requestCallPermission(): void {
+  const phone = this._selectedConversation?.contact?.phone;
+  const pid   = this._selectedConversation?.contact?.platform_id?.toString();
+  if (!phone || !pid) return;
+  this.requestCallPermissionEvent.emit({ phoneNumberId: pid, to: phone });
+}
+ 
+/** Emit up — chat-window handles the API call and owns call state */
+initiateOutboundCall(): void {
+  const phone = this._selectedConversation?.contact?.phone;
+  const pid   = this._selectedConversation?.contact?.platform_id?.toString();
+  if (!phone || !pid) return;
+  this.initiateCallEvent.emit({ phoneNumberId: pid, to: phone });
+}
   
   // ============================================================================
   // MENU BUILDING
@@ -1464,13 +1513,30 @@ resetTemplateLocation(): void {
 // REPLACE isFieldValuesValid getter — also gates on location/media
 // ============================================================================
 
-get isFieldValuesValid(): boolean {
-  const allFilled = !Object.values(this.fieldValues).some(v => v === '');
-  const mediaType = this.getHeaderMediaType();
+//get isFieldValuesValid(): boolean {
+//  const allFilled = !Object.values(this.fieldValues).some(v => v === '');
+//  const mediaType = this.getHeaderMediaType();
+//
+//  if (mediaType === 'LOCATION') {
+//    return allFilled && this.isLocationValid;
+//  } else if (mediaType) {
+//    return allFilled && !!this.templateAttachedFile;
+//  }
+//  return allFilled;
+//}
 
+get isFieldValuesValid(): boolean {
+  // Trim every field — reject spaces-only entries
+  const allFilled = Object.keys(this.fieldValues).length === 0
+    ? true
+    : !Object.values(this.fieldValues).some(v => !v || !v.trim());
+ 
+  const mediaType = this.getHeaderMediaType();
+ 
   if (mediaType === 'LOCATION') {
     return allFilled && this.isLocationValid;
-  } else if (mediaType) {
+  }
+  if (mediaType === 'IMAGE' || mediaType === 'VIDEO' || mediaType === 'DOCUMENT') {
     return allFilled && !!this.templateAttachedFile;
   }
   return allFilled;
@@ -1495,6 +1561,11 @@ get isFieldValuesValid(): boolean {
   payload.append('user_id', this._profile.user.id);
   payload.append('template', JSON.stringify(this.selectedTemplate));
   payload.append('template_parameters', JSON.stringify(this.fieldValues));
+  const trimmedFieldVals: { [key: string]: string } = {};
+  Object.entries(this.fieldValues).forEach(([key, val]) => {
+    trimmedFieldVals[key] = val ? val.trim() : '';
+  });
+  payload.append('template_parameters', JSON.stringify(trimmedFieldVals));
 
   const mediaType = this.getHeaderMediaType();
 
@@ -1772,12 +1843,31 @@ isActiveConvDocumentHeader(): boolean {
     !isNaN(lng) && lng >= -180 && lng <= 180;
 }
 
+//get isActiveConvTemplateValid(): boolean {
+//  if (!this.activeConvSelectedTemplate) return false;
+//  const allFilled = !Object.values(this.activeConvFieldValues).some(v => v === '');
+//  const mediaType = this.getActiveConvHeaderMediaType();
+//  if (mediaType === 'LOCATION') return allFilled && this.isActiveConvLocationValid;
+//  if (mediaType)                return allFilled && !!this.activeConvAttachedFile;
+//  return allFilled;
+//}
+
 get isActiveConvTemplateValid(): boolean {
   if (!this.activeConvSelectedTemplate) return false;
-  const allFilled = !Object.values(this.activeConvFieldValues).some(v => v === '');
+ 
+  // Trim every field value — spaces-only must be treated as empty
+  const allFilled = Object.keys(this.activeConvFieldValues).length === 0
+    ? true
+    : !Object.values(this.activeConvFieldValues).some(v => !v || !v.trim());
+ 
   const mediaType = this.getActiveConvHeaderMediaType();
-  if (mediaType === 'LOCATION') return allFilled && this.isActiveConvLocationValid;
-  if (mediaType)                return allFilled && !!this.activeConvAttachedFile;
+ 
+  if (mediaType === 'LOCATION') {
+    return allFilled && this.isActiveConvLocationValid;
+  }
+  if (mediaType === 'IMAGE' || mediaType === 'VIDEO' || mediaType === 'DOCUMENT') {
+    return allFilled && !!this.activeConvAttachedFile;
+  }
   return allFilled;
 }
   
@@ -1896,7 +1986,12 @@ onActiveConvDrop(event: DragEvent): void {
   payload.append('user_id', this._profile.user.id);
   payload.append('message_type', 'template');
   payload.append('template', JSON.stringify(this.activeConvSelectedTemplate));
-  payload.append('template_parameters', JSON.stringify(this.activeConvFieldValues));
+  //payload.append('template_parameters', JSON.stringify(this.activeConvFieldValues));
+  const trimmedFieldValues: { [key: string]: string } = {};
+  Object.entries(this.activeConvFieldValues).forEach(([key, val]) => {
+    trimmedFieldValues[key] = val ? val.trim() : '';
+  });
+  payload.append('template_parameters', JSON.stringify(trimmedFieldValues));
 
   const mediaType = this.getActiveConvHeaderMediaType();
 

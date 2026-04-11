@@ -423,7 +423,7 @@ export class EnhancedConversationDashboardComponent implements OnInit, OnDestroy
   
   exportReport(): void {
     // Implement export functionality
-    console.log('Exporting report...');
+    console.log('TODO: Exporting report...');
   }
   
   navigateToTickets(filter?: string): void {

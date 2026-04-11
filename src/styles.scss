@@ -22,3 +22,334 @@ $gutter: 1rem;
 body {
     background-color: white;
 }
+
+
+/* ============================================================================
+   APPEND THIS TO THE BOTTOM OF: src/styles.scss
+   ============================================================================
+   Global CSS Custom Properties for Light/Dark Theme Support
+   These variables are consumed by component SCSS files via var(--xxx).
+   ============================================================================ */
+
+:root {
+  /* Surface & Background */
+  --surface-ground: #f8f9fa;
+  --surface-section: #ffffff;
+  --surface-card: #ffffff;
+  --surface-overlay: #ffffff;
+  --surface-border: #e5e7eb;
+  --surface-hover: #f3f4f6;
+
+  /* Text */
+  --text-color: #1f2937;
+  --text-color-secondary: #6b7280;
+  --text-color-light: #9ca3af;
+
+  /* Chat-specific */
+  --chat-bg: #f0f2f5;
+  --chat-bubble-customer: #ffffff;
+  --chat-bubble-agent: #e8eaf6;
+  --chat-input-bg: #ffffff;
+  --chat-header-bg: #ffffff;
+
+  /* Compose / Cards */
+  --card-bg: #ffffff;
+  --card-border: #e5e7eb;
+  --card-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+
+  /* Form Controls */
+  --input-bg: #ffffff;
+  --input-border: #d1d5db;
+  --input-text: #1f2937;
+  --input-placeholder: #9ca3af;
+
+  /* Message Preview */
+  --preview-gradient-start: #667eea;
+  --preview-gradient-end: #764ba2;
+  --preview-bubble-bg: #ffffff;
+  --preview-body-text: #2d3748;
+  --preview-footer-text: #718096;
+
+  /* Sidebar / List */
+  --sidebar-bg: #ffffff;
+  --sidebar-item-hover: #f3f4f6;
+  --sidebar-item-active: #f3f0ff;
+  --sidebar-border: #e5e7eb;
+
+  /* Accent */
+  --primary-color: #667eea;
+  --primary-dark: #764ba2;
+  --primary-light: #a5b4fc;
+  --success-color: #10b981;
+  --warning-color: #f59e0b;
+  --danger-color: #ef4444;
+  --info-color: #3b82f6;
+
+  /* Shadows */
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.08), 0 2px 4px -1px rgba(0, 0, 0, 0.04);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -2px rgba(0, 0, 0, 0.03);
+}
+
+/* ── Dark Mode Override ───────────────────────────────────────── */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --surface-ground: #111827;
+    --surface-section: #1f2937;
+    --surface-card: #1f2937;
+    --surface-overlay: #1f2937;
+    --surface-border: #374151;
+    --surface-hover: #374151;
+
+    --text-color: #f3f4f6;
+    --text-color-secondary: #d1d5db;
+    --text-color-light: #9ca3af;
+
+    --chat-bg: #0f172a;
+    --chat-bubble-customer: #1e293b;
+    --chat-bubble-agent: #1e3a5f;
+    --chat-input-bg: #1e293b;
+    --chat-header-bg: #1e293b;
+
+    --card-bg: #1e293b;
+    --card-border: #374151;
+    --card-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+
+    --input-bg: #1e293b;
+    --input-border: #4b5563;
+    --input-text: #f3f4f6;
+    --input-placeholder: #6b7280;
+
+    --preview-bubble-bg: #1e293b;
+    --preview-body-text: #e5e7eb;
+    --preview-footer-text: #9ca3af;
+
+    --sidebar-bg: #1e293b;
+    --sidebar-item-hover: #374151;
+    --sidebar-item-active: #312e81;
+    --sidebar-border: #374151;
+
+    --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.3);
+    --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.4), 0 2px 4px -1px rgba(0, 0, 0, 0.3);
+    --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.4), 0 4px 6px -2px rgba(0, 0, 0, 0.3);
+  }
+
+  /* ── PrimeNG Global Dark Overrides ───────────────────────────── */
+  body {
+    background-color: var(--surface-ground);
+    color: var(--text-color);
+  }
+
+  .surface-card,
+  .p-card {
+    background: var(--surface-card) !important;
+    color: var(--text-color) !important;
+  }
+
+  .surface-section {
+    background: var(--surface-section) !important;
+  }
+
+  /* PrimeNG Dialog */
+  .p-dialog {
+    .p-dialog-header {
+      background: var(--surface-card) !important;
+      color: var(--text-color) !important;
+      border-bottom-color: var(--surface-border) !important;
+    }
+    .p-dialog-content {
+      background: var(--surface-card) !important;
+      color: var(--text-color) !important;
+    }
+    .p-dialog-footer {
+      background: var(--surface-card) !important;
+      border-top-color: var(--surface-border) !important;
+    }
+  }
+
+  /* PrimeNG Table */
+  .p-datatable {
+    .p-datatable-thead > tr > th {
+      background: var(--surface-section) !important;
+      color: var(--text-color) !important;
+      border-color: var(--surface-border) !important;
+    }
+    .p-datatable-tbody > tr {
+      background: var(--surface-card) !important;
+      color: var(--text-color) !important;
+      border-color: var(--surface-border) !important;
+
+      &:hover {
+        background: var(--surface-hover) !important;
+      }
+
+      td {
+        border-color: var(--surface-border) !important;
+      }
+    }
+  }
+
+  /* PrimeNG Select / Dropdown */
+  .p-select,
+  .p-dropdown {
+    background: var(--input-bg) !important;
+    border-color: var(--input-border) !important;
+    color: var(--input-text) !important;
+
+    .p-select-label,
+    .p-dropdown-label {
+      color: var(--input-text) !important;
+    }
+  }
+
+  .p-select-panel,
+  .p-dropdown-panel {
+    background: var(--surface-card) !important;
+    border-color: var(--surface-border) !important;
+
+    .p-select-items .p-select-item,
+    .p-dropdown-items .p-dropdown-item {
+      color: var(--text-color) !important;
+
+      &:hover {
+        background: var(--surface-hover) !important;
+      }
+      &.p-highlight {
+        background: var(--sidebar-item-active) !important;
+        color: var(--primary-light) !important;
+      }
+    }
+  }
+
+  /* PrimeNG Input */
+  .p-inputtext,
+  .p-inputtextarea,
+  textarea.p-inputtextarea {
+    background: var(--input-bg) !important;
+    border-color: var(--input-border) !important;
+    color: var(--input-text) !important;
+
+    &::placeholder {
+      color: var(--input-placeholder) !important;
+    }
+  }
+
+  /* PrimeNG Tabs */
+  .p-tablist {
+    background: var(--surface-card) !important;
+    border-color: var(--surface-border) !important;
+  }
+
+  .p-tab {
+    color: var(--text-color-secondary) !important;
+
+    &.p-tab-active,
+    &:hover {
+      color: var(--primary-light) !important;
+    }
+  }
+
+  .p-tabpanel {
+    background: transparent !important;
+    color: var(--text-color) !important;
+  }
+
+  /* PrimeNG Sidebar */
+  .p-sidebar {
+    background: var(--surface-card) !important;
+    color: var(--text-color) !important;
+    border-color: var(--surface-border) !important;
+  }
+
+  /* PrimeNG Toast */
+  .p-toast-message {
+    background: var(--surface-card) !important;
+    border-color: var(--surface-border) !important;
+    color: var(--text-color) !important;
+  }
+
+  /* PrimeNG Badge */
+  .p-badge {
+    &.p-badge-info {
+      background: #3b82f6;
+    }
+    &.p-badge-success {
+      background: #10b981;
+    }
+    &.p-badge-danger {
+      background: #ef4444;
+    }
+  }
+
+  /* PrimeNG FileUpload */
+  .p-fileupload {
+    background: var(--surface-card) !important;
+    border-color: var(--surface-border) !important;
+    color: var(--text-color) !important;
+
+    .p-fileupload-content {
+      background: var(--surface-card) !important;
+    }
+  }
+
+  /* PrimeNG Panel */
+  .p-panel {
+    .p-panel-header {
+      background: var(--surface-section) !important;
+      color: var(--text-color) !important;
+      border-color: var(--surface-border) !important;
+    }
+    .p-panel-content {
+      background: var(--surface-card) !important;
+      color: var(--text-color) !important;
+    }
+  }
+
+  /* PrimeNG Message */
+  .p-message {
+    &.p-message-warn {
+      background-color: rgba(245, 158, 11, 0.15) !important;
+      border-left-color: #f59e0b !important;
+      color: #fbbf24 !important;
+    }
+    &.p-message-info {
+      background-color: rgba(59, 130, 246, 0.15) !important;
+      border-left-color: #3b82f6 !important;
+      color: #93c5fd !important;
+    }
+    &.p-message-success {
+      background-color: rgba(16, 185, 129, 0.15) !important;
+      border-left-color: #10b981 !important;
+      color: #6ee7b7 !important;
+    }
+  }
+
+  /* FloatLabel */
+  .p-floatlabel label {
+    color: var(--text-color-secondary) !important;
+  }
+
+  /* Editor (Quill) */
+  .p-editor-container {
+    .p-editor-toolbar {
+      background: var(--surface-section) !important;
+      border-color: var(--surface-border) !important;
+    }
+    .p-editor-content {
+      background: var(--input-bg) !important;
+      border-color: var(--surface-border) !important;
+
+      .ql-editor {
+        color: var(--text-color) !important;
+      }
+    }
+  }
+
+  /* Utility text classes from PrimeNG / PrimeFlex */
+  .text-700 {
+    color: var(--text-color-secondary) !important;
+  }
+  .text-900 {
+    color: var(--text-color) !important;
+  }
+}

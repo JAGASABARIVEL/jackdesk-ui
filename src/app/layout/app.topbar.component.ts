@@ -23,6 +23,7 @@ import { UserProfileComponent } from '../auth/user-profile/user-profile.componen
 import { ChatManagerService } from '../shared/services/chat-manager.service';
 import { HoursToTimePipe } from '../shared/pipes/hourstotime.pipe';
 import { SessionTimeoutService } from '../shared/services/session-timeout.service';
+import { PushNotificationService } from '../shared/services/push-notification.service';
 
 
 declare const google: any;
@@ -81,6 +82,7 @@ export class AppTopBarComponent implements OnInit, OnDestroy, AfterViewInit {
         private productivityService: ProductivityService, 
         private platformManagerService: PlatformManagerService,
         private conversationService: ChatManagerService,
+        private pushNotificationService: PushNotificationService
     ) {
         this.items = [
             {
@@ -116,7 +118,19 @@ export class AppTopBarComponent implements OnInit, OnDestroy, AfterViewInit {
             this.subscribeToLocalEvents();
             this.subscribeToWebSocketChatMessages();
             this.initBackgroundFtech();
+            //this.listenForPushNotifications();
         }
+    }
+
+    listenForPushNotifications() {
+        this.pushNotificationService.listenForForegroundMessages((payload) => {
+          this.layoutService.addNotification({
+              id: Date.now(),
+              severity: 'info',
+              app: 'Push',
+              text: payload.notification?.body || 'New notification'
+            });
+        });
     }
 
     @HostListener('document:click', ['$event'])

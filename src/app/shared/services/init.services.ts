@@ -6,6 +6,7 @@ import { LayoutService } from '../../layout/service/app.layout.service';
 import { SocketService } from './socketio.service';
 import { UserManagerService } from './user-manager.service';
 import { Router } from '@angular/router';
+import { PushNotificationService } from './push-notification.service';
 
 @Injectable({
   providedIn: 'root'
@@ -18,7 +19,8 @@ export class AppInitializationService {
     private layoutService: LayoutService,
     private socketService: SocketService,
     private userManagerService: UserManagerService,
-    private router: Router
+    private router: Router,
+    private pushNotificationService: PushNotificationService
   ) {}
 
   async initializeApp(profile: any): Promise<void> {
@@ -52,6 +54,9 @@ export class AppInitializationService {
       this.layoutService.isLoggedIn.set(true);
 
       this.isInitialized.set(true);
+
+      // Register for desktop push notifications
+      this.pushNotificationService.requestPermissionAndRegister();
     } catch (err: any) {
       console.error('Initialization failed:', err);
       

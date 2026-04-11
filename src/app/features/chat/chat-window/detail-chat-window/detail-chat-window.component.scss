@@ -1,28 +1,11 @@
 // ============================================================================
 // VARIABLES
 // ============================================================================
-
-$primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-$primary-color: #667eea;
-$primary-dark: #764ba2;
-
-$text-primary: #1f2937;
-$text-secondary: #6b7280;
-$text-light: #9ca3af;
-
-$bg-chat: #f0f2f5;
-$bg-message-customer: #ffffff;
-$bg-message-agent: #e8eaf6;
 $bg-hover: #f3f4f6;
-
-$border-color: #e5e7eb;
+$text-secondary: #6b7280;
 $border-radius: 12px;
 $border-radius-sm: 8px;
-
-$shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-$shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-$shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
-$shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+$primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
 
 // ============================================================================
 // CHAT CONTAINER
@@ -36,7 +19,7 @@ $shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
   display: flex;
   flex-direction: column;
   height: 100%;
-  background: $bg-chat;
+  background: var(--chat-bg);
 }
 
 // ============================================================================
@@ -44,9 +27,9 @@ $shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
 // ============================================================================
 
 .chat-header {
-  background: white;
-  border-bottom: 2px solid $border-color;
-  box-shadow: $shadow-sm;
+  background: var(--chat-header-bg);
+  border-bottom: 2px solid var(--surface-border);
+  box-shadow: var(--shadow-sm);
   padding: 1rem 1.5rem;
   z-index: 10;
   position: relative;
@@ -83,7 +66,7 @@ $shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
       .contact-name {
         font-weight: 600;
         font-size: 1.1rem;
-        color: $text-primary;
+        color: var(--text-color);
       }
       
       .platform-badge {
@@ -93,7 +76,7 @@ $shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
         padding: 0.25rem 0.75rem;
         border-radius: $border-radius-sm;
         font-size: 0.85rem;
-        color: $primary-dark;
+        color: var(--primary-color);
         margin-top: 0.25rem;
         font-weight: 500;
         
@@ -114,7 +97,7 @@ $shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
   flex: 1;
   overflow-y: auto;
   padding: 1.5rem;
-  background: $bg-chat;
+  background: var(--chat-bg);
   
   &::-webkit-scrollbar {
     width: 6px;
@@ -125,11 +108,11 @@ $shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
   }
   
   &::-webkit-scrollbar-thumb {
-    background: $border-color;
+    background: var(--surface-border);
     border-radius: 3px;
     
     &:hover {
-      background: $text-light;
+      background: var(--input-placeholder);
     }
   }
 }
@@ -150,7 +133,7 @@ $shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
     margin: 0 1rem;
     
     &.open-line {
-      background: linear-gradient(90deg, transparent 0%, $primary-color 50%, transparent 100%);
+      background: linear-gradient(90deg, transparent 0%, var(--primary-color) 50%, transparent 100%);
     }
     
     &.closed-line {
@@ -170,7 +153,7 @@ $shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
     
     &.open-text {
       background: rgba(102, 126, 234, 0.1);
-      color: $primary-dark;
+      color: var(--primary-color);
       border: 1px solid rgba(102, 126, 234, 0.2);
     }
     
@@ -192,14 +175,14 @@ $shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
   
   &.customer-message {
     .message-bubble {
-      background: $bg-message-customer;
-      border: 1px solid $border-color;
+      background: var(--chat-bubble-customer);
+      border: 1px solid var(--surface-border);
       border-radius: $border-radius $border-radius $border-radius 4px;
-      box-shadow: $shadow-sm;
+      box-shadow: var(--shadow-sm);
       max-width: 70%;
       
       .message-time {
-        color: $text-light;
+        color: var(--input-placeholder);
         font-size: 0.75rem;
         padding: 0.5rem 1rem 0.25rem;
         display: flex;
@@ -209,7 +192,7 @@ $shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
       
       .message-content {
         padding: 0.5rem 1rem 0.875rem;
-        color: $text-primary;
+        color: var(--text-color);
         word-wrap: break-word;
         
         > * + * {
@@ -221,15 +204,15 @@ $shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
   
   &.agent-message {
     .message-bubble {
-      background: $bg-message-agent;
+      background: var(--chat-bubble-agent);
       border: 1px solid rgba(102, 126, 234, 0.2);
       border-radius: $border-radius $border-radius 4px $border-radius;
-      box-shadow: $shadow-sm;
+      box-shadow: var(--shadow-sm);
       max-width: 70%;
       
       .message-content {
         padding: 0.875rem 1rem;
-        color: $text-primary;
+        color: var(--text-color);
         word-wrap: break-word;
         
         > * + * {
@@ -273,12 +256,12 @@ $shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
   
   .sender-name {
     font-size: 0.75rem;
-    color: $primary-color;
+    color: var(--primary-color);
     font-weight: 600;
   }
   
   .message-time {
-    color: #9ca3af;
+    color: var(--text-color-light);
     white-space: nowrap;
   }
   
@@ -617,8 +600,8 @@ $shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
 // ============================================================================
 
 .chat-footer {
-  background: #f0f2f5;
-  border-top: 2px solid $border-color;
+  background: var(--chat-header-bg);
+  border-top: 1px solid var(--surface-border);
   padding: 1rem 1.5rem;
   box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.05);
   position: relative;
@@ -651,12 +634,12 @@ $shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
   border: 2px solid transparent;
   
   &:focus-within {
-    border-color: $primary-color;
+    border-color: var(--primary-color);
     box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
   }
   
   &.disabled {
-    background: #f5f5f5;
+    background: var(--chat-input-bg);
     cursor: not-allowed;
     opacity: 0.6;
   }
@@ -899,7 +882,7 @@ $shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
   font-family: inherit;
   
   &:focus {
-    border-color: $primary-color;
+    border-color: var(--primary-color);
     box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.1);
   }
   
@@ -1045,11 +1028,10 @@ $shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
   }
   
   .p-sidebar {
-    box-shadow: $shadow-xl;
     
     .p-sidebar-header {
       background: white;
-      border-bottom: 2px solid $border-color;
+      border-bottom: 2px solid var(--surface-border);
       position: relative;
       
       &::after {
@@ -1068,7 +1050,6 @@ $shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
   .p-dialog {
     border-radius: $border-radius;
     overflow: hidden;
-    box-shadow: $shadow-xl;
     
     .p-dialog-header {
       background: $primary-gradient;
@@ -1097,7 +1078,7 @@ $shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
     .p-dialog-footer {
       padding: 1rem 1.5rem;
       background: $bg-hover;
-      border-top: 1px solid $border-color;
+      border-top: 1px solid var(--surface-border);
     }
   }
   
@@ -1110,8 +1091,8 @@ $shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
     
     &.p-button-outlined {
       &:not(.p-button-secondary) {
-        border-color: $primary-color;
-        color: $primary-color;
+        border-color: var(--primary-color);
+        color: var(--primary-color);
         
         &:hover:not(:disabled) {
           background: $primary-gradient;
@@ -1126,7 +1107,7 @@ $shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
       border: none;
       
       &:hover:not(:disabled) {
-        box-shadow: $shadow-md;
+        box-shadow: var(--shadow-md);
         transform: translateY(-1px);
       }
     }
@@ -1143,11 +1124,11 @@ $shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
   .p-select,
   .p-textarea {
     border-radius: $border-radius-sm;
-    border: 1px solid $border-color;
+    border: 1px solid var(--surface-border);
     transition: all 0.2s ease;
     
     &:focus {
-      border-color: $primary-color;
+      border-color: var(--primary-color);
       box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
     }
   }
@@ -1161,7 +1142,7 @@ $shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
       padding: 0.75rem;
       
       &:focus {
-        border-color: $primary-color;
+        border-color: var(--primary-color);
         box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
       }
     }
@@ -1175,8 +1156,8 @@ $shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
   // Menu
   .p-menu {
     border-radius: $border-radius;
-    border: 1px solid $border-color;
-    box-shadow: $shadow-lg;
+    border: 1px solid var(--surface-border);
+    box-shadow: var(--shadow-lg);
     min-width: 200px;
     
     .p-menuitem-link {
@@ -1189,13 +1170,13 @@ $shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
       }
       
       .p-menuitem-icon {
-        color: $primary-color;
+        color: var(--primary-color);
         margin-right: 0.75rem;
       }
     }
     
     .p-menuitem-separator {
-      border-top-color: $border-color;
+      border-top-color: var(--surface-border);
     }
   }
   
@@ -1219,14 +1200,14 @@ $shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
   // Panels
   .p-panel {
     border-radius: $border-radius;
-    border: 1px solid $border-color;
-    box-shadow: $shadow-sm;
+    border: 1px solid var(--surface-border);
+    box-shadow: var(--shadow-sm);
     
     .p-panel-header {
       background: $bg-hover;
       border-radius: $border-radius $border-radius 0 0;
       padding: 1rem;
-      border-bottom: 1px solid $border-color;
+      border-bottom: 1px solid var(--surface-border);
     }
     
     .p-panel-content {
@@ -1347,92 +1328,6 @@ $shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
 }
 
 // ============================================================================
-// DARK MODE SUPPORT
-// ============================================================================
-
-@media (prefers-color-scheme: dark) {
-  .input-container {
-    background: #2a3942;
-    
-    &.disabled {
-      background: #1f2c33;
-    }
-  }
-  
-  .whatsapp-document-container {
-    background: rgba(255, 255, 255, 0.08);
-    border-color: rgba(255, 255, 255, 0.12);
-    
-    &:hover {
-      background: rgba(255, 255, 255, 0.12);
-    }
-  }
-  
-  .document-name {
-    color: #f3f4f6;
-  }
-  
-  .document-meta {
-    color: #d1d5db;
-  }
-  
-  .message-textarea {
-    color: #e9edef;
-    
-    &::placeholder {
-      color: #667781;
-    }
-  }
-  
-  .char-counter {
-    background: rgba(42, 57, 66, 0.9);
-    color: #8696a0;
-  }
-  
-  .formatting-hint {
-    color: #8696a0;
-  }
-  
-  .action-btn,
-  .attach-button {
-    color: #aebac1;
-    
-    &:hover:not(.disabled) {
-      background: rgba(255, 255, 255, 0.05);
-      color: #e9edef;
-    }
-  }
-  
-  .attachment-caption-input {
-    background: #1f2c33;
-    border-color: #374248;
-    color: #e9edef;
-    
-    &:focus {
-      border-color: $primary-color;
-    }
-  }
-  
-  .document-preview-card {
-    background: #1f2c33;
-  }
-  
-  .file-preview-container {
-    background: #1f2937;
-  }
-  
-  .message-container {
-    &.customer-message .message-bubble {
-      background: #262d31;
-    }
-    
-    &.agent-message .message-bubble {
-      background: #005c4b;
-    }
-  }
-}
-
-// ============================================================================
 // GMAIL EMAIL CONTENT STYLES
 // ============================================================================
 
@@ -1441,7 +1336,8 @@ $shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
   .message-content {
     // Email-specific content wrapper
     .email-content-wrapper {
-      background: #ffffff;
+      background: var(--surface-card);
+      color: var(--text-color);
       border-radius: 8px;
       padding: 20px;
       box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
@@ -1457,7 +1353,7 @@ $shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
       font-size: 14px;
       line-height: 1.6;
-      color: #1f2937;
+      color: var(--text-color);
       word-wrap: break-word;
       overflow-wrap: break-word;
       
