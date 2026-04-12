@@ -109,11 +109,17 @@ export class ChatWindowComponent implements OnInit, OnDestroy {
 activeCallId              = signal<string | null>(null);
 activeCallFrom            = signal<string>('');
 activeCallPhoneNumberId   = signal<string>('');
+activeCallPlatformId      = signal<string>('');
 activeCallStatus          = signal<'ringing' | 'connecting' | 'active' | 'ended' | null>(null);
 activeCallConversationId  = signal<number | null>(null);
 waCallVisible             = signal<boolean>(false);
 callDurationSeconds       = signal<number>(0);
 isMuted                   = signal<boolean>(false);
+agentPresence = signal<Map<number, 'online' | 'away' | 'offline'>>(new Map());
+myPresenceStatus = signal<'available' | 'away'>('available');
+activeCallIsTransfer = signal<boolean>(false);
+activeCallIsOutbound = signal<boolean>(false);
+
 
 private pendingMetaSdpOffer: string = '';
 private peerConnection    : RTCPeerConnection | null = null;
@@ -143,7 +149,8 @@ private readonly ICE_SERVERS = [
     private layoutService: LayoutService,
     private socketService: SocketService,
     private cachedDataService: CachedChatDataService,
-    private conversationService: ChatManagerService
+    private conversationService: ChatManagerService,
+    private messageService: MessageService
   ) {}
 
   ngOnInit(): void {
@@ -179,6 +186,7 @@ private readonly ICE_SERVERS = [
     this.loadUsers();
     this.loadInitialConversations();
     this.initializeWebSocket();
+    this.checkForOrphanedCall();
   }
 
   private loadUsers(): void {
@@ -501,6 +509,7 @@ private readonly ICE_SERVERS = [
         this.activeCallId.set(msg.callId);
         this.activeCallFrom.set(msg.from || '');
         this.activeCallPhoneNumberId.set(msg.phoneId || '');
+        this.activeCallPlatformId.set(msg.platform_id);
         this.activeCallStatus.set('ringing');
         this.activeCallConversationId.set(msg.convId ? +msg.convId : null);
         this.waCallVisible.set(true);
@@ -542,6 +551,32 @@ private readonly ICE_SERVERS = [
         // New conversation - fetch and add
         this.fetchAndAddConversation(convId);
       }
+
+      // ── NEW: if I was tagged in this note + note has call context ──────
+    if (
+      message.msg_from_type    === 'INTERNAL' &&
+      message.tagged_user_id   === this.profile()?.user?.id &&
+      message.customer_phone
+    ) {
+      // Enable MY call button for this customer
+      this.callPermissionGrantedFor.set(message.customer_phone);
+
+      // Auto-open the conversation
+      if (convIndex !== -1) {
+        this.selectedConversation.set(this.conversations()[convIndex]);
+      } else {
+        this.fetchAndAddConversation(convId);
+      }
+
+      // Toast so agent notices
+      this.messageService.add({
+        severity : 'info',
+        summary  : `📞 ${message.sender_name} asked you to call`,
+        detail   : `${message.customer_name || message.customer_phone} — call button is now enabled`,
+        life     : 20000,
+      });
+    }
+
     } else if (message.msg_from_type === 'ORG') {
       if (convIndex !== -1) {
         this.refreshConversation(convId);
@@ -612,64 +647,212 @@ private readonly ICE_SERVERS = [
     }
   }
 
-  private handleCallEvent(event: any): void {
-  switch (event.event_type) {
- 
-    case 'incoming_call': {
-  this.pendingMetaSdpOffer = event.sdp_offer || '';  // ✅ store Meta's offer
-  this.activeCallId.set(event.call_id);
-  this.activeCallFrom.set(event.caller_name || event.from || '');
-  this.activeCallPhoneNumberId.set(event.phone_number_id || '');
-  this.activeCallStatus.set('ringing');
-  this.activeCallConversationId.set(event.conversation_id ?? null);
-  this.waCallVisible.set(true);
- 
-  if (event.conversation_id) {
-    const convId  = +event.conversation_id;
-    const convIdx = this.conversations().findIndex(c => c.id === convId);
-    if (convIdx !== -1 && !this.selectedConversation()) {
-      this.selectedConversation.set(this.conversations()[convIdx]);
-    }
-  }
- 
-  this.playMessageSound();
-  break;
+  //private checkForOrphanedCall(): void {
+  //this.conversationService.getActiveCall()
+  //  .pipe(takeUntil(this.destroy$))
+  //  .subscribe({
+  //    next: (res: any) => {
+  //      const call = res?.active_call;
+  //      if (!call) return;
+//
+  //      // There's an active/connecting call that survived the refresh
+  //      this.activeCallId.set(call.call_id);
+  //      this.activeCallPhoneNumberId.set(call.phone_number_id);
+  //      this.activeCallFrom.set(call.from_number || '');
+  //      this.activeCallConversationId.set(call.conversation_id ?? null);
+//
+  //      if (call.status === 'active') {
+  //        // Call is live — WebRTC is gone (page refreshed), only option is to end it
+  //        this.activeCallStatus.set('active');
+  //        this.activeCallIsOutbound.set(call.direction === 'outbound');
+  //        this._showCallRecoveryDialog(call);
+  //      } else if (call.status === 'ringing' || call.status === 'connecting') {
+  //        // Still ringing — can still be cancelled
+  //        this.activeCallStatus.set(call.status as any);
+  //        this.activeCallIsOutbound.set(call.direction === 'outbound');
+  //        this.waCallVisible.set(true);
+//
+  //        this.messageService.add({
+  //          severity: 'warn',
+  //          summary : 'Call in progress',
+  //          detail  : `A ${call.direction} call is still active. You can cancel it.`,
+  //          life     : 0,   // sticky
+  //        });
+  //      }
+  //    },
+  //    error: () => {} // silently ignore
+  //  });
+//}
+
+private checkForOrphanedCall(): void {
+  this.conversationService.getActiveCall()
+    .pipe(takeUntil(this.destroy$))
+    .subscribe({
+      next: (res: any) => {
+        const call = res?.active_call;
+        if (!call) return;
+
+        this.activeCallId.set(call.call_id);
+        // Use platform_id (DB pk) for call actions, phone_number_id for display
+        this.activeCallPhoneNumberId.set(
+          call.platform_id?.toString()
+        );
+        this.activeCallPlatformId.set(call.platform_id?.toString());
+        this.activeCallFrom.set(call.from_number || '');
+        this.activeCallConversationId.set(call.conversation_id ?? null);
+        this.activeCallIsOutbound.set(call.direction === 'outbound');
+
+        if (call.status === 'active') {
+          this.activeCallStatus.set('active');
+          this._showCallRecoveryDialog(call);
+        } else if (call.status === 'ringing' || call.status === 'connecting') {
+          this.activeCallStatus.set(call.status as any);
+          this.waCallVisible.set(true);
+          this.messageService.add({
+            severity: 'warn',
+            summary : '⚠️ Call still in progress',
+            detail  : `A ${call.direction} call is still active. You can cancel it.`,
+            life    : 0,
+          });
+        }
+      },
+      error: () => {}
+    });
 }
- 
-    case 'call_ended': {
-      if (event.call_id === this.activeCallId()) {
+
+private _showCallRecoveryDialog(call: any): void {
+  // WebRTC session is dead — the audio pipe is broken
+  // Industry standard: terminate the call and notify the customer
+  this.messageService.add({
+    severity: 'warn',
+    summary : '⚠️ Call interrupted',
+    detail  : 'Your browser was refreshed during an active call. The audio connection was lost. The call will be ended.',
+    life    : 0,
+  });
+
+  // Auto-terminate after 5 seconds — give agent time to read the message
+  // but don't leave the customer hanging in silence
+  setTimeout(() => {
+    this.conversationService.callAction(
+      call.call_id,
+      call.platform_id,
+      'terminate'
+    ).pipe(takeUntil(this.destroy$)).subscribe({
+      next: () => {
+        this._cleanupCall();
+        this.messageService.add({
+          severity: 'info',
+          summary : 'Call ended',
+          detail  : 'The interrupted call was automatically terminated.',
+          life    : 5000,
+        });
+      },
+      error: () => this._cleanupCall()
+    });
+  }, 5000);
+}
+
+  private handleCallEvent(event: any): void {
+  const currentCallId = this.activeCallId();
+
+  switch (event.event_type) {
+
+    case 'incoming_call': {
+      // If we already have an active outbound call in progress, ignore
+      if (currentCallId && this.activeCallIsOutbound()) {
+        console.error('Ignoring incoming_call — outbound call in progress');
+        break;
+      }
+      this.activeCallIsOutbound.set(false);
+      const myUserId = this.profile()?.user?.id;
+      const routedTo = event.routed_to;
+      const shouldRing = !routedTo || routedTo === myUserId;
+
+      this.pendingMetaSdpOffer = event.sdp_offer || '';
+      this.activeCallId.set(event.call_id);
+      this.activeCallFrom.set(event.caller_name || event.from || '');
+      this.activeCallPhoneNumberId.set(event.phone_number_id || '');
+      this.activeCallPlatformId.set(event.platform_id);
+      this.activeCallStatus.set('ringing');
+      this.activeCallConversationId.set(event.conversation_id ?? null);
+      this.activeCallIsTransfer.set(event.is_transfer ?? false);
+
+      if (shouldRing) {
+        this.waCallVisible.set(true);
+        this.playMessageSound();
+      }
+      break;
+    }
+
+    case 'outbound_call_initiated': {
+      // Only update if this matches our current call or no call is active yet
+      if (currentCallId && currentCallId !== event.call_id) break;
+      // Don't touch waCallVisible here — already set in onInitiateCall
+      if (!currentCallId) {
+        // Edge case: Kafka arrived before API response (race)
+        this.activeCallId.set(event.call_id);
+        this.activeCallIsOutbound.set(true);
+        this.activeCallFrom.set(event.to || '');
+        this.activeCallStatus.set('ringing');
+        this.waCallVisible.set(true);
+      }
+      break;
+    }
+
+    case 'outbound_call_connected': {
+      if (event.call_id !== currentCallId) break;
+      if (!this.peerConnection) {
+        console.error('No peer connection for outbound_call_connected');
+        break;
+      }
+      this.peerConnection.setRemoteDescription({
+        type: 'answer',
+        sdp : event.sdp_answer,
+      }).then(() => {
+        //this.waCallVisible.set(false);       // amber overlay gone
+        this.activeCallStatus.set('connecting');
+      }).catch((e: any) => {
+        console.error('setRemoteDescription failed:', e);
+        this._cleanupCall();
+      });
+      break;
+    }
+
+    case 'call_status': {
+      if (event.call_id !== currentCallId) break;  // ignore stale events
+      this.activeCallStatus.set(event.status);
+      if (event.status === 'active' && !this.callTimer) {
+        this.waCallVisible.set(false);
+        this._startCallTimer();
+      }
+      if (event.status === 'ended' || event.status === 'rejected') {
         this._cleanupCall();
         this.waCallVisible.set(false);
       }
       break;
     }
- 
-    case 'call_status': {
-      if (event.call_id === this.activeCallId()) {
-        this.activeCallStatus.set(event.status);
-        if (event.status === 'active' && !this.callTimer) {
-          this._startCallTimer();
-        }
-      }
+
+    case 'call_ended': {
+      if (event.call_id !== currentCallId) break;
+      this._cleanupCall();
+      this.waCallVisible.set(false);
       break;
     }
- 
+
     case 'permission_reply': {
-      // Forward to detail-chat-window via a signal it reads as @Input
-      // (detail-chat-window handles enabling/disabling the call button)
-      // We emit through an @Output equivalent by updating a signal the child binds to.
-      // See chat-window.component.html binding: [callPermissionGrantedFor]="callPermissionGrantedFor()"
       if (event.response === 'ACCEPT') {
         this.callPermissionGrantedFor.set(event.from);
       }
       break;
     }
- 
-    case 'outbound_call_initiated': {
-      this.activeCallId.set(event.call_id);
-      this.activeCallFrom.set(event.to || '');
-      this.activeCallPhoneNumberId.set(event.phone_number_id || '');
-      this.activeCallStatus.set('ringing');
+
+    case 'presence_update': {
+      const uid = event.user_id;
+      this.agentPresence.update(m => {
+        const next = new Map(m);
+        next.set(uid, event.status);
+        return next;
+      });
       break;
     }
   }
@@ -677,6 +860,31 @@ private readonly ICE_SERVERS = [
 // Signal passed as @Input to detail-chat-window to enable its outbound call button
 callPermissionGrantedFor = signal<string | null>(null);
  
+transferCall(targetUserId: number): void {
+  if (!this.activeCallId()) return;
+  this.conversationService.transferCall(
+    this.activeCallId()!,
+    this.activeCallPhoneNumberId(),
+    targetUserId
+  ).pipe(takeUntil(this.destroy$)).subscribe({
+    next: () => {
+      // Close local WebRTC — target agent takes over
+      this._cleanupCall();
+      this.messageService.add({
+        severity: 'success', summary: 'Transferred',
+        detail: 'Call transferred successfully'
+      });
+    },
+    error: err => console.error('Transfer failed', err)
+  });
+}
+
+// ADD presence toggle
+togglePresence(): void {
+  const next = this.myPresenceStatus() === 'available' ? 'away' : 'available';
+  this.myPresenceStatus.set(next);
+  this.socketService.setPresence(next);
+}
  
 // ── 7. ADD WebRTC methods (answer / reject / end / mute) ──────────────────────
  async answerCall(): Promise<void> {
@@ -733,7 +941,8 @@ callPermissionGrantedFor = signal<string | null>(null);
   // Step 5: Send OUR answer to Meta via pre_accept
   this.conversationService.callAction(
     this.activeCallId()!,
-    this.activeCallPhoneNumberId(),
+    //this.activeCallPhoneNumberId(),
+    this.activeCallPlatformId(),
     'pre_accept',
     answer.sdp   // ← this is an ANSWER, not an offer
   ).pipe(takeUntil(this.destroy$)).subscribe({
@@ -749,7 +958,8 @@ private _sendAccept(ourSdpAnswer: string): void {
   if (!this.activeCallId()) return;
   this.conversationService.callAction(
     this.activeCallId()!,
-    this.activeCallPhoneNumberId(),
+    //this.activeCallPhoneNumberId(),
+    this.activeCallPlatformId(),
     'accept',
     ourSdpAnswer   // same answer SDP
   ).pipe(takeUntil(this.destroy$)).subscribe({
@@ -765,7 +975,8 @@ rejectCall(): void {
   if (!this.activeCallId()) return;
   this.conversationService.callAction(
     this.activeCallId()!,
-    this.activeCallPhoneNumberId(),
+    this.activeCallPlatformId(),
+    //this.activeCallPhoneNumberId(),
     'reject'
   ).pipe(takeUntil(this.destroy$)).subscribe();
   this._cleanupCall();
@@ -776,7 +987,8 @@ endCall(): void {
   if (!this.activeCallId()) return;
   this.conversationService.callAction(
     this.activeCallId()!,
-    this.activeCallPhoneNumberId(),
+    //this.activeCallPhoneNumberId(),
+    this.activeCallPlatformId(),
     'terminate'
   ).pipe(takeUntil(this.destroy$)).subscribe();
   this._cleanupCall();
@@ -812,6 +1024,8 @@ private _cleanupCall(): void {
   this.activeCallId.set(null);
   this.activeCallFrom.set('');
   this.isMuted.set(false);
+  this.activeCallIsOutbound.set(false);   // ← already present in your code ✅
+  this.waCallVisible.set(false);          // ← ADD this so overlay closes on cleanup
   this.pendingSdpOffer = '';
   if (this.peerConnection) { this.peerConnection.close(); this.peerConnection = null; }
   if (this.localStream)    { this.localStream.getTracks().forEach(t => t.stop()); this.localStream = null; }
@@ -1089,18 +1303,192 @@ onRequestCallPermission(payload: { phoneNumberId: string; to: string }): void {
     });
 }
 
-onInitiateCall(payload: { phoneNumberId: string; to: string }): void {
+private async checkMicrophoneAvailability(): Promise<{ available: boolean; message: string }> {
+  // Check if mediaDevices API is available (requires HTTPS)
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+    return {
+      available: false,
+      message: 'Microphone access requires a secure (HTTPS) connection.'
+    };
+  }
+
+  // Check current permission state without prompting
+  try {
+    const permissionStatus = await navigator.permissions.query(
+      { name: 'microphone' as PermissionName }
+    );
+
+    if (permissionStatus.state === 'denied') {
+      return {
+        available: false,
+        message: 'Microphone access is blocked. Please allow microphone access in your browser settings and try again.'
+      };
+    }
+  } catch {
+    // navigator.permissions not supported in all browsers — fall through to getUserMedia check
+  }
+
+  // Check if any audio input device exists
+  try {
+    const devices = await navigator.mediaDevices.enumerateDevices();
+    const hasMic = devices.some(d => d.kind === 'audioinput');
+    if (!hasMic) {
+      return {
+        available: false,
+        message: 'No microphone detected. Please connect a microphone and try again.'
+      };
+    }
+  } catch {
+    // enumerateDevices failed — fall through, getUserMedia will catch it
+  }
+
+  return { available: true, message: '' };
+}
+
+async onInitiateCall(payload: { platform_id: string; to: string; }): Promise<void> {
+  // phoneNumberId here is actually the platform DB id (contact.platform_id)
+  const platformId = payload.platform_id;
+
+  const micCheck = await this.checkMicrophoneAvailability();
+  if (!micCheck.available) {
+    this.messageService.add({
+      severity: 'error',
+      summary : 'Microphone Required',
+      detail  : micCheck.message,
+      life    : 8000,
+    });
+    return;
+  }
+
+  // Step 1: Generate WebRTC SDP offer — business is the caller/offerer
+  let sdpOffer: string;
+  try {
+    this.localStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+
+    this.peerConnection = new RTCPeerConnection({ iceServers: this.ICE_SERVERS });
+    this.localStream.getTracks().forEach(t =>
+      this.peerConnection!.addTrack(t, this.localStream!)
+    );
+
+    this.peerConnection.ontrack = (e) => {
+      if (!this.remoteAudio) {
+        this.remoteAudio = new Audio();
+        this.remoteAudio.autoplay = true;
+      }
+      this.remoteAudio.srcObject = e.streams[0];
+    };
+
+    const offer = await this.peerConnection.createOffer();
+    await this.peerConnection.setLocalDescription(offer);
+    sdpOffer = offer.sdp!;
+
+  } catch (e) {
+    
+    this.showError(`Failed to initiate call ${e}`);
+    this._cleanupCall();
+    return;
+  }
+
+  // Step 2: Send offer to backend → Meta
   this.conversationService
-    .initiateCall(payload.phoneNumberId, payload.to)
+    .initiateCall(platformId, payload.to, sdpOffer)
     .pipe(takeUntil(this.destroy$))
     .subscribe({
       next: (res: any) => {
         this.activeCallId.set(res.call_id);
-        this.activeCallPhoneNumberId.set(payload.phoneNumberId);
+        this.activeCallIsOutbound.set(true);
+        this.activeCallPhoneNumberId.set(platformId);
+        this.activeCallPlatformId.set(platformId);
         this.activeCallFrom.set(payload.to);
         this.activeCallStatus.set('ringing');
+        this.waCallVisible.set(true);
+        // Meta will respond with a 'connect' webhook (BUSINESS_INITIATED direction)
+        // containing the SDP answer — handled in handleCallEvent 'outbound_call_connected'
       },
-      error: err => console.error('initiate call failed', err)
+      error: err => {
+        console.error('initiate call failed', err);
+        this._cleanupCall();
+      }
     });
 }
+
+onTransferCall(payload: { targetUserId: number }): void {
+  if (!this.activeCallId()) return;
+
+  this.conversationService.transferCall(
+    this.activeCallId()!,
+    this.activeCallPhoneNumberId(),
+    payload.targetUserId
+  ).pipe(takeUntil(this.destroy$)).subscribe({
+    next: () => {
+      this._cleanupCall();   // originating agent's WebRTC closes
+      this.messageService.add({
+        severity: 'success',
+        summary : 'Call Transferred',
+        detail  : 'Call has been transferred successfully',
+      });
+    },
+    error: err => {
+      console.error('Transfer failed', err);
+      this.messageService.add({
+        severity: 'error',
+        summary : 'Transfer Failed',
+        detail  : err?.error?.error || 'Could not transfer call',
+      });
+    },
+  });
+}
+
+onCallPermissionRestored(phone: string): void {
+  this.callPermissionGrantedFor.set(phone);
+}
+
+getLastMessagePreview(conversation: Conversation): string {
+  if (!conversation.messages || conversation.messages.length === 0) {
+    return 'No messages yet';
+  }
+
+  const lastMsg = conversation.messages[conversation.messages.length - 1];
+
+  // ── Call history messages ─────────────────────────────────────────────
+  switch (lastMsg.message_type) {
+    case 'missed_call':
+      return '📵 Missed call';
+    case 'call_connected': {
+      const secs = lastMsg.message_body ? +lastMsg.message_body : 0;
+      const m    = Math.floor(secs / 60).toString().padStart(2, '0');
+      const s    = (secs % 60).toString().padStart(2, '0');
+      return `📞 Call · ${m}:${s}`;
+    }
+    case 'call_rejected':
+      return '📵 Call declined';
+    case 'call_not_answered':
+      return '📵 Call not answered';
+    case 'missed_call':
+      return '📵 Missed call';
+  }
+
+  // ── Template ──────────────────────────────────────────────────────────
+  if (lastMsg.template) {
+    try {
+      const tmpl = typeof lastMsg.template === 'string'
+        ? JSON.parse(lastMsg.template)
+        : lastMsg.template;
+      const bodyComp = tmpl?.components?.find((c: any) => c.type === 'BODY');
+      return '📋 ' + (bodyComp?.text?.slice(0, 50) || 'Template');
+    } catch {
+      return '📋 Template';
+    }
+  }
+
+  // ── Email ─────────────────────────────────────────────────────────────
+  if (lastMsg.message_type === 'email') {
+    return '✉️ ' + (lastMsg.message_body?.slice(0, 50) || 'Email');
+  }
+
+  // ── Default ───────────────────────────────────────────────────────────
+  return lastMsg.message_body?.slice(0, 50) || '';
+}
+
+
 }

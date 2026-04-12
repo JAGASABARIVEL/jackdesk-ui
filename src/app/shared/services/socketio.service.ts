@@ -119,6 +119,10 @@ export class SocketService implements OnDestroy {
     this.router.navigate(["/login"]);
   }
 
+  setPresence(status: 'available' | 'away'): void {
+    this.socket?.emit('set_presence', { status });
+  }
+
   ngOnDestroy() {
     this.disconnectSocket();
   }

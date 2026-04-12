@@ -255,6 +255,8 @@ templateLocationData: {
   // ================
   /** Passed down from chat-window — reflects the current call state globally */
   @Input() activeCallStatus: 'ringing' | 'connecting' | 'active' | 'ended' | null = null;
+
+  @Input() activeCallIsTransfer: any = null;
    
   /**
    * The phone number that has granted call permission.
@@ -266,7 +268,12 @@ templateLocationData: {
   @Output() requestCallPermissionEvent = new EventEmitter<{ phoneNumberId: string; to: string }>();
    
   /** Fires when agent clicks "Call" — chat-window makes the API call + owns state */
-  @Output() initiateCallEvent = new EventEmitter<{ phoneNumberId: string; to: string }>();
+  @Output() initiateCallEvent = new EventEmitter<{ platform_id: string; to: string }>();
+  @Output() transferCallEvent = new EventEmitter<{ targetUserId: number }>();
+  @Output() callPermissionRestoredEvent = new EventEmitter<string>(); 
+
+  isNoteMode     = false;
+  taggedEmployee : any = null;
  
   
   // ============================================================================
@@ -553,6 +560,14 @@ private convertTableToFormattedText(table: HTMLTableElement): string {
     this.selectedContact = value?.contact;
     this.conversationStatus = this.computeConversationStatus(value);
     this.convertToCommonDateTime();
+    // Check persisted call permission for this contact
+  if (value?.contact?.platform_id && value?.contact?.phone &&
+      value?.contact?.platform_name === 'whatsapp') {
+    this.checkPersistedCallPermission(
+      value.contact.platform_id.toString(),
+      value.contact.phone
+    );
+  }
     
     if (this._profile) {
       this.buildMenuItems();
@@ -691,7 +706,7 @@ initiateOutboundCall(): void {
   const phone = this._selectedConversation?.contact?.phone;
   const pid   = this._selectedConversation?.contact?.platform_id?.toString();
   if (!phone || !pid) return;
-  this.initiateCallEvent.emit({ phoneNumberId: pid, to: phone });
+  this.initiateCallEvent.emit({ platform_id: pid, to: phone });
 }
   
   // ============================================================================
@@ -944,43 +959,58 @@ getConversationStatusBadge(): {
   //}
 
   sendMessage(): void {
-  if (!this.canSendCurrentMessage()) {
-    if (this.conversationStatus.isZombie) {
+  if (!this.messageText?.trim()) return;
+
+  // ── Guard: internal notes bypass the zombie/canSend check ────────────
+  const canSend = this.isNoteMode
+    ? (this._selectedConversation?.id > 0)          // just need a real conversation
+    : this.canSendCurrentMessage();
+
+  if (!canSend) {
+    if (this.conversationStatus.isZombie && !this.isNoteMode) {
       this.messageService.add({
         severity: 'error',
-        summary: 'Cannot Send',
-        detail: this.selectedConversation.contact.platform_name === 'whatsapp'? 'This conversation requires re-engagement. Please send a template message first.' : 'This conversation needs gmail account to be active. Please ask admin to activate it.',
-        life: 5000
+        summary : 'Cannot Send',
+        detail  : 'Re-engagement required. Please send a template message first.',
+        life    : 5000,
       });
     }
     return;
   }
-  
-  const messagePayload: any = {
-    conversation_id: this._selectedConversation.id,
-    user_id: this._profile.user.id,
-    message_type: this.attachedFile ? 'media' : 'text',
-    message_body: this.messageText?.trim() || ''
+
+  const payload: any = {
+    conversation_id : this._selectedConversation.id,
+    user_id         : this._profile.user.id,
+    message_body    : this.messageText.trim(),
+    message_type    : this.attachedFile ? 'media' : 'text',
+    is_internal     : this.isNoteMode,            // ← key flag
   };
-  
-  if (this.attachedFile) {
-    messagePayload.file = this.attachedFile;
+
+  if (this.isNoteMode && this.taggedEmployee) {
+    payload.tagged_user_id  = this.taggedEmployee.user;
+    payload.phone_number_id = this._selectedConversation?.contact?.platform_id?.toString();
+    payload.customer_phone  = this._selectedConversation?.contact?.phone;
   }
-  
-  // Optimistic update
+
+  if (this.attachedFile) {
+    payload.file = this.attachedFile;
+  }
+
+  // Optimistic update — show note with distinct style
   this._selectedConversation.messages.push({
-    message_body: messagePayload.message_body,
-    message_type: messagePayload.message_type,
-    sender: this._profile.user.id,
-    sent_time: new Date(),
-    status: 'sending',
-    type: 'org'
+    message_body : payload.message_body,
+    message_type : payload.message_type,
+    sender       : this._profile.user.id,
+    sent_time    : new Date(),
+    status       : 'sending',
+    type         : 'org',
+    is_internal  : this.isNoteMode,   // used by template to render yellow note bubble
   });
-  
+
   this.conversationService.respond_to_message(
     'chat',
-    messagePayload.conversation_id,
-    messagePayload
+    payload.conversation_id,
+    payload
   ).pipe(takeUntil(this.destroy$))
     .subscribe({
       next: (response: any) => {
@@ -988,43 +1018,37 @@ getConversationStatusBadge(): {
           this._selectedConversation.status = 'zombie';
           this.conversationStatus = this.computeConversationStatus(this._selectedConversation);
           this.buildMenuItems();
-          
           this.messageService.add({
             severity: 'error',
-            summary: 'Re-engagement Required',
-            detail: 'Message failed. This conversation now requires a template message.',
-            life: 8000
+            summary : 'Re-engagement Required',
+            detail  : 'Message failed. This conversation now requires a template message.',
+            life    : 8000,
           });
         }
-        
         this.reloadActiveConversation();
         this.resetInput();
         this.resetTextareaHeight();
       },
       error: (err) => {
         console.error('Message failed:', err);
-        
         const errorBody = err.error || {};
-        
         if (errorBody.requires_template || errorBody.conversation_status === 'zombie') {
           this._selectedConversation.status = 'zombie';
           this.conversationStatus = this.computeConversationStatus(this._selectedConversation);
           this.buildMenuItems();
-          
           this.messageService.add({
             severity: 'error',
-            summary: 'Re-engagement Required',
-            detail: errorBody.details || 'Please send a template message to continue this conversation.',
-            life: 8000
+            summary : 'Re-engagement Required',
+            detail  : errorBody.details || 'Please send a template message to continue.',
+            life    : 8000,
           });
         } else {
           this.messageService.add({
             severity: 'error',
-            summary: 'Failed',
-            detail: errorBody.details || 'Could not send message'
+            summary : 'Failed',
+            detail  : errorBody.details || 'Could not send message',
           });
         }
-        
         this.reloadActiveConversation();
       }
     });
@@ -1034,6 +1058,8 @@ getConversationStatusBadge(): {
     this.messageText = '';
     this.attachedFile = null;
     this.previewUrl = null;
+    this.isNoteMode    = false;
+    this.taggedEmployee = null;
     this.resetTextareaHeight();
     
     // Focus back on input
@@ -3030,6 +3056,71 @@ isNewsletterStyle(html: string): boolean {
     html.includes('email-wrapper') ||
     (html.match(/<table/g) || []).length > 3
   );
+}
+
+// ADD — builds PrimeNG MenuItem[] for available agents to transfer to
+getTransferableAgents(): any[] {
+  return this.employees
+    .filter(emp => emp.user !== this.profile?.user?.id)
+    .map(emp => ({
+      label  : emp.details?.username || `Agent ${emp.user}`,
+      icon   : 'pi pi-user',
+      command: () => this.transferCall(emp.user)
+    }));
+}
+
+// REPLACE the transferCall method — it only emits, touches nothing it doesn't own
+transferCall(targetUserId: number): void {
+  this.transferCallEvent.emit({ targetUserId });
+}
+
+toggleNoteMode(): void {
+  this.isNoteMode = !this.isNoteMode;
+  if (!this.isNoteMode) {
+    this.taggedEmployee = null;
+  }
+}
+
+sendNoteAndRequestCall(): void {
+  if (!this.taggedEmployee) return;
+  
+  // isNoteMode must be true for this to work — enforce it
+  this.isNoteMode = true;
+
+  const agentName    = this.taggedEmployee.details?.username || 'Agent';
+  const customerName = this._selectedConversation?.contact?.name
+                    || this._selectedConversation?.contact?.phone;
+
+  if (!this.messageText?.trim()) {
+    this.messageText = `@${agentName} — please call ${customerName}. Customer needs assistance.`;
+  }
+
+  // sendMessage() will now see isNoteMode=true and route as internal
+  this.sendMessage();
+}
+
+private checkPersistedCallPermission(platformId: string, phone: string): void {
+  this.conversationService.checkCallPermission(platformId, phone)
+    .pipe(takeUntil(this.destroy$))
+    .subscribe({
+      next: (res: any) => {
+        if (res.has_permission) {
+          // Pre-enable the call button — emits to parent via @Output isn't
+          // applicable here, so set directly via the Input binding path.
+          // We'll fire an event up to chat-window to set the signal.
+          this.callPermissionGrantedFor = phone;
+          this.callPermissionRestoredEvent.emit(phone);
+        }
+      },
+      error: () => {} // silently ignore — fallback to socket-based flow
+    });
+}
+
+formatCallDuration(seconds: number): string {
+  if (!seconds || isNaN(seconds)) return '';
+  const m = Math.floor(seconds / 60).toString().padStart(2, '0');
+  const s = (seconds % 60).toString().padStart(2, '0');
+  return `${m}:${s}`;
 }
 
 }

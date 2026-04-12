@@ -1,5 +1,6 @@
-
-<div *ngIf="waCallVisible()"
+<p-toast position="top-right"></p-toast>
+<!-- Inbound call overlay — only for inbound calls -->
+<div *ngIf="waCallVisible() && !activeCallIsOutbound()"
      style="position:fixed; inset:0; background:rgba(0,0,0,0.65);
             display:flex; align-items:center; justify-content:center;
             z-index:9999; backdrop-filter:blur(6px);">
@@ -48,6 +49,66 @@
     </div>
  
   </div>
+</div>
+
+<!-- Outbound overlay — stays visible until customer answers (status=active) -->
+<div *ngIf="waCallVisible() && activeCallIsOutbound()"
+     style="position:fixed; inset:0; background:rgba(0,0,0,0.65);
+            display:flex; align-items:center; justify-content:center;
+            z-index:9999; backdrop-filter:blur(6px);">
+
+  <div style="background:#fff; border-radius:20px; padding:40px 52px;
+              text-align:center; box-shadow:0 24px 80px rgba(0,0,0,0.35);
+              display:flex; flex-direction:column; align-items:center; gap:18px;
+              min-width:300px; animation: slideUp 0.25s ease;">
+
+    <!-- Pulsing ring — amber while ringing, blue while connecting -->
+    <div style="position:relative; width:88px; height:88px;">
+      <span [style.border-color]="activeCallStatus() === 'connecting' ? '#3b82f6' : '#f59e0b'"
+            style="position:absolute; inset:0; border-radius:50%;
+                   border:2px solid; animation:ringPulse 1.4s ease-out infinite;"></span>
+      <span [style.border-color]="activeCallStatus() === 'connecting' ? '#3b82f6' : '#f59e0b'"
+            style="position:absolute; inset:0; border-radius:50%;
+                   border:2px solid; animation:ringPulse 1.4s ease-out infinite 0.6s;"></span>
+      <div [style.background]="activeCallStatus() === 'connecting' ? '#eff6ff' : '#fffbeb'"
+           style="position:absolute; inset:10px; border-radius:50%;
+                  display:flex; align-items:center; justify-content:center;">
+        <i class="pi pi-phone"
+           [style.color]="activeCallStatus() === 'connecting' ? '#2563eb' : '#d97706'"
+           style="font-size:30px;"></i>
+      </div>
+    </div>
+
+    <!-- Status label -->
+    <div style="font-size:11px; letter-spacing:2px; text-transform:uppercase; color:#9ca3af;">
+      @if (activeCallStatus() === 'ringing') { Calling... }
+      @else if (activeCallStatus() === 'connecting') { Ringing on customer's phone... }
+    </div>
+
+    <div style="font-size:22px; font-weight:700; color:#111827;">
+      {{ activeCallFrom() }}
+    </div>
+
+    <!-- Cancel always available until customer answers -->
+    <button pButton
+            icon="pi pi-times"
+            label="Cancel Call"
+            class="p-button-danger"
+            style="border-radius:50px; min-width:140px;"
+            (click)="endCall()">
+    </button>
+
+  </div>
+</div>
+
+<div class="call-status-label">
+  @if (activeCallStatus() === 'ringing') {
+    <span>{{ activeCallIsOutbound ? 'Calling...' : 'Incoming Call' }}</span>
+  } @else if (activeCallStatus() === 'connecting') {
+    <span>Connecting...</span>
+  } @else if (activeCallStatus() === 'active') {
+    <span>{{ callDurationDisplay }}</span>
+  }
 </div>
 
 <div *ngIf="activeCallStatus() === 'active' || activeCallStatus() === 'connecting'"
@@ -228,18 +289,8 @@
                           <span class="text-color-secondary">Click to start conversation</span>
                         } @else if (conversation.subject) {
                           📧 {{ conversation.subject | slice:0:50 }}
-                        } @else if (conversation.messages?.length > 0) {
-                          @let lastMsg = conversation.messages[conversation.messages.length - 1];
-                          @if (lastMsg.template) {
-                            @let tmpl = lastMsg.template | performJsonOp: 'load';
-                            @if (tmpl?.components?.length > 1) {
-                              📋 {{ tmpl.components[1]?.text | slice:0:50 }}
-                            }
-                          } @else {
-                            {{ lastMsg.message_body | slice:0:50 }}
-                          }
                         } @else {
-                          No messages yet
+                          <span>{{ getLastMessagePreview(conversation) }}</span>
                         }
                       </div>
                     </div>
@@ -319,12 +370,13 @@
   [selectedConversation]="selectedConversation()"
   [profile]="profile()"
   [employees]="employees()"
- 
   [activeCallStatus]="activeCallStatus()"
+  [activeCallIsTransfer]="activeCallIsTransfer"
   [callPermissionGrantedFor]="callPermissionGrantedFor()"
- 
   (requestCallPermissionEvent)="onRequestCallPermission($event)"
-  (initiateCallEvent)="onInitiateCall($event)">
+  (initiateCallEvent)="onInitiateCall($event)"
+  (callPermissionRestoredEvent)="onCallPermissionRestored($event)"
+  (transferCallEvent)="onTransferCall($event)">   ← ADD THIS
 </app-detail-chat-window>
     } @else {
       <!-- Empty State for Detail View -->

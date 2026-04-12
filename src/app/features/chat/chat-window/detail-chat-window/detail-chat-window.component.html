@@ -1,6 +1,13 @@
 <!-- ============================================================================
-     WEB details page UI
-     ============================================================================ -->
+WEB details page UI
+============================================================================ -->
+
+<ng-template #noConversation>
+  <div class="flex flex-column align-items-center justify-content-center" style="height: 80vh;">
+    <i class="pi pi-exclamation-triangle text-6xl text-color-secondary mb-3"></i>
+    <h3 class="text-xl font-semibold text-color-secondary">No Conversation Selected</h3>
+  </div>
+</ng-template>
 
 <!-- Outer Container: full height column layout -->
 <div class="chat-detail-container flex flex-column" style="height: 80vh;" *ngIf="selectedConversation; else noConversation">
@@ -145,9 +152,55 @@
         </span>
         <div class="status-line" [ngClass]="{'open-line': message.type === 'start_tag', 'closed-line': message.type === 'end_tag'}"></div>
       </div>
+
+      <!-- ── CALL EVENT BUBBLE (centered, direction-agnostic) ─────────────── -->
+  @if (message.message_type === 'missed_call' ||
+       message.message_type === 'call_connected' ||
+       message.message_type === 'call_rejected' ||
+       message.message_type === 'call_not_answered') {
+    <div class="flex justify-content-center my-2">
+      <div style="display:flex; align-items:center; gap:8px;
+                  background:#f3f4f6; border-radius:20px; padding:6px 16px;
+                  font-size:12px; color:#6b7280; max-width:80%;">
+
+        @if (message.message_type === 'missed_call') {
+          <i class="pi pi-phone" style="color:#ef4444; transform:rotate(135deg); font-size:13px;"></i>
+          <span style="color:#ef4444; font-weight:500;">Missed call</span>
+        }
+        @if (message.message_type === 'call_connected') {
+          <i class="pi pi-phone" style="color:#16a34a; font-size:13px;"></i>
+          <span style="color:#16a34a; font-weight:500;">
+            Call · {{ message.message_body ? formatCallDuration(+message.message_body) : '' }}
+          </span>
+        }
+        @if (message.message_type === 'call_rejected') {
+          <i class="pi pi-phone" style="color:#f59e0b; transform:rotate(135deg); font-size:13px;"></i>
+          <span style="color:#f59e0b; font-weight:500;">
+            {{ message.type === 'org' ? 'Customer declined call' : 'Call declined' }}
+          </span>
+        }
+        @if (message.message_type === 'call_not_answered') {
+          <i class="pi pi-phone" style="color:#9ca3af; font-size:13px;"></i>
+          <span style="color:#9ca3af; font-weight:500;">
+            {{ message.type === 'org' ? 'Call not answered by customer' : 'Call not answered' }}
+          </span>
+        }
+
+        <!-- Direction indicator -->
+        <span style="color:#d1d5db; font-size:10px;">
+          {{ message.type === 'org' ? '↑ outbound' : '↓ inbound' }}
+        </span>
+        <span style="margin-left:4px; color:#9ca3af;">· {{ message.displayTime }}</span>
+      </div>
+    </div>
+  }
       
       <!-- Customer Message -->
-      <div *ngIf="message.type === 'customer'" class="message-container customer-message">
+      <div *ngIf="message.type === 'customer' &&
+              message.message_type !== 'missed_call' &&
+              message.message_type !== 'call_connected' &&
+              message.message_type !== 'call_rejected' &&
+              message.message_type !== 'call_not_answered'" class="message-container customer-message">
         <div class="flex justify-content-start">
           <div class="message-bubble">
             <div class="message-time">
@@ -155,6 +208,8 @@
               {{ message.displayTime }}
             </div>
             <div class="message-content">
+
+              
               
               <!-- 🆕 WhatsApp-Style Single Media (Image/Video/Audio) -->
               <div *ngIf="!message.media_urls?.length && message.message_type !== 'text' && message.message_type !== 'email'">
@@ -303,10 +358,29 @@
       </div>
       
       <!-- Agent/Organization Message -->
-<div *ngIf="message.type === 'org'" class="message-container agent-message">
+<div *ngIf="message.type === 'org' &&
+              message.message_type !== 'missed_call' &&
+              message.message_type !== 'call_connected' &&
+              message.message_type !== 'call_rejected' &&
+              message.message_type !== 'call_not_answered'" class="message-container agent-message">
   <div class="flex justify-content-end">
     <div class="message-bubble">
+
+
+              
       
+      <!-- Internal note badge -->
+      <div *ngIf="message.is_internal"
+           class="flex align-items-center gap-1 mb-1 p-2"
+           style="font-size:11px; color:#92400e; font-weight:600;">
+        <i class="pi pi-lock" style="font-size:10px;"></i>
+        <span>Internal note
+          <span *ngIf="message.tagged_user_id">
+            {{ getEmployeeNameFromId(message.tagged_user_id)?.details?.username }}
+          </span>
+        </span>
+      </div>
+
       <!-- Template Preview -->
       <app-message-preview *ngIf="message.template" 
                            [selectedTemplateForPreview]="message.template" 
@@ -515,266 +589,221 @@
 
   
   <!-- Enhanced Chat Footer with Template Button -->
-  <div *ngIf="selectedConversation.assigned?.id === profile.user.id && 
-              selectedConversation.status !== 'org_new' && 
-              selectedConversation.status !== 'closed'" 
-       class="flex flex-column border-top-1 surface-border p-2 relative">
-    
-    <!-- Drop Area Overlay (existing code) -->
-    <!--div *ngIf="isDragging"
-      class="absolute w-full h-full top-0 left-0 bg-black-alpha-50 z-3 flex align-items-center justify-content-center border-dashed border-2 border-primary"
-      (drop)="onFileDrop($event)" (dragover)="onDragOver($event)" (dragleave)="onDragLeave($event)">
-      <div class="text-white text-lg">Drop file to attach</div>
-    </div-->
+  <!-- Enhanced Chat Footer -->
+<div *ngIf="selectedConversation.assigned?.id === profile.user.id && 
+            selectedConversation.status !== 'org_new' && 
+            selectedConversation.status !== 'closed'" 
+     class="flex flex-column border-top-1 surface-border p-2 relative">
+
+  <!-- Drop Area Overlay -->
   <div *ngIf="isDragging"
-    class="absolute w-full h-full top-0 left-0 bg-black-alpha-50 z-3 flex align-items-center justify-content-center border-dashed border-2 border-primary"
-    (drop)="onFileDrop($event)" 
-    (dragover)="onDragOver($event)" 
-    (dragleave)="onDragLeave($event)">
+       class="absolute w-full h-full top-0 left-0 bg-black-alpha-50 z-3
+              flex align-items-center justify-content-center
+              border-dashed border-2 border-primary"
+       (drop)="onFileDrop($event)"
+       (dragover)="onDragOver($event)"
+       (dragleave)="onDragLeave($event)">
     <div class="text-white text-lg flex flex-column align-items-center gap-2">
       <i class="pi pi-cloud-upload text-4xl"></i>
       <span>Drop file to attach</span>
     </div>
   </div>
 
-  <!-- 🆕 Zombie Warning Banner (if zombie) -->
+  <!-- Zombie Warning Banner -->
   <div *ngIf="conversationStatus.isZombie" class="zombie-input-warning mb-2">
     <div class="flex align-items-center gap-2 px-3 py-2">
       <i class="pi pi-exclamation-triangle"></i>
-      <span *ngIf="selectedConversation.contact.platform_name === 'whatsapp'" class="text-sm flex-1">Re-engagement required. Use template button to continue.</span>
-      <span *ngIf="selectedConversation.contact.platform_name === 'gmail'" class="text-sm flex-1">Gmail account needs activation. Please ask your organization admin to activate.</span>
-      <button *ngIf="selectedConversation.contact.platform_name === 'whatsapp'" pButton 
-              icon="pi pi-file" 
-              label="Template"
+      <span *ngIf="selectedConversation.contact.platform_name === 'whatsapp'"
+            class="text-sm flex-1">
+        Re-engagement required. Use template button to continue.
+      </span>
+      <span *ngIf="selectedConversation.contact.platform_name === 'gmail'"
+            class="text-sm flex-1">
+        Gmail account needs activation. Please ask your admin.
+      </span>
+      <button *ngIf="selectedConversation.contact.platform_name === 'whatsapp'"
+              pButton icon="pi pi-file" label="Template"
               class="p-button-sm p-button-warning p-button-outlined"
-              (click)="openSendTemplateDialog()"></button>
+              (click)="openSendTemplateDialog()">
+      </button>
     </div>
   </div>
-    
-    <!--div *ngIf="attachedFile" class="border-round overflow-hidden mb-2 bg-white shadow-2"
-      style="max-width: 100%; position: relative;">
-      <ng-container *ngIf="isImage(attachedFile)">
-        <img [src]="previewUrl" class="w-full" style="max-height: 250px; object-fit: cover;" />
-        <textarea [(ngModel)]="messageText" rows="2" placeholder="Add a caption..."
-          class="w-full p-2 border-0 border-top-1 surface-border text-sm resize-none" style="outline: none;"></textarea>
-      </ng-container>
-      <ng-container *ngIf="!isImage(attachedFile)">
-        <div class="p-3 border-round bg-white-100 flex align-items-center gap-3 shadow-1"
-          style="max-width: 100%; border: 1px solid #ccc; object-fit: cover;">
-          <div class="flex flex-column h-full gap-4 justify-content-between">
-            <div class="flex" style="width: 100%;">
-              <i class="pi pi-file" style="font-size: 2rem; color: #6c757d;"></i>
-              <div class="w-full flex flex-column overflow-hidden">
-                <span class="text-sm font-medium text-900 truncate">{{ attachedFile.name }}</span>
-                <span class="text-xs text-color-secondary">{{ formatBytes(attachedFile.size) }}</span>
-              </div>
-            </div>
-            <textarea [(ngModel)]="messageText" placeholder="Add a caption..."
-              class="w-full p-2 border-0 border-top-1 surface-border text-sm resize-none" style="outline: none;">
-            </textarea>
-          </div>
-        </div>
-      </ng-container>
-      <button pButton icon="pi pi-times" class="p-button-rounded p-button-sm p-button-danger"
-        style="position: absolute; top: 0.5rem; right: 0.5rem; z-index: 2;" (click)="removeAttachment()">
+
+  <!-- Note Mode Toggle Bar (WhatsApp only) -->
+  <div *ngIf="selectedConversation?.contact?.platform_name === 'whatsapp'"
+       class="flex align-items-center gap-2 mb-2 px-1">
+
+    <button pButton
+            [label]="isNoteMode ? 'Note mode' : 'Internal Note'"
+            [icon]="isNoteMode ? 'pi pi-lock' : 'pi pi-send'"
+            [class]="isNoteMode
+              ? 'p-button-sm p-button-warning p-button-outlined'
+              : 'p-button-sm p-button-outlined'"
+            pTooltip="Toggle internal note mode"
+            (click)="toggleNoteMode()">
+    </button>
+
+    <ng-container *ngIf="isNoteMode">
+      <p-select
+  [options]="employees"
+  [(ngModel)]="taggedEmployee"
+  optionLabel="details.username"
+  placeholder="@ Tag agent (optional)"
+  [showClear]="true"
+  styleClass="p-inputtext-sm"
+  [style]="{'min-width': '180px'}">
+</p-select>
+
+      <button pButton
+              *ngIf="taggedEmployee && canInitiateCall"
+              icon="pi pi-phone"
+              label="Ask to call"
+              class="p-button-sm p-button-success p-button-outlined"
+              pTooltip="Send note asking this agent to call the customer"
+              (click)="sendNoteAndRequestCall()">
       </button>
-    </div-->
-    <!-- Attachment Preview -->
+    </ng-container>
+  </div>
+
+  <!-- Attachment Preview -->
   <div *ngIf="attachedFile" class="attachment-preview-container mb-2">
     <div class="attachment-preview">
-      
-      <!-- Image Preview -->
+
       <ng-container *ngIf="isImage(attachedFile)">
         <div class="image-preview-wrapper">
           <img [src]="previewUrl" class="attachment-preview-image" />
-          <button pButton 
-                  icon="pi pi-times" 
+          <button pButton icon="pi pi-times"
                   class="p-button-rounded p-button-sm p-button-danger attachment-remove-btn"
-                  (click)="removeAttachment()"
-                  pTooltip="Remove"></button>
+                  (click)="removeAttachment()" pTooltip="Remove">
+          </button>
         </div>
         <div class="attachment-caption-wrapper">
-          <textarea 
-            #captionTextarea
-            [(ngModel)]="messageText" 
-            placeholder="Add a caption..."
-            class="attachment-caption-input"
-            rows="2"
-            (input)="onCaptionInput($event)"
-            maxlength="1000"></textarea>
+          <textarea #captionTextarea
+                    [(ngModel)]="messageText"
+                    placeholder="Add a caption..."
+                    class="attachment-caption-input"
+                    rows="2"
+                    (input)="onCaptionInput($event)"
+                    maxlength="1000">
+          </textarea>
           <span class="char-count">{{ messageText?.length || 0 }}/1000</span>
         </div>
       </ng-container>
-      
-      <!-- Document/Other File Preview -->
+
       <ng-container *ngIf="!isImage(attachedFile)">
         <div class="document-preview-wrapper">
           <div class="document-preview-card">
             <div class="document-icon" [style.background-color]="getFileColor(attachedFile.type)">
-              <i [class]="'pi ' + getFileIcon(attachedFile.type)" style="font-size: 1.5rem; color: white;"></i>
+              <i [class]="'pi ' + getFileIcon(attachedFile.type)"
+                 style="font-size:1.5rem;color:white;"></i>
             </div>
             <div class="document-info flex-1">
               <div class="document-name">{{ attachedFile.name }}</div>
               <div class="document-size">{{ formatBytes(attachedFile.size) }}</div>
             </div>
-            <button pButton 
-                    icon="pi pi-times" 
+            <button pButton icon="pi pi-times"
                     class="p-button-rounded p-button-sm p-button-text p-button-danger"
-                    (click)="removeAttachment()"
-                    pTooltip="Remove"></button>
+                    (click)="removeAttachment()" pTooltip="Remove">
+            </button>
           </div>
           <div class="attachment-caption-wrapper mt-2">
-            <textarea 
-              #captionTextarea
-              [(ngModel)]="messageText" 
-              placeholder="Add a caption..."
-              class="attachment-caption-input"
-              rows="2"
-              (input)="onCaptionInput($event)"
-              maxlength="1000"></textarea>
+            <textarea #captionTextarea
+                      [(ngModel)]="messageText"
+                      placeholder="Add a caption..."
+                      class="attachment-caption-input"
+                      rows="2"
+                      (input)="onCaptionInput($event)"
+                      maxlength="1000">
+            </textarea>
             <span class="char-count">{{ messageText?.length || 0 }}/1000</span>
           </div>
         </div>
       </ng-container>
+
     </div>
   </div>
-    
-    <!-- Message Input + Action Buttons -->
-    <!--div class="flex justify-content-center align-items-center gap-2">
-      <input 
-        *ngIf="!attachedFile" 
-        pInputText 
-        [(ngModel)]="messageText" 
-        rows="1" 
-        pInputTextarea 
-        autoResize="true"
-        placeholder="Type a message" 
-        class="flex-1 text-sm" 
-        [disabled]="isMessageInputDisabled()"
-        (keyup.enter)="sendMessage()"/>
-      
-      <button 
-        *ngIf="selectedConversation.contact.platform_name === 'whatsapp'"
-        pButton 
-        icon="pi pi-file" 
-        class="p-button-outlined p-button-secondary"
-        pTooltip="Send Template Message"
-        tooltipPosition="top"
-        (click)="openSendTemplateDialog()">
-      </button>
-      
-      <label for="fileInput" class="p-button p-button-text m-0 p-0" style="cursor: pointer;"
-        (dragover)="onDragOver($event)" (drop)="onFileDrop($event)">
-        <i class="pi pi-paperclip text-xl"></i>
-      </label>
-      <input type="file" id="fileInput" hidden (change)="onFileSelected($event)" (click)="resetFileInput($event)">
-      
-      <button 
-        pButton 
-        icon="pi pi-send" 
-        class="p-button-rounded p-button-primary"
-        [disabled]="!messageText && !attachedFile" 
-        (click)="sendMessage()">
-      </button>
-    </div-->
 
-    <!-- 🆕 Enhanced Message Input Area with Auto-Growth -->
+  <!-- Message Input Row -->
   <div class="message-input-area flex align-items-end gap-2 message-input-container">
-    
-    <!-- Main Input Container -->
+
+    <!-- Textarea wrapper -->
     <div class="message-input-wrapper flex-1">
-      
-      <!-- 🆕 WhatsApp-Style Auto-Growing Textarea -->
-      <div class="input-container" 
+      <div class="input-container"
            [class.disabled]="isMessageInputDisabled()"
            [class.zombie-disabled]="conversationStatus.isZombie">
-        
-        <textarea
-          #messageInput
-          *ngIf="!attachedFile"
-          [(ngModel)]="messageText"
-          [placeholder]="getMessageInputPlaceholder()"
-          [disabled]="isMessageInputDisabled()"
-          class="message-textarea"
-          rows="1"
-          [style.height.px]="textareaHeight"
-          (input)="onMessageInput($event)"
-          (keydown)="onMessageKeyDown($event)"
-          (paste)="onPaste($event)"
-          (focus)="onInputFocus()"
-          (blur)="onInputBlur()"
-          maxlength="4096"
-          spellcheck="true"
-          autocomplete="off"></textarea>
-        
-        <!-- Character Count (show when near limit) -->
+
+        <textarea #messageInput
+                  *ngIf="!attachedFile"
+                  [(ngModel)]="messageText"
+                  [placeholder]="isNoteMode
+                    ? '📝 Internal note — only visible to your team...'
+                    : getMessageInputPlaceholder()"
+                  [disabled]="isMessageInputDisabled()"
+                  [style]="isNoteMode
+                    ? {'background':'#fefce8','border-color':'#fbbf24','height.px':textareaHeight}
+                    : {'height.px':textareaHeight}"
+                  class="message-textarea"
+                  rows="1"
+                  (input)="onMessageInput($event)"
+                  (keydown)="onMessageKeyDown($event)"
+                  (paste)="onPaste($event)"
+                  (focus)="onInputFocus()"
+                  (blur)="onInputBlur()"
+                  maxlength="4096"
+                  spellcheck="true"
+                  autocomplete="off">
+        </textarea>
+
         <div *ngIf="messageText?.length >= 3800" class="char-counter">
           {{ messageText.length }}/4096
         </div>
-        
-        <!-- Formatting Hint (show on focus) -->
+
         <div *ngIf="showFormattingHint && !messageText" class="formatting-hint">
           <i class="pi pi-info-circle"></i>
-          <span>Ctrl+Enter for new line, Enter to send</span>
+          <span>Ctrl+Enter for new line · Enter to send</span>
         </div>
       </div>
     </div>
-    
+
     <!-- Action Buttons -->
     <div class="action-buttons flex align-items-center gap-2">
-      
-      <!-- Template Button (WhatsApp only) -->
-      <button 
-        *ngIf="selectedConversation.contact.platform_name === 'whatsapp' && 
-               conversationStatus.canSendTemplate"
-        pButton 
-        icon="pi pi-file" 
-        class="p-button-rounded p-button-text action-btn"
-        [class.p-button-warning]="conversationStatus.isZombie"
-        pTooltip="Send Template Message"
-        tooltipPosition="top"
-        (click)="openSendTemplateDialog()">
+
+      <!-- Template (WhatsApp zombie/active) -->
+      <button *ngIf="selectedConversation.contact.platform_name === 'whatsapp' &&
+                     conversationStatus.canSendTemplate"
+              pButton icon="pi pi-file"
+              class="p-button-rounded p-button-text action-btn"
+              [class.p-button-warning]="conversationStatus.isZombie"
+              pTooltip="Send Template Message"
+              tooltipPosition="top"
+              (click)="openSendTemplateDialog()">
       </button>
-      
-      <!-- Emoji Button (optional - placeholder for future) -->
-      <!-- <button 
-        pButton 
-        icon="pi pi-face-smile" 
-        class="p-button-rounded p-button-text action-btn"
-        pTooltip="Emoji"
-        tooltipPosition="top"
-        (click)="toggleEmojiPicker()">
-      </button> -->
-      
-      <!-- Attach Button -->
-      <label for="fileInput" 
+
+      <!-- Attach -->
+      <label for="fileInput"
              class="attach-button p-button-rounded p-button-text action-btn"
              [class.disabled]="isMessageInputDisabled()"
              pTooltip="Attach file"
              tooltipPosition="top">
         <i class="pi pi-paperclip"></i>
       </label>
-      <input type="file" 
-             id="fileInput" 
-             hidden 
+      <input type="file" id="fileInput" hidden
              [disabled]="isMessageInputDisabled()"
-             (change)="onFileSelected($event)" 
+             (change)="onFileSelected($event)"
              (click)="resetFileInput($event)">
-      
-      <!-- Send Button -->
-      <button 
-        pButton 
-        icon="pi pi-send" 
-        class="p-button-rounded send-button"
-        [disabled]="!canSendCurrentMessage()" 
-        [class.has-content]="messageText || attachedFile"
-        pTooltip="Send message"
-        tooltipPosition="top"
-        (click)="sendMessage()">
+
+      <!-- Send -->
+      <button pButton icon="pi pi-send"
+              class="p-button-rounded send-button"
+              [disabled]="!canSendCurrentMessage()"
+              [class.has-content]="messageText || attachedFile"
+              pTooltip="Send message"
+              tooltipPosition="top"
+              (click)="sendMessage()">
       </button>
     </div>
   </div>
-  </div>
+
 </div>
 
 <p-dialog 
@@ -896,12 +925,7 @@
   </ng-template>
 </p-dialog>
 
-<ng-template #noConversation>
-  <div class="flex flex-column align-items-center justify-content-center" style="height: 80vh;">
-    <i class="pi pi-exclamation-triangle text-6xl text-color-secondary mb-3"></i>
-    <h3 class="text-xl font-semibold text-color-secondary">No Conversation Selected</h3>
-  </div>
-</ng-template>
+
 
 
 <!-- PrimeNG Sidebar as Drawer -->
