@@ -265,7 +265,7 @@ templateLocationData: {
    */
   @Input() callPermissionGrantedFor: string | null = null;
   /** Fires when agent clicks "Request Permission" — chat-window makes the API call */
-  @Output() requestCallPermissionEvent = new EventEmitter<{ phoneNumberId: string; to: string }>();
+  @Output() requestCallPermissionEvent = new EventEmitter<{ platformId: string; to: string }>();
    
   /** Fires when agent clicks "Call" — chat-window makes the API call + owns state */
   @Output() initiateCallEvent = new EventEmitter<{ platform_id: string; to: string }>();
@@ -659,7 +659,7 @@ private convertTableToFormattedText(table: HTMLTableElement): string {
     
     // Can send message if:
     // - Conversation is active AND assigned to current user AND not closed
-    const canSendMessage = isActive && isAssignedToMe && !isClosed;
+    const canSendMessage = this.isTicketing? (isActive && isAssignedToMe && !isClosed) : (isActive && !isClosed);
     
     // Can send template if:
     // - Can send message AND platform is WhatsApp
@@ -692,13 +692,17 @@ get canInitiateCall(): boolean {
   const phone = this._selectedConversation?.contact?.phone;
   return !!phone && this.callPermissionGrantedFor === phone;
 }
+
+get isWhatsappCallingEnabled(): boolean {
+  return this.profile?.user?.organization?.is_whatsapp_calling_enabled
+}
  
 /** Emit up — chat-window handles the API call */
 requestCallPermission(): void {
   const phone = this._selectedConversation?.contact?.phone;
   const pid   = this._selectedConversation?.contact?.platform_id?.toString();
   if (!phone || !pid) return;
-  this.requestCallPermissionEvent.emit({ phoneNumberId: pid, to: phone });
+  this.requestCallPermissionEvent.emit({ platformId: pid, to: phone });
 }
  
 /** Emit up — chat-window handles the API call and owns call state */
@@ -713,7 +717,83 @@ initiateOutboundCall(): void {
   // MENU BUILDING
   // ============================================================================
   
-  buildMenuItems(): void {
+  //buildMenuItems(): void {
+  //  if (!this._selectedConversation || !this._profile) {
+  //    this.menuItems = [];
+  //    return;
+  //  }
+  //  
+  //  const status = this.conversationStatus;
+  //  const platform = this._selectedConversation.contact?.platform_name;
+  //  
+  //  this.menuItems = [];
+  //  
+  //  // Send Template (WhatsApp active conversations only)
+  //  if (status.canSendTemplate) {
+  //    this.menuItems.push({
+  //      label: 'Send Template',
+  //      icon: 'pi pi-file',
+  //      command: () => this.openSendTemplateDialog()
+  //    });
+  //  }
+  //  
+  //  // Contact Info
+  //  this.menuItems.push({
+  //    label: 'Contact Info',
+  //    icon: 'pi pi-info-circle',
+  //    command: () => { this.chatdetaildrawerVisible = true; }
+  //  });
+  //  
+  //  // Historical Conversations (not Gmail)
+  //  if (platform !== 'gmail' && !status.isNew) {
+  //    this.menuItems.push({
+  //      label: 'View History',
+  //      icon: 'pi pi-history',
+  //      command: () => this.loadHistoricalConversation()
+  //    });
+  //  }
+  //  
+  //  // Separator
+  //  if (!status.isClosed && !status.isNew) {
+  //    this.menuItems.push({ separator: true });
+  //  }
+  //  
+  //  // Reassign (if not org_new and not closed)
+  //  if (!status.isOrgNew && !status.isClosed && !status.isNew) {
+  //    this.menuItems.push({
+  //      label: 'Reassign',
+  //      icon: 'pi pi-user-edit',
+  //      command: () => this.openReassignmentDialog()
+  //    });
+  //  }
+  //  
+  //  // Close Conversation (if assigned to me and active)
+  //  if ((status.isZombie || status.isActive) && status.isAssignedToMe && !status.isClosed) {
+  //    this.menuItems.push({
+  //      label: 'Close',
+  //      icon: 'pi pi-lock',
+  //      command: () => this.closeConversation()
+  //    });
+  //  }
+  //  
+  //  // Start New Conversation (if needed)
+  //  if (status.canStartConversation && !status.isActive) {
+  //    this.menuItems.push({
+  //      label: 'Start Conversation',
+  //      icon: 'pi pi-comments',
+  //      command: () => this.newConversation()
+  //    });
+  //  }
+  //}
+
+  // ============================================================================
+// PATCH: detail-chat-window.component.ts — buildMenuItems()
+// ============================================================================
+//
+// FIND the entire buildMenuItems() method and REPLACE with:
+// ============================================================================
+
+buildMenuItems(): void {
     if (!this._selectedConversation || !this._profile) {
       this.menuItems = [];
       return;
@@ -722,9 +802,12 @@ initiateOutboundCall(): void {
     const status = this.conversationStatus;
     const platform = this._selectedConversation.contact?.platform_name;
     
+    // Check if the org uses ticketing mode (default) or non-ticketing (shared inbox)
+    const isTicketing = this._profile?.user?.organization?.conversation_mode !== 'non_ticketing';
+    
     this.menuItems = [];
     
-    // Send Template (WhatsApp active conversations only)
+    // Send Template (WhatsApp active conversations only) — always available
     if (status.canSendTemplate) {
       this.menuItems.push({
         label: 'Send Template',
@@ -733,15 +816,15 @@ initiateOutboundCall(): void {
       });
     }
     
-    // Contact Info
+    // Contact Info — always available
     this.menuItems.push({
       label: 'Contact Info',
       icon: 'pi pi-info-circle',
       command: () => { this.chatdetaildrawerVisible = true; }
     });
     
-    // Historical Conversations (not Gmail)
-    if (platform !== 'gmail' && !status.isNew) {
+    // Historical Conversations — ONLY in ticketing mode (not Gmail, not new)
+    if (isTicketing && platform !== 'gmail' && !status.isNew) {
       this.menuItems.push({
         label: 'View History',
         icon: 'pi pi-history',
@@ -749,13 +832,13 @@ initiateOutboundCall(): void {
       });
     }
     
-    // Separator
-    if (!status.isClosed && !status.isNew) {
+    // Separator — ONLY in ticketing mode
+    if (isTicketing && !status.isClosed && !status.isNew) {
       this.menuItems.push({ separator: true });
     }
     
-    // Reassign (if not org_new and not closed)
-    if (!status.isOrgNew && !status.isClosed && !status.isNew) {
+    // Reassign — ONLY in ticketing mode (not org_new, not closed)
+    if (isTicketing && !status.isOrgNew && !status.isClosed && !status.isNew) {
       this.menuItems.push({
         label: 'Reassign',
         icon: 'pi pi-user-edit',
@@ -763,8 +846,8 @@ initiateOutboundCall(): void {
       });
     }
     
-    // Close Conversation (if assigned to me and active)
-    if ((status.isZombie || status.isActive) && status.isAssignedToMe && !status.isClosed) {
+    // Close Conversation — ONLY in ticketing mode (if assigned to me and active/zombie)
+    if (isTicketing && (status.isZombie || status.isActive) && status.isAssignedToMe && !status.isClosed) {
       this.menuItems.push({
         label: 'Close',
         icon: 'pi pi-lock',
@@ -772,7 +855,7 @@ initiateOutboundCall(): void {
       });
     }
     
-    // Start New Conversation (if needed)
+    // Start New Conversation (if needed) — always available
     if (status.canStartConversation && !status.isActive) {
       this.menuItems.push({
         label: 'Start Conversation',
@@ -3121,6 +3204,68 @@ formatCallDuration(seconds: number): string {
   const m = Math.floor(seconds / 60).toString().padStart(2, '0');
   const s = (seconds % 60).toString().padStart(2, '0');
   return `${m}:${s}`;
+}
+
+get isNonTicketing(): boolean {
+  return this.profile?.user?.organization?.conversation_mode === 'non_ticketing';
+}
+
+get isTicketing(): boolean {
+  return this.profile?.user?.organization?.conversation_mode === 'ticketing';
+}
+
+get canDisplayFooter(): boolean {
+  const isTicketMode: boolean = this.isTicketing;
+  return isTicketMode === true ? (this.selectedConversation.assigned?.id === this.profile.user.id && 
+            this.selectedConversation.status !== 'org_new' && 
+            this.selectedConversation.status !== 'closed') : true;
+}
+
+/**
+ * Returns a copy of activeConvSelectedTemplate with {{param}} placeholders
+ * replaced by the user-typed values from activeConvFieldValues.
+ * This drives the live preview — every keystroke produces a new object
+ * reference so Angular change detection picks it up.
+ */
+get activeConvPreviewTemplate(): any {
+  if (!this.activeConvSelectedTemplate) return null;
+
+  // Deep-clone so we never mutate the original template
+  const clone = JSON.parse(JSON.stringify(this.activeConvSelectedTemplate));
+
+  for (const component of clone.components || []) {
+    if (component.text) {
+      for (const [key, value] of Object.entries(this.activeConvFieldValues)) {
+        const placeholder = `{{${key}}}`;
+        component.text = component.text.split(placeholder).join(
+          (value as string)?.trim() || placeholder
+        );
+      }
+    }
+  }
+
+  return clone;
+}
+
+
+get newConvPreviewTemplate(): any {
+  if (!this.selectedTemplate) return null;
+
+  // Deep-clone so we never mutate the original template
+  const clone = JSON.parse(JSON.stringify(this.selectedTemplate));
+
+  for (const component of clone.components || []) {
+    if (component.text) {
+      for (const [key, value] of Object.entries(this.fieldValues)) {
+        const placeholder = `{{${key}}}`;
+        component.text = component.text.split(placeholder).join(
+          (value as string)?.trim() || placeholder
+        );
+      }
+    }
+  }
+
+  return clone;
 }
 
 }

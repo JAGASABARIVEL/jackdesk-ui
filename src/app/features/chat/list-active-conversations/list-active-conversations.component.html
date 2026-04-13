@@ -228,7 +228,7 @@
                                 (click)="toggleDropdown(conversation)">
                             </button>
                             <button 
-                                *ngIf="profile?.user?.organization?.name !== 'M Karuppiah & Co'"
+                                *ngIf="profile?.user?.organization?.conversation_mode !== 'non_ticketing'"
                                 pButton 
                                 icon="pi pi-lock" 
                                 class="action-btn close-btn"

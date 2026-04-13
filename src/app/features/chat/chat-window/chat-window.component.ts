@@ -186,7 +186,10 @@ private readonly ICE_SERVERS = [
     this.loadUsers();
     this.loadInitialConversations();
     this.initializeWebSocket();
-    this.checkForOrphanedCall();
+    if (this.profile()?.user?.organization?.is_whatsapp_calling_enabled) {
+      this.checkForOrphanedCall();
+    }
+    
   }
 
   private loadUsers(): void {
@@ -234,8 +237,39 @@ private readonly ICE_SERVERS = [
 
   private loadInitialConversations(): void {
     this.isLoading.set(true);
-    
-    this.cachedDataService
+
+    if (this.isNonTicketing) {
+      this.cachedDataService.getActiveConversationsForOrgPaginated(this.PLATFORM, 1, this.PAGE_SIZE)
+      .pipe(
+        takeUntil(this.destroy$),
+        catchError(err => {
+          console.error('Failed to load conversations:', err);
+          this.showError('Failed to load conversations');
+          return of({ results: [], count: 0 });
+        })
+      )
+      .subscribe({
+        next: (response: any) => {
+          // Handle both paginated and non-paginated responses
+          const results = response.results || response;
+          const count = response.count || results.length;
+          
+          this.conversations.set(Array.isArray(results) ? results : []);
+          this.totalRecords.set(count);
+          this.currentPage.set(1);
+          this.hasMorePages.set(this.conversations().length < count);
+          this.isLoading.set(false);
+          
+        },
+        error: (err) => {
+          console.error('Load error:', err);
+          this.isLoading.set(false);
+        }
+      });
+    }
+    else {
+
+      this.cachedDataService
       .getActiveConversationsForUserPaginated(this.PLATFORM, 1, this.PAGE_SIZE)
       .pipe(
         takeUntil(this.destroy$),
@@ -263,6 +297,10 @@ private readonly ICE_SERVERS = [
           this.isLoading.set(false);
         }
       });
+
+    }
+    
+    
   }
 
   // ============================================================================
@@ -547,9 +585,11 @@ private readonly ICE_SERVERS = [
         this.updateConversationWithMessage(convIndex, message);
         
         this.playMessageSound();
-      } else if (convIndex === -1 && this.profile()?.user?.id ===  message?.assigned_user_id){
-        // New conversation - fetch and add
-        this.fetchAndAddConversation(convId);
+      } else if (convIndex === -1) {
+        if (this.isNonTicketing ||  (!this.isNonTicketing && this.profile()?.user?.id ===  message?.assigned_user_id)) {
+          // Always add/update the conversation in the list
+          this.fetchAndAddConversation(convId);
+        }
       }
 
       // ── NEW: if I was tagged in this note + note has call context ──────
@@ -1293,9 +1333,9 @@ getCallerDisplayName(): string {
   return this.activeCallFrom() || 'Unknown caller';
 }
 
-onRequestCallPermission(payload: { phoneNumberId: string; to: string }): void {
+onRequestCallPermission(payload: { platformId: string; to: string }): void {
   this.conversationService
-    .requestCallPermission(payload.phoneNumberId, payload.to)
+    .requestCallPermission(payload.platformId, payload.to)
     .pipe(takeUntil(this.destroy$))
     .subscribe({
       next: () => { /* toast success optional */ },
@@ -1488,6 +1528,10 @@ getLastMessagePreview(conversation: Conversation): string {
 
   // ── Default ───────────────────────────────────────────────────────────
   return lastMsg.message_body?.slice(0, 50) || '';
+}
+
+get isNonTicketing(): boolean {
+  return this.profile()?.user?.organization?.conversation_mode === 'non_ticketing';
 }
 
 

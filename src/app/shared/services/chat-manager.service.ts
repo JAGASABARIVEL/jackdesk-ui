@@ -670,7 +670,7 @@ requestCallPermission(platformId: string, to: string) {
   const headers = new HttpHeaders().set('Authorization', `Bearer ${this.auth_token}`);
   return this.http.post(
     `${this.calls_url}request-permission/`,
-    { platform_id: platformId, to },   // ← was phone_number_id
+    { platform_id: platformId, sdp_offer: '', to },   // ← was phone_number_id
     { headers }
   );
 }

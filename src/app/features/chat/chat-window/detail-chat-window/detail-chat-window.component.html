@@ -101,8 +101,8 @@ WEB details page UI
   <ng-container *ngIf="!isCallActive">
  
     <!-- Step 1: Request permission (always available for WA conversations) -->
-    <button pButton
-            icon="pi pi-bell"
+    <button *ngIf="isWhatsappCallingEnabled && !canInitiateCall" pButton
+            icon="pi pi-phone"
             class="p-button-outlined p-button-sm"
             pTooltip="Request call permission from customer"
             tooltipPosition="bottom"
@@ -110,14 +110,15 @@ WEB details page UI
     </button>
  
     <!-- Step 2: Initiate call (enabled only after customer grants permission) -->
-    <button pButton
+    <button *ngIf="isWhatsappCallingEnabled && canInitiateCall"
+            pButton
             icon="pi pi-phone"
             class="p-button-success p-button-sm"
             [disabled]="!canInitiateCall"
             [pTooltip]="canInitiateCall
               ? 'Call ' + selectedConversation?.contact?.phone
               : 'Ask customer for permission first'"
-            tooltipPosition="bottom"
+            tooltipPosition="left"
             (click)="initiateOutboundCall()">
     </button>
  
@@ -566,7 +567,7 @@ WEB details page UI
             <i *ngIf="message.status === 'failed'" 
                class="pi pi-times-circle status-icon status-failed"
                [pTooltip]="message.status_details || 'Message failed to send'"
-               tooltipPosition="top"></i>
+               tooltipPosition="left"></i>
           </div>
         </div>
         
@@ -589,10 +590,7 @@ WEB details page UI
 
   
   <!-- Enhanced Chat Footer with Template Button -->
-  <!-- Enhanced Chat Footer -->
-<div *ngIf="selectedConversation.assigned?.id === profile.user.id && 
-            selectedConversation.status !== 'org_new' && 
-            selectedConversation.status !== 'closed'" 
+<div *ngIf="canDisplayFooter" 
      class="flex flex-column border-top-1 surface-border p-2 relative">
 
   <!-- Drop Area Overlay -->
@@ -1022,7 +1020,7 @@ WEB details page UI
 
   <div class="flex justify-content-center">
     <app-message-preview
-      [selectedTemplateForPreview]="selectedTemplate"
+      [selectedTemplateForPreview]="newConvPreviewTemplate"
       [media_url]="templateMediaPreviewUrl"
       [location_data]="templateLocationData">
     </app-message-preview>
@@ -1483,21 +1481,13 @@ WEB details page UI
         <strong class="text-lg">Preview</strong>
       </div>
       <app-message-preview
-    [selectedTemplateForPreview]="activeConvSelectedTemplate"
+    [selectedTemplateForPreview]="activeConvPreviewTemplate"
     [media_url]="activeConvMediaPreviewUrl"
     [location_data]="activeConvLocationData">
   </app-message-preview>
     </div>
   </div>
 
-  <!-- Template Preview -->
-<div *ngIf="activeConvSelectedTemplate" class="mb-4">
-  <app-message-preview
-    [selectedTemplateForPreview]="activeConvSelectedTemplate"
-    [media_url]="activeConvMediaPreviewUrl"
-    [location_data]="activeConvLocationData">
-  </app-message-preview>
-</div>
 
 <!-- DOCUMENT -->
 <ng-container *ngIf="getActiveConvHeaderMediaType() === 'DOCUMENT'">
