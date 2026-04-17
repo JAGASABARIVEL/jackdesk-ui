@@ -366,6 +366,48 @@
             (selectTemplate)="onTemplateSelected($event)">
         </app-message-templates>
 
+                <!-- Media Attachment for Template Header -->
+        <div *ngIf="selectedTemplateHeaderFormat" class="form-card-full animate-in">
+            <div class="card-header">
+                <i class="pi pi-image header-icon"></i>
+                <h3>Template Media ({{ selectedTemplateHeaderFormat | lowercase }})</h3>
+            </div>
+            <p style="color:#64748b; font-size:13px; margin:0 0 12px;">
+                This template requires a {{ selectedTemplateHeaderFormat | lowercase }} header.
+                One file shared across all recipients.
+            </p>
+            
+            <div *ngIf="!selectedMediaFile" class="media-upload-zone"
+                 (click)="mediaInput.click()">
+                <i class="pi pi-cloud-upload" style="font-size:2.5rem; color:#94a3b8;"></i>
+                <p style="margin:8px 0 0; color:#64748b;">
+                    Click to upload {{ selectedTemplateHeaderFormat | lowercase }}
+                </p>
+                <input #mediaInput type="file" hidden
+                       [accept]="selectedTemplateHeaderFormat === 'IMAGE' ? 'image/jpeg,image/png,image/webp' :
+                                 selectedTemplateHeaderFormat === 'VIDEO' ? 'video/mp4,video/webm' :
+                                 'application/pdf'"
+                       (change)="onMediaFileSelected($event)" />
+            </div>
+            
+            <div *ngIf="selectedMediaFile" class="media-preview-card">
+                <div style="display:flex; align-items:center; gap:10px; flex:1;">
+                    <i [class]="selectedTemplateHeaderFormat === 'IMAGE' ? 'pi pi-image' :
+                                selectedTemplateHeaderFormat === 'VIDEO' ? 'pi pi-video' : 'pi pi-file-pdf'"
+                       style="font-size:1.5rem; color:#667eea;"></i>
+                    <div>
+                        <div style="font-weight:600; color:#1e293b;">{{ selectedMediaFile.name }}</div>
+                        <div style="font-size:12px; color:#94a3b8;">{{ formatSize(selectedMediaFile.size) }}</div>
+                    </div>
+                </div>
+                <img *ngIf="mediaPreviewUrl" [src]="mediaPreviewUrl"
+                     style="max-height:100px; border-radius:8px;" />
+                <button pButton icon="pi pi-times"
+                        class="p-button-rounded p-button-text p-button-danger p-button-sm"
+                        (click)="removeMediaFile()"></button>
+            </div>
+        </div>
+
         <!-- File Upload -->
         <div *ngIf="selected_platform != undefined" class="form-card-full animate-in">
             <div class="card-header">

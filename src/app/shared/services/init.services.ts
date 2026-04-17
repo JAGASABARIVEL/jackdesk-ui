@@ -89,39 +89,51 @@ export class AppInitializationService {
       return;
     }
 
-    // Enterprise menu items
-    const enterpriseMenuItems = [
-      this.getDashboardLinkItems(profile),
-      this.getContactLink(profile),
-      this.getCampaignLinkItems(profile),
-      {
-        label: 'Tickets',
-        icon: 'pi pi-comment',
-        items: [
-          {
-            label: 'Chat',
-            icon: 'pi pi-comment',
-            routerLink: ['/apps/chat'],
-          },
-          {
-            label: 'Active',
-            icon: 'pi pi-comments',
-            routerLink: ['/apps/chat-active'],
-          },
-          {
-            label: 'Journal',
-            icon: 'pi pi-ticket',
-            routerLink: ['/apps/ticketing'],
-          }
-        ]
-      }
-    ];
+    let enterpriseMenuItems = []
 
+    if (this.isTicketing(profile) || (this.isNonTicketing(profile) && this.isOwner(profile))) {
+      // Enterprise menu items
+      enterpriseMenuItems = [
+        this.getDashboardLinkItems(profile),
+        this.getContactLink(profile),
+        this.getCampaignLinkItems(profile),
+        {
+          label: 'Tickets',
+          icon: 'pi pi-comment',
+          items: [
+            {
+              label: 'Chat',
+              icon: 'pi pi-comment',
+              routerLink: ['/apps/chat'],
+            },
+            {
+              label: 'Active',
+              icon: 'pi pi-comments',
+              routerLink: ['/apps/chat-active'],
+            },
+            {
+              label: 'Journal',
+              icon: 'pi pi-ticket',
+              routerLink: ['/apps/ticketing'],
+            }
+          ]
+        }
+      ];
+    }
+    else {
+      enterpriseMenuItems = [this.getContactLink(profile),
+      {
+        label: 'Chat',
+          icon: 'pi pi-comment',
+          routerLink: ['/apps/chat'],
+        }
+      ];
+    }
     this.layoutService.menuItemsCache.update(() => [{ items: enterpriseMenuItems }]);
   }
 
   private getDashboardLinkItems(profile: any) {
-    if (profile?.user.role === "owner") {
+    if (this.isOwner(profile)) {
       return {
         label: 'My Firm',
         icon: 'pi pi-home',
@@ -185,7 +197,7 @@ export class AppInitializationService {
       { label: 'Jobs', icon: 'pi pi-calendar-clock', routerLink: ['/apps/schedules'] }
     ];
 
-    if (profile?.user.role === "owner") {
+    if (this.isOwner(profile)) {
       items.push({ label: 'Compose', icon: 'pi pi-pencil', routerLink: ['/apps/compose'] });
     }
 
@@ -198,10 +210,10 @@ export class AppInitializationService {
 
   private getContactLink(profile: any) {
     return {
-      label: 'Customer',
+      label: 'Customers',
       icon: 'pi pi-users',
       items: [
-        { label: 'Customers', icon: 'pi pi-address-book', routerLink: ['/apps/ca-firm/customers'] },
+        { label: 'Customer Map', icon: 'pi pi-address-book', routerLink: ['/apps/ca-firm/customers'] },
         { label: 'Contacts', icon: 'pi pi-user', routerLink: ['/apps/user'] },
         { label: 'Groups', icon: 'pi pi-users', routerLink: ['/apps/group'] }
       ]
@@ -212,4 +224,17 @@ export class AppInitializationService {
     this.isInitialized.set(false);
     this.initializationPromise = null;
   }
+
+  isNonTicketing(profile): boolean {
+  return profile?.user?.organization?.conversation_mode === 'non_ticketing';
+}
+
+isTicketing(profile): boolean {
+  return profile?.user?.organization?.conversation_mode === 'ticketing';
+}
+
+isOwner(profile): boolean {
+  return profile?.user.role === "owner"
+}
+
 }

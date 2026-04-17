@@ -250,6 +250,22 @@ templateLocationData: {
   newAgentCCEmail: string = '';
   private originalAgentCC: string[] = [];
 
+  // ── Forward message ────────────────────────────────────────────────
+  showForwardDialog       = false;
+forwardSourceMessage    : any = null;
+forwardTargetConversation: any = null;
+forwardableConversations: any[] = [];   // active WA conversations (non-template)
+forwardableContacts     : any[] = [];   // all WA contacts (template forward)
+forwardSearchText       = '';
+forwardIsTemplate       = false;        // drives which list to show
+
+    // ── Audio recording ────────────────────────────────────────────────
+  isRecording = false;
+  recordingDuration = 0;
+  private mediaRecorder: MediaRecorder | null = null;
+  private audioChunks: Blob[] = [];
+  private recordingTimer: any = null;
+
   // ================
   // Calls management
   // ================
@@ -1044,6 +1060,21 @@ getConversationStatusBadge(): {
   sendMessage(): void {
   if (!this.messageText?.trim()) return;
 
+  if (this.isNoteMode) {
+
+    let agentName = 'team'
+    if (this.taggedEmployee) {
+        agentName = this.taggedEmployee.details?.username || 'Agent';
+    }
+    
+    const customerName = this._selectedConversation?.contact?.name
+                    || this._selectedConversation?.contact?.phone;
+
+    if (this.messageText?.trim()) {
+      this.messageText = `@${agentName} — ${this.messageText}`;
+    }
+  }
+
   // ── Guard: internal notes bypass the zombie/canSend check ────────────
   const canSend = this.isNoteMode
     ? (this._selectedConversation?.id > 0)          // just need a real conversation
@@ -1444,6 +1475,7 @@ getConversationStatusBadge(): {
         .subscribe({
           next: (templates) => {
             this.avaliable_templates = templates['whatsapp'] || [];
+            console.log("this.avaliable_templates ", this.avaliable_templates)
           },
           error: () => {
             console.error('Could not get templates');
@@ -1885,6 +1917,7 @@ get isFieldValuesValid(): boolean {
         next: (templates) => {
           this.avaliable_templates = templates['whatsapp'] || [];
           this.sendTemplateDialogVisible = true;
+          console.log("this.avaliable_templates ", this.avaliable_templates)
         },
         error: (err) => {
           console.error('Failed to load templates:', err);
@@ -3168,15 +3201,7 @@ sendNoteAndRequestCall(): void {
   if (!this.taggedEmployee) return;
   
   // isNoteMode must be true for this to work — enforce it
-  this.isNoteMode = true;
-
-  const agentName    = this.taggedEmployee.details?.username || 'Agent';
-  const customerName = this._selectedConversation?.contact?.name
-                    || this._selectedConversation?.contact?.phone;
-
-  if (!this.messageText?.trim()) {
-    this.messageText = `@${agentName} — please call ${customerName}. Customer needs assistance.`;
-  }
+  
 
   // sendMessage() will now see isNoteMode=true and route as internal
   this.sendMessage();
@@ -3266,6 +3291,729 @@ get newConvPreviewTemplate(): any {
   }
 
   return clone;
+}
+
+
+
+get filteredForwardList(): any[] {
+  const s = this.forwardSearchText.toLowerCase();
+  
+  if (this.forwardIsTemplate) {
+    // For templates, show active conversations first, then contacts
+    const filteredConvs = s
+      ? this.forwardableConversations.filter((c: any) =>
+          (c.contact?.name  || '').toLowerCase().includes(s) ||
+          (c.contact?.phone || '').toLowerCase().includes(s))
+      : this.forwardableConversations;
+    
+    const filteredContacts = s
+      ? this.forwardableContacts.filter((c: any) =>
+          (c.name  || '').toLowerCase().includes(s) ||
+          (c.phone || '').toLowerCase().includes(s))
+      : this.forwardableContacts;
+    
+    // Return combined list: active conversations first, then contacts
+    return [...filteredConvs, ...filteredContacts];
+  }
+  
+  // Regular forward: only active conversations
+  return s
+    ? this.forwardableConversations.filter((c: any) =>
+        (c.contact?.name  || '').toLowerCase().includes(s) ||
+        (c.contact?.phone || '').toLowerCase().includes(s))
+    : this.forwardableConversations;
+}
+
+
+
+openForwardDialog(message: any): void {
+  this.forwardSourceMessage     = message;
+  this.forwardSearchText        = '';
+  this.forwardTargetConversation = null;
+  this.forwardableConversations = [];
+  this.forwardableContacts      = [];
+  this.forwardIsTemplate        = this.isTemplateMessage(message);
+  this.showForwardDialog        = true;
+
+  if (this.forwardIsTemplate) {
+    // Template forward → show WhatsApp contacts with active conversations prioritized
+    this.loadTemplateForwardTargets();
+  } else {
+    // Normal message / media forward → only active conversations
+    // whose last customer message is < 24 h ago, and only WhatsApp
+    this.conversationService.list_all_conversations(
+      'chat', false, 'active', 1, 200
+    ).pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (res: any) => {
+          const convs: any[] = res?.results || res || [];
+          this.forwardableConversations = convs.filter((c: any) =>
+            c.id !== this._selectedConversation?.id &&
+            c.contact?.platform_name === 'whatsapp' &&
+            this.conversationIsWithin24h(c)
+          );
+        },
+        error: () => this.messageService.add({
+          severity: 'error', summary: 'Error', detail: 'Failed to load conversations'
+        })
+      });
+  }
+}
+
+/**
+ * Load targets for template forwarding
+ * Prioritizes contacts with active conversations, then all WhatsApp contacts
+ */
+private loadTemplateForwardTargets(): void {
+  // First, get all active WhatsApp conversations
+  this.conversationService.list_all_conversations(
+    'chat', false, 'active', 1, 200
+  ).pipe(takeUntil(this.destroy$))
+    .subscribe({
+      next: (res: any) => {
+        const activeConvs: any[] = res?.results || res || [];
+        
+        // Filter to only WhatsApp conversations
+        const whatsappConvs = activeConvs.filter((c: any) =>
+          c.id !== this._selectedConversation?.id &&
+          c.contact?.platform_name === 'whatsapp'
+        );
+        
+        // Create a Set of contact IDs that already have active conversations
+        const contactIdsWithActiveConv = new Set(
+          whatsappConvs.map(c => c.contact?.id).filter(id => id != null)
+        );
+        
+        // Store these conversations in forwardableConversations
+        // They will be shown with conversation context
+        this.forwardableConversations = whatsappConvs;
+        
+        // Now get all WhatsApp contacts
+        // Placeholder for future to load all contacts for which conversation is not active or never opened
+      },
+      error: () => {
+        console.error("No conversations found for forwarding the templates")
+        // If conversations fail, fall back to just contacts
+        //this.loadAllWhatsAppContacts();
+      }
+    });
+}
+
+/**
+ * Fallback: Load all WhatsApp contacts
+ */
+private loadAllWhatsAppContacts(): void {
+  this.contactService.list_contact()
+    .pipe(takeUntil(this.destroy$))
+    .subscribe({
+      next: (res: any) => {
+        const contacts = res?.results || res || [];
+        this.forwardableContacts = contacts.filter(
+          (c: any) => c.platform_name === 'whatsapp' ||
+                      c.platforms?.some((p: any) => p.platform_name === 'whatsapp')
+        );
+      },
+      error: () => this.messageService.add({
+        severity: 'error', summary: 'Error', detail: 'Failed to load contacts'
+      })
+    });
+}
+ 
+ selectForwardTarget(target: any): void {
+  this.forwardTargetConversation = target;
+}
+
+  confirmForward(): void {
+  if (!this.forwardSourceMessage || !this.forwardTargetConversation) return;
+ 
+  // Determine source_message_type.
+  // Incoming (customer) messages → "incoming"
+  // Org (agent) messages         → "outgoing"
+  const sourceType: 'incoming' | 'outgoing' =
+    this.forwardSourceMessage.type === 'customer' ? 'incoming' : 'outgoing';
+ 
+  // For template forwards (forwardIsTemplate = true) the target is a Contact
+  // object (not a Conversation).  The backend starts a NEW conversation in that
+  // case — but our ForwardMessageView requires a target_conversation_id.
+  // Resolve: if forwardIsTemplate we need to create/find the conversation first
+  // OR we call the existing startNewConversationOnWhatsapp path.
+  // The simplest approach: template forwards that target a Contact (not a
+  // Conversation) are handled client-side just as before (start_new_conversation).
+  // Non-template + existing conversation → go through the unified backend view.
+ 
+  if (this.forwardIsTemplate) {
+    this._forwardTemplateViaNewConversation();
+    return;
+  }
+ 
+  // Regular forward — single backend call for text, media, and outgoing templates
+  this.conversationService.forwardMessage({
+    source_message_id      : this.forwardSourceMessage.id,
+    source_message_type    : sourceType,
+    target_conversation_id : this.forwardTargetConversation.id,
+  }).pipe(takeUntil(this.destroy$))
+    .subscribe({
+      next : () => this.onForwardSuccess(),
+      error: (err) => this.onForwardError(err),
+    });
+}
+
+/**
+ * Forward a text-only message
+ */
+private forwardTextMessage(): void {
+  const payload: any = {
+    conversation_id: this.forwardTargetConversation.id,
+    user_id: this._profile.user.id,
+    message_type: 'text',
+    message_body: this.forwardSourceMessage.message_body || '',
+    is_forwarded: true,
+    original_message_id: this.forwardSourceMessage.id
+  };
+
+  this.conversationService.respond_to_message('chat', payload.conversation_id, payload)
+    .pipe(takeUntil(this.destroy$))
+    .subscribe({
+      next: () => this.onForwardSuccess(),
+      error: (err) => this.onForwardError(err)
+    });
+}
+
+/**
+ * Template-to-new-contact forward.
+ *
+ * This path is taken when forwardIsTemplate = true, meaning the user picked
+ * a Contact from the contact list (not an existing conversation).
+ * We reuse startNewConversationOnWhatsapp logic but with the target contact.
+ */
+private _forwardTemplateViaNewConversation(): void {
+  const conversation = this.forwardTargetConversation;   // Contact object here
+  console.log("contact ", conversation);
+  if (!conversation) return;
+ 
+  // Resolve the platform_id from the contact's platform record
+  let platformId = null;
+  if (conversation?.messages) {
+    platformId = conversation.contact.platform_id;
+  }
+  else {
+    platformId = conversation.platform_id;
+  }
+  
+ 
+  if (!platformId) {
+    this.messageService.add({
+      severity: 'error',
+      summary : 'Forward Failed',
+      detail  : 'Could not determine platform for selected contact',
+    });
+    return;
+  }
+ 
+  const payload = new FormData();
+  payload.append('organization_id', this._profile.organization);
+  payload.append('platform_id',     platformId);
+  payload.append('contact_id',      conversation?.messages? conversation.contact.id: conversation.id);
+  payload.append('user_id',         this._profile.user.id);
+  payload.append('template',        JSON.stringify(this.forwardSourceMessage.template));
+  // Template was already rendered when first sent — pass empty params
+  payload.append('template_parameters', JSON.stringify({}));
+ 
+  // If the original message had a media attachment, we cannot forward the file
+  // from the client side here (we do not have the bytes).  The server-side
+  // ForwardMessageView handles this via media streaming, so for template+media
+  // we redirect to the backend unified endpoint using the existing conversation
+  // if we can resolve one, otherwise we fall back to sending without media.
+  const sourceType: 'incoming' | 'outgoing' =
+    this.forwardSourceMessage.type === 'customer' ? 'incoming' : 'outgoing';
+ 
+  // Try the unified backend endpoint first — it handles template+media correctly
+  this.conversationService.forwardMessage({
+    source_message_id      : this.forwardSourceMessage.id,
+    source_message_type    : sourceType,
+    target_conversation_id : this.forwardTargetConversation.id,
+  }).pipe(takeUntil(this.destroy$))
+    .subscribe({
+      next : () => this.onForwardSuccess(),
+      error: () => {
+        // Fallback: start a new conversation with the template (no media)
+        this.conversationService.start_new_conversation('chat', payload)
+          .pipe(takeUntil(this.destroy$))
+          .subscribe({
+            next : () => this.onForwardSuccess(),
+            error: (err) => this.onForwardError(err),
+          });
+      },
+    });
+}
+
+/**
+ * Forward a media message - download the file first, then upload it
+ */
+private forwardMediaMessage(): void {
+  const mediaUrl = this.forwardSourceMessage.media_url;
+  const mediaUrls = this.forwardSourceMessage.media_urls;
+  
+  if (mediaUrls?.length) {
+    // Multiple media - forward the first one with caption mentioning others
+    this.downloadAndForwardMedia(mediaUrls[0].url, mediaUrls[0].filename || 'media');
+  } else if (mediaUrl) {
+    // Single media
+    const filename = this.forwardSourceMessage.filename || this.getFileName(mediaUrl);
+    this.downloadAndForwardMedia(mediaUrl, filename);
+  } else {
+    // Fallback to text-only
+    this.forwardTextMessage();
+  }
+}
+
+/**
+ * Download media from URL and forward as a file
+ */
+private downloadAndForwardMedia(url: string, filename: string): void {
+  // Show loading indicator
+  this.messageService.add({
+    severity: 'info',
+    summary: 'Processing',
+    detail: 'Downloading media...',
+    life: 2000
+  });
+
+  fetch(url)
+    .then(response => response.blob())
+    .then(blob => {
+      // Create a File object from the blob
+      const file = new File([blob], filename, { 
+        type: blob.type || this.guessMimeType(filename) 
+      });
+      
+      // Build FormData payload
+      const formData = new FormData();
+      formData.append('conversation_id', this.forwardTargetConversation.id);
+      formData.append('user_id', this._profile.user.id);
+      formData.append('message_type', this.determineMessageType(file.type));
+      formData.append('message_body', this.forwardSourceMessage.message_body || '');
+      formData.append('file', file);
+      formData.append('is_forwarded', 'true');
+      formData.append('original_message_id', this.forwardSourceMessage.id);
+      
+      if (this.forwardSourceMessage.filename) {
+        formData.append('filename', this.forwardSourceMessage.filename);
+      }
+
+      // Send using the same endpoint as regular messages
+      this.conversationService.respond_to_message(
+        'chat',
+        this.forwardTargetConversation.id,
+        formData
+      ).pipe(takeUntil(this.destroy$))
+        .subscribe({
+          next: () => this.onForwardSuccess(),
+          error: (err) => this.onForwardError(err)
+        });
+    })
+    .catch(err => {
+      console.error('Failed to download media:', err);
+      this.messageService.add({
+        severity: 'error',
+        summary: 'Forward Failed',
+        detail: 'Could not download media file'
+      });
+    });
+}
+
+/**
+ * Forward a template message to a new contact
+ */
+private forwardTemplate(): void {
+  const target = this.forwardTargetConversation;
+  const contact = target.contact || target;
+  const conversationId = target.id && target.contact ? target.id : null;
+  
+  // 🆕 Ensure template is a proper object
+  let templateObj = this.forwardSourceMessage.template;
+  if (typeof templateObj === 'string') {
+    try {
+      templateObj = JSON.parse(templateObj);
+    } catch (e) {
+      console.error('Failed to parse template:', e);
+    }
+  }
+  
+  const payload = new FormData();
+  payload.append('organization_id', this._profile.organization);
+  payload.append('platform_id', contact.platform_id || contact.platforms?.[0]?.id);
+  payload.append('contact_id', contact.id);
+  payload.append('user_id', this._profile.user.id);
+  
+  // 🆕 Send as JSON string (backend will parse it)
+  payload.append('template', JSON.stringify(templateObj));
+  
+  if (conversationId) {
+    payload.append('conversation_id', conversationId.toString());
+  }
+  
+  // 🆕 Include template parameters if they exist
+  if (this.forwardSourceMessage.template_parameters) {
+    payload.append('template_parameters', JSON.stringify(this.forwardSourceMessage.template_parameters));
+  }
+
+  this.conversationService.start_new_conversation('chat', payload)
+    .pipe(takeUntil(this.destroy$))
+    .subscribe({
+      next: () => {
+        const name = contact.name || contact.phone;
+        this.messageService.add({
+          severity: 'success',
+          summary: 'Forwarded',
+          detail: `Template sent to ${name}`
+        });
+        this.showForwardDialog = false;
+        this.forwardSourceMessage = null;
+        this.forwardTargetConversation = null;
+      },
+      error: (err) => {
+        console.error('Template forward failed:', err);
+        this.messageService.add({
+          severity: 'error',
+          summary: 'Forward Failed',
+          detail: err?.error?.error || 'Could not send template'
+        });
+      }
+    });
+}
+
+/**
+ * Determine message_type based on MIME type
+ */
+private determineMessageType(mimeType: string): string {
+  if (mimeType.startsWith('image/')) return 'image';
+  if (mimeType.startsWith('video/')) return 'video';
+  if (mimeType.startsWith('audio/')) return 'audio';
+  if (mimeType === 'application/pdf') return 'document';
+  return 'document';
+}
+
+/**
+ * Guess MIME type from filename extension
+ */
+private guessMimeType(filename: string): string {
+  const ext = filename.split('.').pop()?.toLowerCase() || '';
+  const mimeMap: { [key: string]: string } = {
+    'jpg': 'image/jpeg',
+    'jpeg': 'image/jpeg',
+    'png': 'image/png',
+    'gif': 'image/gif',
+    'webp': 'image/webp',
+    'mp4': 'video/mp4',
+    'webm': 'video/webm',
+    'mov': 'video/quicktime',
+    'mp3': 'audio/mpeg',
+    'ogg': 'audio/ogg',
+    'wav': 'audio/wav',
+    'pdf': 'application/pdf'
+  };
+  return mimeMap[ext] || 'application/octet-stream';
+}
+
+/**
+ * Handle successful forward
+ */
+private onForwardSuccess(): void {
+  const name =
+    this.forwardTargetConversation?.contact?.name  ||
+    this.forwardTargetConversation?.contact?.phone ||
+    this.forwardTargetConversation?.name           ||
+    this.forwardTargetConversation?.phone          ||
+    'contact';
+ 
+  this.messageService.add({
+    severity: 'success',
+    summary : 'Forwarded',
+    detail  : `Message forwarded to ${name}`,
+  });
+ 
+  this.showForwardDialog        = false;
+  this.forwardSourceMessage     = null;
+  this.forwardTargetConversation = null;
+}
+ 
+private onForwardError(err: any): void {
+  console.error('Forward error:', err);
+  this.messageService.add({
+    severity: 'error',
+    summary : 'Forward Failed',
+    detail  : err?.error?.error || err?.error?.message || 'Could not forward message',
+  });
+}
+ 
+  
+
+
+    
+ 
+ 
+
+
+  private getFileExtension(mimeType: string): string {
+  if (mimeType.includes('ogg')) return 'ogg';
+  if (mimeType.includes('mp4')) return 'm4a';
+  if (mimeType.includes('mpeg')) return 'mp3';
+  return 'ogg'; // fallback
+}
+
+
+ 
+
+  parseJsonSafe(value: any): any {
+    if (!value) return null;
+    if (typeof value === 'object') return value;
+    try { return JSON.parse(value); } catch { return null; }
+  }
+ 
+  openLocationInMaps(lat: number, lng: number): void {
+    window.open(`https://www.google.com/maps?q=${lat},${lng}`, '_blank');
+  }
+
+  /** True when the message being forwarded is a WhatsApp template */
+private isTemplateMessage(message: any): boolean {
+  return !!(message?.template || message?.message_type === 'template');
+}
+
+/**
+ * Check whether the conversation has received a customer message
+ * within the last 24 hours (needed for non-template forward gate).
+ */
+private conversationIsWithin24h(conv: any): boolean {
+  const messages: any[] = conv.messages || [];
+  const lastCustomer = [...messages]
+    .reverse()
+    .find((m: any) => m.type === 'customer');
+  if (!lastCustomer) return false;
+  const t = new Date(lastCustomer.received_time).getTime();
+  return (Date.now() - t) < 24 * 60 * 60 * 1000;
+}
+
+/**
+ * Check if a forward target item is a conversation (has contact property)
+ * vs a raw contact object
+ */
+isConversationItem(item: any): boolean {
+  return item && item.contact !== undefined;
+}
+
+/**
+ * Returns the best-supported MIME type for recording.
+ * Browser gives us WebM/Opus, backend converts to Ogg/Opus for WhatsApp.
+ */
+private getSupportedMimeType(): string {
+  const types = [
+    'audio/webm;codecs=opus',   // ✅ Best quality, most browser support
+    'audio/webm',               // Fallback without codec spec
+    'audio/ogg;codecs=opus',    // Native Ogg (rare browser support)
+  ];
+
+  for (const type of types) {
+    if (MediaRecorder.isTypeSupported(type)) {
+      console.log('[Recording] Using MIME type:', type);
+      return type;
+    }
+  }
+
+  throw new Error('No supported audio format found in browser');
+}
+
+async startRecording(): Promise<void> {
+  if (!this.conversationStatus.canSendMessage) {
+    this.messageService.add({
+      severity: 'warn',
+      summary: 'Cannot Record',
+      detail: 'You cannot send messages in this conversation state'
+    });
+    return;
+  }
+
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({
+      audio: {
+        echoCancellation: true,
+        noiseSuppression: true,
+        sampleRate: 48000,  // ✅ Opus standard rate
+      }
+    });
+
+    const mimeType = this.getSupportedMimeType();
+    this.mediaRecorder = new MediaRecorder(stream, { mimeType });
+    this.audioChunks = [];
+    this.recordingDuration = 0;
+
+    this.mediaRecorder.ondataavailable = (e) => {
+      if (e.data.size > 0) this.audioChunks.push(e.data);
+    };
+
+    this.mediaRecorder.onstop = () => {
+  console.log("Cancel recording ", this.cancelRecordingMarker);
+
+  stream.getTracks().forEach(t => t.stop());
+  clearInterval(this.recordingTimer);
+
+  if (this.cancelRecordingMarker) {
+    this.cancelRecordingMarker = false; // ✅ reset here
+    return; // ❌ do NOT send
+  }
+
+  const blob = new Blob(this.audioChunks, { type: mimeType });
+
+  this.sendAudioRecording(blob, mimeType);
+  this.isRecording = false;
+};
+
+    this.mediaRecorder.start(200);  // Collect data every 200ms
+    this.isRecording = true;
+    this.recordingTimer = setInterval(() => this.recordingDuration++, 1000);
+
+    this.messageService.add({
+      severity: 'info',
+      summary: 'Recording',
+      detail: 'Recording voice message...',
+      life: 2000
+    });
+
+  } catch (err: any) {
+    console.error('[Recording] Failed to start:', err);
+    
+    if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+      this.messageService.add({
+        severity: 'error',
+        summary: 'Permission Denied',
+        detail: 'Please allow microphone access in your browser settings',
+        life: 5000
+      });
+    } else {
+      this.messageService.add({
+        severity: 'error',
+        summary: 'Recording Failed',
+        detail: 'Could not access microphone',
+        life: 3000
+      });
+    }
+  }
+}
+
+stopRecording(): void {
+  if (this.mediaRecorder?.state === 'recording') {
+    this.mediaRecorder.stop();
+  }
+}
+
+cancelRecordingMarker = false;
+cancelRecording(): void {
+  if (this.mediaRecorder?.state === 'recording') {
+    this.cancelRecordingMarker = true;
+    this.mediaRecorder.stop();
+  }
+
+  this.mediaRecorder = null;
+  clearInterval(this.recordingTimer);
+  this.recordingTimer = null;
+  this.audioChunks = [];
+  this.isRecording = false;
+  this.recordingDuration = 0;
+
+  this.messageService.add({
+    severity: 'info',
+    summary: 'Cancelled',
+    detail: 'Recording cancelled',
+    life: 2000
+  });
+}
+
+get formattedRecordingDuration(): string {
+  const m = Math.floor(this.recordingDuration / 60).toString().padStart(2, '0');
+  const s = (this.recordingDuration % 60).toString().padStart(2, '0');
+  return `${m}:${s}`;
+}
+
+/**
+ * Send audio recording to backend.
+ * Backend's respond_to_message_v2 + message.py will handle WebM → Ogg conversion.
+ */
+private sendAudioRecording(blob: Blob, declaredMimeType: string): void {
+  if (blob.size < 1000) {
+    this.messageService.add({
+      severity: 'warn',
+      summary: 'Too Short',
+      detail: 'Recording is too short to send',
+      life: 3000
+    });
+    return;
+  }
+
+  // ✅ Let browser name it .webm — backend will convert to .ogg
+  const filename = `voice_${Date.now()}.webm`;
+  const file = new File([blob], filename, { type: declaredMimeType });
+
+  // Build FormData payload
+  const formData = new FormData();
+  formData.append('message_body', 'Voice message');
+  formData.append('file', file);
+
+  // Optimistic UI update
+  this._selectedConversation.messages.push({
+    message_body: 'Voice message',
+    message_type: 'audio',
+    sender: this._profile.user.id,
+    sent_time: new Date(),
+    status: 'sending',
+    type: 'org',
+    media_url: URL.createObjectURL(blob)  // Preview while uploading
+  });
+
+  this.conversationService.respond_to_message(
+    'chat',
+    this._selectedConversation.id,
+    formData
+  ).pipe(takeUntil(this.destroy$))
+    .subscribe({
+      next: (response: any) => {
+        if (response.conversation_status === 'zombie') {
+          this._selectedConversation.status = 'zombie';
+          this.conversationStatus = this.computeConversationStatus(this._selectedConversation);
+          this.buildMenuItems();
+          this.messageService.add({
+            severity: 'error',
+            summary: 'Re-engagement Required',
+            detail: 'Voice message failed. Send a template message first.',
+            life: 8000,
+          });
+        }
+        this.reloadActiveConversation();
+        this.resetInput();
+      },
+      error: (err) => {
+        console.error('[Recording] Send failed:', err);
+        const errorBody = err.error || {};
+        
+        if (errorBody.requires_template || errorBody.conversation_status === 'zombie') {
+          this._selectedConversation.status = 'zombie';
+          this.conversationStatus = this.computeConversationStatus(this._selectedConversation);
+          this.buildMenuItems();
+          this.messageService.add({
+            severity: 'error',
+            summary: 'Re-engagement Required',
+            detail: errorBody.details || 'Send a template message to continue.',
+            life: 8000,
+          });
+        } else {
+          this.messageService.add({
+            severity: 'error',
+            summary: 'Failed',
+            detail: errorBody.details || 'Could not send voice message',
+          });
+        }
+        this.reloadActiveConversation();
+      }
+    });
 }
 
 }

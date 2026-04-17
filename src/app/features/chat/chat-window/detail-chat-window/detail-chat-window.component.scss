@@ -761,7 +761,7 @@ $primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   flex-shrink: 0;
 }
 
-.action-btn,
+
 .attach-button {
   width: 42px;
   height: 42px;
@@ -1818,4 +1818,48 @@ $primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   padding: 0.5rem;
   background: rgba(102,126,234,0.06);
   border-radius: 6px;
+}
+
+// Replace the existing forward-btn styles at the bottom of your SCSS file with:
+
+.forward-btn {
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 5;
+  
+  // Ensure button is clickable even when opacity is 0
+  pointer-events: auto !important;
+}
+
+.message-bubble {
+  position: relative; // Ensure absolute positioning works
+  
+  &:hover .forward-btn {
+    opacity: 1;
+  }
+}
+
+// Also ensure customer messages have relative positioning
+.customer-message .message-bubble {
+  position: relative;
+}
+
+// And agent messages
+.agent-message .message-bubble {
+  position: relative;
+}
+ 
+/* Recording pulse animation */
+@keyframes pulse-rec {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.5;
+    transform: scale(1.2);
+  }
 }

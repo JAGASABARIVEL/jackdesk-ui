@@ -1,3 +1,8 @@
+// ============================================================================
+// FILE: src/app/shared/services/campaign-manager.service.ts
+// FIX: media_file must be a SEPARATE FormData field, NOT inside datasource JSON
+// ============================================================================
+
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
@@ -32,9 +37,7 @@ export class CampaignManagerService {
     formData.append('name', schedule.name);
     formData.append('uploaded_excel', schedule.uploaded_excel); // File object
     formData.append('frequency', schedule.frequency);
-    //formData.append('organization_id', schedule.organization_id.toString());
     formData.append('platform', schedule.platform.toString());
-    //formData.append('user_id', schedule.user_id.toString());
     formData.append('recipient_type', schedule.recipient_type);
     formData.append('recipient_id', schedule.recipient_id.toString());
     formData.append('message_body', schedule.message_body);
@@ -42,7 +45,19 @@ export class CampaignManagerService {
     formData.append('template', schedule.template);
 
     // Handle nested object (datasource)
+    // CRITICAL: datasource must ONLY contain excel config, never media_file.
+    // dump_for_excel_datasource() iterates all keys and calls source['type']
+    // on each one — any key without 'type' causes KeyError.
     formData.append('datasource', JSON.stringify(schedule.datasource));
+
+    // ── media_file goes as a SEPARATE top-level FormData field ───────
+    // Django view reads it via request.FILES.get('media_file'),
+    // completely independent of the datasource JSON.
+    if (schedule.media_file instanceof File) {
+      formData.append('media_file', schedule.media_file, schedule.media_file.name);
+    }
+    // ── END ─────────────────────────────────────────────────────────
+
     return formData;
   }
 

@@ -49,6 +49,7 @@ interface Employee {
   user_details?: {
     username: string;
     email: string;
+    user_type?: string;
     first_name?: string;
     last_name?: string;
   };
@@ -108,6 +109,10 @@ export class EmployeeManagementComponent implements OnInit, OnDestroy {
   selectedEmployee: Employee | null = null;
   searchText = '';
   selectedDepartment: number | null = null;
+
+  // ── Owner-as-employee ──
+  currentUser: any = null;
+  ownerAlreadyEmployee = false;
   
   designations = [
     { label: 'Intern', value: 'Intern' },
@@ -119,6 +124,8 @@ export class EmployeeManagementComponent implements OnInit, OnDestroy {
     { label: 'Tax Consultant', value: 'Tax Consultant' },
     { label: 'Senior Tax Consultant', value: 'Senior Tax Consultant' },
     { label: 'Auditor', value: 'Auditor' },
+    { label: 'Director', value: 'Director' },
+    { label: 'Managing Partner', value: 'Managing Partner' },
   ];
 
   constructor(
@@ -134,6 +141,7 @@ export class EmployeeManagementComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this.layoutService.state.staticMenuDesktopInactive = true;
+    this.loadCurrentUser();
     this.loadEmployees();
     this.loadDepartments();
     this.loadUsers();
@@ -166,6 +174,33 @@ export class EmployeeManagementComponent implements OnInit, OnDestroy {
   currentPage: number = 1;
   pageSize: number = 10;
   totalRecords: number = 0;
+
+  // ── Load current user from localStorage ──
+  loadCurrentUser(): void {
+    try {
+      const userData = localStorage.getItem('user');
+      if (userData) {
+        this.currentUser = JSON.parse(userData);
+      }
+    } catch (e) {
+      console.error('Error loading current user:', e);
+    }
+  }
+
+  get isOwner(): boolean {
+    return this.currentUser?.role === 'owner';
+  }
+
+  // ── Check if owner already has an EmployeeProfile ──
+  private checkOwnerEmployeeStatus(): void {
+    if (!this.isOwner || !this.currentUser?.id) {
+      this.ownerAlreadyEmployee = false;
+      return;
+    }
+    this.ownerAlreadyEmployee = this.employees.some(
+      emp => emp.user === this.currentUser.id || emp.user_details?.user_type === 'owner'
+    );
+  }
 
   onPageChange(event: any) {
     const page = event.first / event.rows + 1;  // PrimeNG gives zero-based
@@ -204,6 +239,9 @@ export class EmployeeManagementComponent implements OnInit, OnDestroy {
           this.currentPage = page;
           this.pageSize = pageSize;
 
+          // ── After loading employees, check if owner is already listed ──
+          this.checkOwnerEmployeeStatus();
+
           this.loading = false;
         },
         error: (error) => {
@@ -229,7 +267,8 @@ export class EmployeeManagementComponent implements OnInit, OnDestroy {
 
   loadUsers(): void {
     this.userManagerService.list_all_users().pipe(takeUntil(this.destroy$)).subscribe(data => {
-      data = data.filter(item => !['owner', 'agent'].includes(item.user_type))
+      // ── CHANGED: Allow 'owner' in the user list; only exclude 'agent' ──
+      data = data.filter(item => !['agent'].includes(item.user_type))
       this.users = data;
     });
   }
@@ -241,6 +280,30 @@ export class EmployeeManagementComponent implements OnInit, OnDestroy {
       is_active: true,
       date_of_joining: new Date()
     });
+    this.displayDialog = true;
+  }
+
+  // ── NEW: Add owner as employee with pre-filled form ──
+  addOwnerAsSelf(): void {
+    if (!this.currentUser?.id) {
+      this.showError('Unable to identify current user');
+      return;
+    }
+
+    this.isEditMode = false;
+    this.employeeForm.reset({
+      salary_currency: 'INR',
+      is_active: true,
+      date_of_joining: new Date()
+    });
+
+    // Pre-fill the user field with the owner's own ID
+    this.employeeForm.patchValue({
+      user: this.currentUser.id,
+      designation: 'Managing Partner',
+      employee_id: `OWNER-${Date.now().toString().slice(-6)}`,
+    });
+
     this.displayDialog = true;
   }
 
@@ -288,7 +351,10 @@ export class EmployeeManagementComponent implements OnInit, OnDestroy {
           this.hideDialog();
         },
         error: (error) => {
-          this.showError(this.isEditMode ? 'Failed to update employee' : 'Failed to add employee');
+          const errorMsg = error?.error?.detail || error?.error?.error 
+            || error?.error?.user?.[0] || error?.error?.employee_id?.[0]
+            || (this.isEditMode ? 'Failed to update employee' : 'Failed to add employee');
+          this.showError(errorMsg);
           console.error('Error saving employee:', error);
           this.loading = false;
         }
@@ -296,8 +362,13 @@ export class EmployeeManagementComponent implements OnInit, OnDestroy {
   }
 
   deleteEmployee(employee: Employee): void {
+    const isOwnerRow = employee.user_details?.user_type === 'owner';
+    const confirmMessage = isOwnerRow
+      ? `This will remove your employee profile. You will keep your owner privileges. Continue?`
+      : `Are you sure you want to delete ${employee.user_details?.username || 'this employee'}?`;
+
     this.confirmationService.confirm({
-      message: `Are you sure you want to delete ${employee.user_details?.username || 'this employee'}?`,
+      message: confirmMessage,
       header: 'Confirm Delete',
       icon: 'pi pi-exclamation-triangle',
       accept: () => {
@@ -306,7 +377,7 @@ export class EmployeeManagementComponent implements OnInit, OnDestroy {
           .pipe(takeUntil(this.destroy$))
           .subscribe({
             next: () => {
-              this.showSuccess('Employee deleted successfully');
+              this.showSuccess(isOwnerRow ? 'Owner employee profile removed' : 'Employee deleted successfully');
               this.loadEmployees();
             },
             error: (error) => {
@@ -336,6 +407,11 @@ export class EmployeeManagementComponent implements OnInit, OnDestroy {
       });
   }
 
+  // ── Helper: check if an employee row is the owner ──
+  isOwnerEmployee(employee: Employee): boolean {
+    return employee.user_details?.user_type === 'owner';
+  }
+
   hideDialog(): void {
     this.displayDialog = false;
     this.displayDetailsDialog = false;
@@ -347,26 +423,10 @@ export class EmployeeManagementComponent implements OnInit, OnDestroy {
       const searchValue = inputElement.value;
       this.currentPage = 1;
       this.loadEmployees(this.currentPage, this.pageSize, searchValue);
-      //dt.filterGlobal(searchValue, 'contains');
-    }
+  }
 
   getFilteredEmployees(): Employee[] {
     let filtered = this.employees;
-
-    //if (this.searchText) {
-    //  const search = this.searchText.toLowerCase();
-    //  filtered = filtered.filter(emp => 
-    //    emp.user_details?.username?.toLowerCase().includes(search) ||
-    //    emp.user_details?.email?.toLowerCase().includes(search) ||
-    //    emp.employee_id?.toLowerCase().includes(search) ||
-    //    emp.designation?.toLowerCase().includes(search)
-    //  );
-    //}
-
-    //if (this.selectedDepartment) {
-    //  filtered = filtered.filter(emp => emp.department === this.selectedDepartment);
-    //}
-
     return filtered;
   }
 

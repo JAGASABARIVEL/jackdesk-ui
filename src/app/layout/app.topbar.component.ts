@@ -348,9 +348,9 @@ export class AppTopBarComponent implements OnInit, OnDestroy, AfterViewInit {
     });
 }
 
-    profile = { user: { is_productivity_enable: false, role: null } };
+    profile = { user: { is_productivity_enable: false, role: null, organization: null } };
     resetProfile() {
-        this.profile = { user: { is_productivity_enable: false, role: null } };
+        this.profile = { user: { is_productivity_enable: false, role: null, organization: null } };
     }
 
     
@@ -501,4 +501,16 @@ export class AppTopBarComponent implements OnInit, OnDestroy, AfterViewInit {
             return;
         });
     }
+
+    get isNonTicketing(): boolean {
+  return this.profile?.user?.organization?.conversation_mode === 'non_ticketing';
+}
+
+get isTicketing(): boolean {
+  return this.profile?.user?.organization?.conversation_mode === 'ticketing';
+}
+
+get isOwner(): boolean {
+  return this.profile?.user.role === "owner"
+}
 }

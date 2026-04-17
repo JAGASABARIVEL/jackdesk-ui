@@ -208,6 +208,7 @@ WEB details page UI
               <i class="pi pi-clock"></i>
               {{ message.displayTime }}
             </div>
+            
             <div class="message-content">
 
               
@@ -229,6 +230,51 @@ WEB details page UI
                   </div>
                 </div>
                 
+                <!-- Shared Contact(s) -->
+              <div *ngIf="message.message_type === 'contacts'">
+                <div *ngFor="let contact of parseJsonSafe(message.message_body)"
+                     style="display:flex; align-items:center; gap:12px; padding:10px 14px;
+                            background:#f8fafc; border-radius:10px; border:1px solid #e2e8f0; margin-bottom:6px;">
+                  <div style="width:40px; height:40px; border-radius:50%; background:#eef2ff;
+                              display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+                    <i class="pi pi-user" style="font-size:18px; color:#667eea;"></i>
+                  </div>
+                  <div style="flex:1; min-width:0;">
+                    <div style="font-weight:600; font-size:14px; color:#1e293b;">
+                      {{ contact.name || contact.first_name || 'Unknown' }}
+                    </div>
+                    <div *ngFor="let phone of (contact.phones || [])"
+                         style="font-size:12px; color:#64748b; display:flex; align-items:center; gap:4px; margin-top:2px;">
+                      <i class="pi pi-phone" style="font-size:10px;"></i>
+                      {{ phone.phone || phone.wa_id || '' }}
+                    </div>
+                  </div>
+                </div>
+              </div>
+ 
+              <!-- Shared Location -->
+              <div *ngIf="message.message_type === 'location'"
+                   style="cursor:pointer;"
+                   (click)="openLocationInMaps(parseJsonSafe(message.message_body)?.latitude, parseJsonSafe(message.message_body)?.longitude)">
+                <div style="border-radius:10px; overflow:hidden; border:1px solid #e2e8f0;">
+                  <div style="width:100%; height:150px; display:flex; flex-direction:column;
+                              align-items:center; justify-content:center; gap:8px;
+                              background:linear-gradient(135deg, #f0fdf4, #dcfce7);">
+                    <i class="pi pi-map-marker" style="font-size:28px; color:#ef4444;"></i>
+                    <div style="font-size:13px; color:#64748b;">
+                      {{ parseJsonSafe(message.message_body)?.latitude?.toFixed(5) }},
+                      {{ parseJsonSafe(message.message_body)?.longitude?.toFixed(5) }}
+                    </div>
+                  </div>
+                  <div style="display:flex; align-items:center; gap:6px; padding:8px 12px;
+                              background:#f8fafc; font-size:13px; color:#334155; font-weight:500;">
+                    <i class="pi pi-map-marker"></i>
+                    <span>{{ parseJsonSafe(message.message_body)?.name || 'Shared Location' }}</span>
+                  </div>
+                </div>
+              </div>
+ 
+
                 <!-- Video -->
                 <div *ngIf="message.message_type.includes('video')" class="whatsapp-media-container">
                   <video [src]="message.media_url" 
@@ -248,7 +294,7 @@ WEB details page UI
                             (!message.message_type.includes('image') && 
                              !message.message_type.includes('video') && 
                              !message.message_type.includes('audio') &&
-                             message.message_type !== 'text')" 
+                             message.message_type !== 'text') && message.message_type !== 'location' && message.message_type !== 'contacts'" 
                      class="whatsapp-document-container"
                      (click)="openFilePreview(message.media_url, message.filename || 'document', message.message_type)">
                   
@@ -275,7 +321,7 @@ WEB details page UI
               </div>
               
               <!-- Text Content -->
-              <div *ngIf="message.message_type !== 'email' && message.message_body" class="message-text">
+              <div *ngIf="message.message_type !== 'email' && message.message_body && message.message_type !== 'location' && message.message_type !== 'contacts'" class="message-text">
                 {{ message.message_body }}
               </div>
               
@@ -354,6 +400,12 @@ WEB details page UI
                 </ng-container>
               </div>
             </div>
+
+            <button pButton icon="pi pi-share-alt"
+              class="p-button-rounded p-button-text p-button-lg forward-btn"
+              pTooltip="Forward" tooltipPosition="left"
+              (click)="openForwardDialog(message); $event.stopPropagation()">
+            </button>
           </div>
         </div>
       </div>
@@ -413,6 +465,51 @@ WEB details page UI
                         pTooltip="Download"></button>
               </div>
             </div>
+
+            <!-- Shared Contact(s) -->
+              <div *ngIf="message.message_type === 'contacts'">
+                <div *ngFor="let contact of parseJsonSafe(message.message_body)"
+                     style="display:flex; align-items:center; gap:12px; padding:10px 14px;
+                            background:#f8fafc; border-radius:10px; border:1px solid #e2e8f0; margin-bottom:6px;">
+                  <div style="width:40px; height:40px; border-radius:50%; background:#eef2ff;
+                              display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+                    <i class="pi pi-user" style="font-size:18px; color:#667eea;"></i>
+                  </div>
+                  <div style="flex:1; min-width:0;">
+                    <div style="font-weight:600; font-size:14px; color:#1e293b;">
+                      {{ contact.name || contact.first_name || 'Unknown' }}
+                    </div>
+                    <div *ngFor="let phone of (contact.phones || [])"
+                         style="font-size:12px; color:#64748b; display:flex; align-items:center; gap:4px; margin-top:2px;">
+                      <i class="pi pi-phone" style="font-size:10px;"></i>
+                      {{ phone.phone || phone.wa_id || '' }}
+                    </div>
+                  </div>
+                </div>
+              </div>
+ 
+              <!-- Shared Location -->
+              <div *ngIf="message.message_type === 'location'"
+                   style="cursor:pointer;"
+                   (click)="openLocationInMaps(parseJsonSafe(message.message_body)?.latitude, parseJsonSafe(message.message_body)?.longitude)">
+                <div style="border-radius:10px; overflow:hidden; border:1px solid #e2e8f0;">
+                  <div style="width:100%; height:150px; display:flex; flex-direction:column;
+                              align-items:center; justify-content:center; gap:8px;
+                              background:linear-gradient(135deg, #f0fdf4, #dcfce7);">
+                    <i class="pi pi-map-marker" style="font-size:28px; color:#ef4444;"></i>
+                    <div style="font-size:13px; color:#64748b;">
+                      {{ parseJsonSafe(message.message_body)?.latitude?.toFixed(5) }},
+                      {{ parseJsonSafe(message.message_body)?.longitude?.toFixed(5) }}
+                    </div>
+                  </div>
+                  <div style="display:flex; align-items:center; gap:6px; padding:8px 12px;
+                              background:#f8fafc; font-size:13px; color:#334155; font-weight:500;">
+                    <i class="pi pi-map-marker"></i>
+                    <span>{{ parseJsonSafe(message.message_body)?.name || 'Shared Location' }}</span>
+                  </div>
+                </div>
+              </div>
+ 
             
             <!-- Video -->
             <div *ngIf="message.message_type.includes('video')" class="whatsapp-media-container">
@@ -435,7 +532,7 @@ WEB details page UI
                          !message.message_type.includes('video') && 
                          !message.message_type.includes('audio') &&
                          message.message_type !== 'text' &&
-                         message.message_type !== 'email')" 
+                         message.message_type !== 'email' && message.message_type !== 'location' && message.message_type !== 'contacts')" 
                  class="whatsapp-document-container"
                  (click)="openFilePreview(message.media_url, message.filename || getFileName(message.media_url), message.message_type)">
               
@@ -463,7 +560,7 @@ WEB details page UI
           
           <!-- Text Content -->
           <!--div *ngIf="message.message_type === 'text' && message.message_body" class="message-text"-->
-          <div *ngIf="message.message_body" class="message-text">
+          <div *ngIf="message.message_body && message.message_type !== 'location' && message.message_type !== 'contacts'" class="message-text">
             <span style="white-space: pre-wrap;">{{ message.message_body }}</span>
           </div>
           
@@ -577,6 +674,12 @@ WEB details page UI
           <span>Failed to send</span>
         </div>
       </div>
+
+      <button pButton icon="pi pi-share-alt"
+              class="p-button-rounded p-button-text p-button-sm forward-btn"
+              pTooltip="Forward" tooltipPosition="left"
+              (click)="openForwardDialog(message); $event.stopPropagation()">
+      </button>
     </div>
   </div>
 </div>
@@ -652,14 +755,14 @@ WEB details page UI
   [style]="{'min-width': '180px'}">
 </p-select>
 
-      <button pButton
+      <!--button pButton
               *ngIf="taggedEmployee && canInitiateCall"
               icon="pi pi-phone"
               label="Ask to call"
               class="p-button-sm p-button-success p-button-outlined"
               pTooltip="Send note asking this agent to call the customer"
               (click)="sendNoteAndRequestCall()">
-      </button>
+      </button-->
     </ng-container>
   </div>
 
@@ -764,18 +867,31 @@ WEB details page UI
     </div>
 
     <!-- Action Buttons -->
-    <div class="action-buttons flex align-items-center gap-2">
+    <div class="action-buttons flex align-items-center gap-1">
 
       <!-- Template (WhatsApp zombie/active) -->
       <button *ngIf="selectedConversation.contact.platform_name === 'whatsapp' &&
                      conversationStatus.canSendTemplate"
-              pButton icon="pi pi-file"
+              pButton icon="pi pi-bolt"
+              size="large"
               class="p-button-rounded p-button-text action-btn"
               [class.p-button-warning]="conversationStatus.isZombie"
               pTooltip="Send Template Message"
               tooltipPosition="top"
               (click)="openSendTemplateDialog()">
       </button>
+
+            <!-- Mic button (when NOT recording) -->
+<button *ngIf="!isRecording"
+        pButton
+        icon="pi pi-microphone"
+        size="large"
+        class="p-button-rounded p-button-text action-btn"
+        pTooltip="Record voice message"
+        tooltipPosition="top"
+        [disabled]="!conversationStatus.canSendMessage"
+        (click)="startRecording()">
+</button>
 
       <!-- Attach -->
       <label for="fileInput"
@@ -789,6 +905,43 @@ WEB details page UI
              [disabled]="isMessageInputDisabled()"
              (change)="onFileSelected($event)"
              (click)="resetFileInput($event)">
+      
+
+
+<!-- Recording controls (when recording) -->
+<div *ngIf="isRecording"
+     class="flex align-items-center gap-2 px-2 py-1 border-round"
+     style="background:#fef2f2; border:1px solid #fecaca; border-radius:20px;">
+  
+  <!-- Cancel button -->
+  <button pButton
+          icon="pi pi-times"
+          class="p-button-rounded p-button-danger p-button-text p-button-sm"
+          pTooltip="Cancel"
+          tooltipPosition="top"
+          (click)="cancelRecording()">
+  </button>
+  
+  <!-- Recording indicator with pulse animation -->
+  <div class="flex align-items-center gap-1">
+    <span style="width:8px; height:8px; border-radius:50%; background:#ef4444;
+                 display:inline-block; animation:pulse-rec 1s ease-in-out infinite;">
+    </span>
+    <span style="font-family:monospace; font-size:13px; font-weight:600;
+                 color:#dc2626; min-width:42px;">
+      {{ formattedRecordingDuration }}
+    </span>
+  </div>
+  
+  <!-- Send button -->
+  <button pButton
+          icon="pi pi-send"
+          class="p-button-rounded p-button-text p-button-sm"
+          pTooltip="Send"
+          tooltipPosition="top"
+          (click)="stopRecording()">
+  </button>
+</div>
 
       <!-- Send -->
       <button pButton icon="pi pi-send"
@@ -799,6 +952,7 @@ WEB details page UI
               tooltipPosition="top"
               (click)="sendMessage()">
       </button>
+      
     </div>
   </div>
 
@@ -2011,6 +2165,160 @@ WEB details page UI
       class="p-button-outlined" 
       [disabled]="!selectedUserForAssignment" 
       (click)="assignTask()">
+    </button>
+  </ng-template>
+</p-dialog>
+
+<!-- Forward Message Dialog -->
+<p-dialog header="Forward Message"
+          [(visible)]="showForwardDialog"
+          [modal]="true"
+          [style]="{width:'440px'}"
+          [draggable]="false">
+
+  <!-- Source message preview -->
+  <div *ngIf="forwardSourceMessage"
+       style="padding:10px 14px; background:#f1f5f9; border-radius:8px; margin-bottom:14px;">
+    <div style="font-size:11px; font-weight:600; color:#94a3b8;
+                text-transform:uppercase; letter-spacing:.5px; margin-bottom:4px;">
+      Forwarding:
+    </div>
+    <div style="font-size:13px; color:#334155; word-break:break-word;">
+      {{ (forwardSourceMessage.message_body || '[Template message]') | slice:0:120 }}
+      {{ forwardSourceMessage.message_body?.length > 120 ? '...' : '' }}
+    </div>
+  </div>
+
+  <!-- Context banner -->
+  <div style="margin-bottom:12px; padding:8px 12px; border-radius:6px; font-size:12px;"
+       [style.background]="forwardIsTemplate ? '#eff6ff' : '#f0fdf4'"
+       [style.border]="forwardIsTemplate ? '1px solid #bfdbfe' : '1px solid #bbf7d0'"
+       [style.color]="forwardIsTemplate ? '#1e40af' : '#166534'">
+    <i [class]="forwardIsTemplate ? 'pi pi-users mr-2' : 'pi pi-comments mr-2'"></i>
+    <span *ngIf="forwardIsTemplate">
+      Template message — select any WhatsApp contact
+    </span>
+    <span *ngIf="!forwardIsTemplate">
+      Can only forward to active WhatsApp conversations with a recent reply (last 24 h)
+    </span>
+  </div>
+
+  <!-- Search -->
+  <div style="margin-bottom:10px;">
+    <span class="p-input-icon-left" style="width:100%;">
+      <i class="pi pi-search"></i>
+      <input pInputText
+             type="text"
+             [(ngModel)]="forwardSearchText"
+             [placeholder]="forwardIsTemplate ? 'Search contacts...' : 'Search conversations...'"
+             style="width:100%;" />
+    </span>
+  </div>
+
+  <!-- List -->
+  <div style="max-height:300px; overflow-y:auto;">
+
+    <!-- Template forward → contact list -->
+    <!-- In the forward dialog template, replace the list section with: -->
+
+<!-- Template forward → show active conversations first, then contacts -->
+<ng-container *ngIf="forwardIsTemplate">
+  <!-- Active Conversations Section -->
+  <div *ngIf="forwardableConversations.length > 0" style="margin-bottom: 8px;">
+    <div style="font-size: 11px; font-weight: 600; color: #6b7280; 
+                text-transform: uppercase; letter-spacing: 0.5px; 
+                padding: 4px 14px; background: #f3f4f6;">
+      Active Conversations
+    </div>
+    <div *ngFor="let conv of filteredForwardList" 
+         [class]="isConversationItem(conv) ? 'conv-item' : 'contact-item'"
+         style="padding:10px 14px; border-radius:8px; cursor:pointer;
+                transition:background .15s; border:1px solid transparent;"
+         [style.background]="forwardTargetConversation?.id === conv.id ? '#eef2ff' : 'transparent'"
+         [style.border-color]="forwardTargetConversation?.id === conv.id ? '#667eea' : 'transparent'"
+         (click)="selectForwardTarget(conv)">
+      
+      <!-- Active Conversation Display -->
+      <ng-container *ngIf="isConversationItem(conv); else contactItem">
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <i class="pi pi-comments" style="color: #10b981; font-size: 14px;"></i>
+          <div style="flex: 1;">
+            <div style="font-weight:600; font-size:14px; color:#1e293b;">
+              {{ conv.contact?.name || conv.contact?.phone }}
+            </div>
+            <div style="font-size:11px; color:#94a3b8; display: flex; align-items: center; gap: 6px;">
+              <span>{{ conv.contact?.phone }}</span>
+              <span style="color: #10b981;">• Active</span>
+            </div>
+          </div>
+        </div>
+      </ng-container>
+      
+      <!-- Contact (No Active Conversation) Display -->
+      <ng-template #contactItem>
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <i class="pi pi-user" style="color: #64748b; font-size: 14px;"></i>
+          <div style="flex: 1;">
+            <div style="font-weight:600; font-size:14px; color:#1e293b;">
+              {{ conv.name || conv.phone }}
+            </div>
+            <div style="font-size:11px; color:#94a3b8;">
+              <i class="pi pi-phone mr-1" style="font-size:10px;"></i>{{ conv.phone }}
+            </div>
+          </div>
+        </div>
+      </ng-template>
+    </div>
+  </div>
+  
+  <!-- Empty state -->
+  <div *ngIf="filteredForwardList.length === 0"
+       style="text-align:center; padding:20px; color:#94a3b8;">
+    No WhatsApp contacts found
+  </div>
+</ng-container>
+
+<!-- Normal forward → active conversation list (unchanged) -->
+<ng-container *ngIf="!forwardIsTemplate">
+  <div *ngFor="let conv of filteredForwardList"
+       style="padding:10px 14px; border-radius:8px; cursor:pointer;
+              transition:background .15s; border:1px solid transparent;"
+       [style.background]="forwardTargetConversation?.id === conv.id ? '#eef2ff' : 'transparent'"
+       [style.border-color]="forwardTargetConversation?.id === conv.id ? '#667eea' : 'transparent'"
+       (click)="selectForwardTarget(conv)">
+    <div style="font-weight:600; font-size:14px; color:#1e293b;">
+      {{ conv.contact?.name || conv.contact?.phone }}
+    </div>
+    <div style="font-size:11px; color:#94a3b8; text-transform:capitalize;">
+      <i class="pi pi-comments mr-1" style="font-size:10px;"></i>
+      {{ conv.contact?.platform_name }}
+    </div>
+  </div>
+  <div *ngIf="filteredForwardList.length === 0"
+       style="text-align:center; padding:20px; color:#94a3b8;">
+    No eligible conversations found.<br>
+    <span style="font-size:11px;">Only active WhatsApp conversations with a customer
+    reply in the last 24 h are shown.</span>
+  </div>
+</ng-container>
+
+    
+
+  </div>
+
+  <ng-template pTemplate="footer">
+    <button pButton
+            label="Cancel"
+            icon="pi pi-times"
+            class="p-button-text p-button-secondary"
+            (click)="showForwardDialog = false">
+    </button>
+    <button pButton
+            label="Forward"
+            icon="pi pi-share-alt"
+            class="p-button-outlined"
+            [disabled]="!forwardTargetConversation"
+            (click)="confirmForward()">
     </button>
   </ng-template>
 </p-dialog>

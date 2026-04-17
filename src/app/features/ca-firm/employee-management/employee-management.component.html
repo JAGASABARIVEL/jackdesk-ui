@@ -15,6 +15,17 @@
       </div>
       
       <div class="header-actions">
+        <!-- ── NEW: "Add Myself" button for owner ── -->
+        <p-button 
+          *ngIf="isOwner && !ownerAlreadyEmployee"
+          label="Add Myself as Employee" 
+          icon="pi pi-user-plus" 
+          (onClick)="addOwnerAsSelf()"
+          styleClass="p-button-success"
+          pTooltip="Add yourself to the employee roster so you can be assigned as a customer representative"
+          tooltipPosition="bottom">
+        </p-button>
+
         <p-button 
           label="Add Employee" 
           icon="pi pi-plus" 
@@ -122,19 +133,28 @@
       </ng-template>
       
       <ng-template pTemplate="body" let-employee>
-        <tr>
+        <tr [class.owner-row]="isOwnerEmployee(employee)">
           <td>
             <p-avatar 
               [label]="getInitials(employee)" 
               styleClass="mr-2" 
               size="large" 
               shape="circle"
-              [style]="{'background-color': '#667eea', 'color': '#ffffff'}">
+              [style]="{'background-color': isOwnerEmployee(employee) ? '#f59e0b' : '#667eea', 'color': '#ffffff'}">
             </p-avatar>
           </td>
           <td>
             <div class="employee-info">
-              <div class="employee-name">{{ employee.user_details?.username || 'N/A' }}</div>
+              <div class="employee-name">
+                {{ employee.user_details?.username || 'N/A' }}
+                <!-- ── Owner badge ── -->
+                <p-tag 
+                  *ngIf="isOwnerEmployee(employee)"
+                  value="Owner" 
+                  severity="warn"
+                  styleClass="owner-badge">
+                </p-tag>
+              </div>
               <div class="employee-email">{{ employee.user_details?.email || 'N/A' }}</div>
             </div>
           </td>
@@ -195,7 +215,7 @@
                 [rounded]="true"
                 [text]="true"
                 severity="danger"
-                pTooltip="Delete"
+                [pTooltip]="isOwnerEmployee(employee) ? 'Remove from employee roster' : 'Delete'"
                 tooltipPosition="top">
               </p-button>
             </div>
@@ -459,10 +479,18 @@
         [label]="getInitials(selectedEmployee)" 
         size="xlarge" 
         shape="circle"
-        [style]="{'background-color': '#667eea', 'color': '#ffffff'}">
+        [style]="{'background-color': isOwnerEmployee(selectedEmployee) ? '#f59e0b' : '#667eea', 'color': '#ffffff'}">
       </p-avatar>
       <div class="detail-header-info">
-        <h3>{{ selectedEmployee.user_details?.username }}</h3>
+        <h3>
+          {{ selectedEmployee.user_details?.username }}
+          <p-tag 
+            *ngIf="isOwnerEmployee(selectedEmployee)"
+            value="Owner" 
+            severity="warn"
+            styleClass="owner-badge">
+          </p-tag>
+        </h3>
         <p>{{ selectedEmployee.user_details?.email }}</p>
         <p-tag 
           [value]="selectedEmployee.is_active ? 'Active' : 'Inactive'" 

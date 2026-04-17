@@ -86,6 +86,9 @@ export class ComposeMessageComponent implements OnInit, OnDestroy {
   message_text: any = undefined;
   message_typed: any = undefined;
   selected_datasource: any = undefined;
+  // ── Media file for template header (image/video/document) ─────────
+  selectedMediaFile: File | null = null;
+  mediaPreviewUrl: string | null = null;
 
   list_of_schedule_names = [];
   files!: any;
@@ -172,6 +175,54 @@ export class ComposeMessageComponent implements OnInit, OnDestroy {
       this.contacts = [];
       this.loadGroups(searchTerm);
     });
+  }
+
+  /**
+   * Returns the HEADER media format of the selected template, or null.
+   */
+  get selectedTemplateHeaderFormat(): string | null {
+    if (!this.selected_template?.components) return null;
+    const header = this.selected_template.components.find(
+      (c: any) => c.type === 'HEADER'
+    );
+    if (!header) return null;
+    const fmt = header.format?.toUpperCase();
+    return ['DOCUMENT', 'IMAGE', 'VIDEO'].includes(fmt) ? fmt : null;
+  }
+ 
+  onMediaFileSelected(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    if (!input.files || input.files.length === 0) return;
+    const file = input.files[0];
+ 
+    const allowedByType: Record<string, string[]> = {
+      DOCUMENT: ['application/pdf'],
+      IMAGE:    ['image/jpeg', 'image/png', 'image/webp'],
+      VIDEO:    ['video/mp4', 'video/webm'],
+    };
+    const allowed = allowedByType[this.selectedTemplateHeaderFormat ?? ''] ?? [];
+ 
+    if (allowed.length && !allowed.includes(file.type)) {
+      this.messageService.add({
+        severity: 'warn',
+        summary: 'Invalid File Type',
+        detail: `Allowed: ${allowed.map(a => a.split('/')[1]).join(', ')}`
+      });
+      return;
+    }
+ 
+    this.selectedMediaFile = file;
+    this.mediaPreviewUrl = file.type.startsWith('image/')
+      ? URL.createObjectURL(file)
+      : null;
+  }
+ 
+  removeMediaFile(): void {
+    if (this.mediaPreviewUrl) {
+      URL.revokeObjectURL(this.mediaPreviewUrl);
+    }
+    this.selectedMediaFile = null;
+    this.mediaPreviewUrl = null;
   }
 
   onScheduleNameSelected() {
@@ -379,6 +430,7 @@ export class ComposeMessageComponent implements OnInit, OnDestroy {
     else {
       this.selected_template = selectedTemplate;
     }
+    this.removeMediaFile();
   }
 
   onMessageText(event: EditorTextChangeEvent) {
@@ -460,6 +512,7 @@ export class ComposeMessageComponent implements OnInit, OnDestroy {
     this.groupsPage = 1;
     this.contactSearchText = '';
     this.groupSearchText = '';
+    this.removeMediaFile();
   }
 
   onReset() {
@@ -492,7 +545,8 @@ export class ComposeMessageComponent implements OnInit, OnDestroy {
         message_body: this.message_text,
         scheduled_time: this.formatDateToCustomString(this.selected_date_time),
         datasource: dataSourcePayload,
-        template: this.selected_template ? JSON.stringify(this.selected_template) : undefined
+        template: this.selected_template ? JSON.stringify(this.selected_template) : undefined,
+        media_file: this.selectedMediaFile || undefined,  // ← SEPARATE field, NOT in datasource
       };
 
       this.scheduleService.create_campaign(this.composeMessagePayload)

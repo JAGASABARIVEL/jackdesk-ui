@@ -718,4 +718,17 @@ getActiveCall() {
   return this.http.get(`${this.calls_url}active/`, { headers });
 }
 
+  forwardMessage(payload: {
+  source_message_id      : number;
+  source_message_type    : 'incoming' | 'outgoing';
+  target_conversation_id : number;
+}): Observable<any> {
+  const headers = new HttpHeaders().set('Authorization', `Bearer ${this.auth_token}`);
+  return this.http.post(
+    `${this.conversations_url}forward/`,
+    payload,
+    { headers }
+  );
+}
+
 }

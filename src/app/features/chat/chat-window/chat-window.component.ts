@@ -186,10 +186,10 @@ private readonly ICE_SERVERS = [
     this.loadUsers();
     this.loadInitialConversations();
     this.initializeWebSocket();
-    if (this.profile()?.user?.organization?.is_whatsapp_calling_enabled) {
+    //console.log("this.profile()?.user?.organization?.is_whatsapp_calling_enabled ", this.profile()?.user?.organization);
+    if (this.profile()?.user?.organization?.is_whatsapp_calling_enabled === true) {
       this.checkForOrphanedCall();
     }
-    
   }
 
   private loadUsers(): void {
@@ -608,12 +608,14 @@ private readonly ICE_SERVERS = [
         this.fetchAndAddConversation(convId);
       }
 
+      console.log("message ", message)
+
       // Toast so agent notices
       this.messageService.add({
         severity : 'info',
-        summary  : `📞 ${message.sender_name} asked you to call`,
-        detail   : `${message.customer_name || message.customer_phone} — call button is now enabled`,
-        life     : 20000,
+        summary  : `💼 ${message.sender_name} mentioned you in the conversation`,
+        detail   : `${message.customer_name || message.customer_phone} - ${message.message_body}`,
+        life     : 200000,
       });
     }
 
@@ -794,6 +796,7 @@ private _showCallRecoveryDialog(call: any): void {
 
   private handleCallEvent(event: any): void {
   const currentCallId = this.activeCallId();
+  const myUserId = this.profile()?.user?.id;
 
   switch (event.event_type) {
 
@@ -807,6 +810,8 @@ private _showCallRecoveryDialog(call: any): void {
       const myUserId = this.profile()?.user?.id;
       const routedTo = event.routed_to;
       const shouldRing = !routedTo || routedTo === myUserId;
+      // ← NEW: Don't even set call state if not routed to us
+      if (!shouldRing) break;
 
       this.pendingMetaSdpOffer = event.sdp_offer || '';
       this.activeCallId.set(event.call_id);
@@ -819,12 +824,14 @@ private _showCallRecoveryDialog(call: any): void {
 
       if (shouldRing) {
         this.waCallVisible.set(true);
-        this.playMessageSound();
+        this.playRingtoneSound();
       }
       break;
     }
 
     case 'outbound_call_initiated': {
+      // ← NEW: Only handle if agent_id matches us or we initiated it
+      if (event.agent_id && event.agent_id !== myUserId) break;
       // Only update if this matches our current call or no call is active yet
       if (currentCallId && currentCallId !== event.call_id) break;
       // Don't touch waCallVisible here — already set in onInitiateCall
@@ -840,6 +847,7 @@ private _showCallRecoveryDialog(call: any): void {
     }
 
     case 'outbound_call_connected': {
+      if (event.agent_id && event.agent_id !== myUserId) break;
       if (event.call_id !== currentCallId) break;
       if (!this.peerConnection) {
         console.error('No peer connection for outbound_call_connected');
@@ -859,6 +867,9 @@ private _showCallRecoveryDialog(call: any): void {
     }
 
     case 'call_status': {
+      // ← NEW: Ignore if agent_id present and not us
+      if (event.agent_id && event.agent_id !== myUserId 
+          && event.call_id !== currentCallId) break;
       if (event.call_id !== currentCallId) break;  // ignore stale events
       this.activeCallStatus.set(event.status);
       if (event.status === 'active' && !this.callTimer) {
@@ -1304,6 +1315,11 @@ loadMoreNotifications(): void {
 
   private playMessageSound(): void {
     const audio = new Audio('../../../../assets/media/new_message.mp3');
+    audio.play().catch(() => {});
+  }
+
+  private playRingtoneSound(): void {
+    const audio = new Audio('../../../../assets/media/airtel_ringtone.mp3');
     audio.play().catch(() => {});
   }
 

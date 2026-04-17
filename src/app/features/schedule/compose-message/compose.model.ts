@@ -2,7 +2,7 @@ export interface DataSourceModel {
     name: {
         type: string,
         file_upload: string,
-    }
+    },
 }
 
 export interface ComposeMessageModel {
@@ -17,5 +17,6 @@ export interface ComposeMessageModel {
     template: any,
     message_body: string,
     scheduled_time: string,
-    datasource: DataSourceModel
+    datasource: DataSourceModel,
+    media_file: any,  // ← SEPARATE field, NOT in datasource
 }
